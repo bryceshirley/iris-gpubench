@@ -11,13 +11,13 @@ The Command
 This bash script has been written for sciml-benchmarks and will be generalized to any runnable GPU benchmark:
 
 ```
-./monitor.sh <sciml benchmark command>
+./monitor.sh <--run_options sciml_benchmark>
 ```
 
 Or 
 
 ```
-./monitor.sh <sciml benchmark command> --plot
+./monitor.sh <--run_options sciml_benchmark> --plot
 ```
 
 # How to use:
@@ -37,19 +37,22 @@ chmod +x monitor.sh
 
 ####		a. The Output of the Benchmark and Power/Utilization Are Tracked Live By Copying over The Tmux Outputs. Example:
 
+This example uses the "synthetic_regression" benchmark and "-b epochs 2" option for two epochs (see sciml-bench docs for more options).
 ```
-(bench) dnz75396@bs-scimlbench-a4000:~/gpu_benchmark_metrics$ ./monitor.sh "sciml-bench run synthetic_regression"
+(bench) dnz75396@bs-scimlbench-a4000:~/gpu_benchmark_metrics$ ./monitor.sh "-b epochs 2 synthetic_regression" --plot
+
 Live Monitor: Power and Utilization
 
-Current GPU Power Usage: 132.76 W, GPU Utilization: 98.00 %
+Current GPU Power Usage: 133.29 W, GPU Utilization: 55.00 %
 
 
 Live Monitor: Benchmark Output
 
-Epoch 0: 100%|███████████████████| 8000/8000 [00:40<00:00, 197.41it/s, v_num=10]
-....<ENDED> Training model [ELAPSED = 40.945453 sec]
-....<BEGIN> Saving training metrics to a file
-....<ENDED> Saving training metrics to a file [ELAPSED = 0.000295 sec]
+h/trainer/connectors/data_connector.py:424: The 'train_dataloader' does not have
+ many workers which may be a bottleneck. Consider increasing the value of the `n
+um_workers` argument` to `num_workers=15` in the `DataLoader` to improve perform
+ance.
+Epoch 1:  92%|██████████████████▎ | 7336/8000 [00:37<00:03, 195.41it/s, v_num=0]
 ```   
 
 #####		b. (Optional)Timeseries Using the --plot option
@@ -67,29 +70,27 @@ tmux kill-session
 ```
 ### 5. Results 
 
-* Results are saved to gpu_benchmark_metrics/Results (these include):
-	* The plots (--plot): gpu_power_usage.png and gpu_utilization.png
- 	* benchmark_scores.txt and is output to terminal:
+* Results are saved to gpu_benchmark_metrics/results (these include):
+	* gpu_power_usage.png and gpu_utilization.png: Time series plots for gpu utilization and power usage
+  	* metrics.yml: yml with the Benchmark Score and GPU Performance results.
+  	* benchmark_specific/: directory containing all the results output by the sciml-bench benchmark. 
+ 	* formatted_scores.txt : Formatted version of metrics.yml, see example below.
 ```
-Benchmark Results
+Benchmark Score and GPU Performance
 
-....<ENDED> Training model [ELAPSED = 40.945453 sec]
-....<BEGIN> Saving training metrics to a file
-....<ENDED> Saving training metrics to a file [ELAPSED = 0.000295 sec]
-
-Power and Utilization
-
-
-+----------------------------------------------+---------------------+          
-| Metric                                       | Value               |          
-+==============================================+=====================+          
-| Total GPU Energy Consumed (kWh)              | 0.00155             |          
-+----------------------------------------------+---------------------+          
-| Average GPU Util. (for >0.00% GPU Util.) (%) | 89.38               |          
-+----------------------------------------------+---------------------+          
-| Avg GPU Power (for >0.00% GPU Util.) (W)     | 129.99 (max 140.00) |          
-+----------------------------------------------+---------------------+ 
++----------------------------------------------+------------------------------+
+| Metric                                       | Value                        |
++==============================================+==============================+
+| Benchmark Score (s)                          | 81.96181                     |
++----------------------------------------------+------------------------------+
+| Total GPU Energy Consumed (kWh)              | 0.00308                      |
++----------------------------------------------+------------------------------+
+| Average GPU Util. (for >0.00% GPU Util.) (%) | 83.26984                     |
++----------------------------------------------+------------------------------+
+| Avg GPU Power (for >0.00% GPU Util.) (W)     | 129.97778 (max possible 140) |
++----------------------------------------------+------------------------------+
 ```
+
 # Requirements:
 gpu_monitor.py 
 monitor.sh
