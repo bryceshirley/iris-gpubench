@@ -62,8 +62,8 @@ tmux kill-session
 ### 5. Results 
 
 * Results are saved to gpu_benchmark_metrics/Results (these include):
-	* The plots: gpu_power_usage.png and gpu_utilization.png
- 	* benchmark_scores.txt (also output in termal like so)
+	* The plots (--plot): gpu_power_usage.png and gpu_utilization.png
+ 	* benchmark_scores.txt and is output to terminal:
 ```
 Benchmark Results
 
