@@ -30,7 +30,21 @@ chmod +x monitor.sh
 ```
 
 ### 3.  Live Monitoring
-	a. The Output of the Benchmark and Power/Utilization Are Tracked Live By Copying over The Tmux Outputs
+	a. The Output of the Benchmark and Power/Utilization Are Tracked Live By Copying over The Tmux Outputs. Example:
+```
+(bench) dnz75396@bs-scimlbench-a4000:~/gpu_benchmark_metrics$ ./monitor.sh "sciml-bench run synthetic_regression"
+Live Monitor: Power and Utilization
+
+Current GPU Power Usage: 132.76 W, GPU Utilization: 98.00 %
+
+
+Live Monitor: Benchmark Output
+
+Epoch 0: 100%|███████████████████| 8000/8000 [00:40<00:00, 197.41it/s, v_num=10]
+....<ENDED> Training model [ELAPSED = 40.945453 sec]
+....<BEGIN> Saving training metrics to a file
+....<ENDED> Saving training metrics to a file [ELAPSED = 0.000295 sec]
+```   
 
 	b. (Optional)Timeseries Using the --plot option
   
@@ -45,7 +59,31 @@ Gives you a live timeseries for GPU power consumption and GPU utilization. Just 
 ```
 tmux kill-session
 ```
+### 5. Results 
 
+* Results are saved to gpu_benchmark_metrics/Results (these include):
+	* The plots: gpu_power_usage.png and gpu_utilization.png
+ 	* benchmark_scores.txt (also output in termal like so)
+```
+Benchmark Results
+
+....<ENDED> Training model [ELAPSED = 40.945453 sec]
+....<BEGIN> Saving training metrics to a file
+....<ENDED> Saving training metrics to a file [ELAPSED = 0.000295 sec]
+
+Power and Utilization
+
+
++----------------------------------------------+---------------------+          
+| Metric                                       | Value               |          
++==============================================+=====================+          
+| Total GPU Energy Consumed (kWh)              | 0.00155             |          
++----------------------------------------------+---------------------+          
+| Average GPU Util. (for >0.00% GPU Util.) (%) | 89.38               |          
++----------------------------------------------+---------------------+          
+| Avg GPU Power (for >0.00% GPU Util.) (W)     | 129.99 (max 140.00) |          
++----------------------------------------------+---------------------+ 
+```
 # Requirements:
 gpu_monitor.py 
 run_benchmark_and_monitor.sh
