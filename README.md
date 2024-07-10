@@ -28,10 +28,6 @@ chmod +x run.sh
 ```
 ./run.sh <sciml benchmark command> 
 ```
-or **(outside of folder)**,
-```
-./gpu_benchmark_metrics/run.sh <sciml benchmark command>
-```
 
 ### 3.  Live Monitoring
 	a. The Output of the Benchmark and Power/Utilization Are Tracked Live By Copying over The Tmux Outputs
