@@ -6,7 +6,7 @@ from datetime import datetime
 import argparse
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from tabulate import tabulate
+import yaml
 
 # Constants
 SECONDS_IN_HOUR = 3600  # 60 seconds * 60 minutes
@@ -54,7 +54,7 @@ def plot_timeseries(timestamps, data, ylabel, save_path):
     # Plot timeseries
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-    ax.plot(datetime_timestamps, data, marker='o', linestyle='-', color='b')
+    ax.plot(datetime_timestamps, data, marker='o', linestyle='-')#, color='b')
     ax.set_xlabel('Time')
     ax.set_ylabel(ylabel)
     ax.set_title(f'GPU {ylabel} Over Time')
@@ -120,18 +120,19 @@ def main(plot_flag):
         except subprocess.CalledProcessError as e:
             print(f"Error running nvidia-smi to get max power: {e}")
             max_power = None
-        
-        # Prepare data for tabulate
-        data = [
-            ["Total GPU Energy Consumed (kWh)", f"{total_energy:.5f}"],
-            ["Average GPU Util. (for >0.00% GPU Util.) (%)", f"{avg_gpu_utilization:.2f}"],
-            ["Avg GPU Power (for >0.00% GPU Util.) (W)", f"{avg_gpu_power:.2f} (max {max_power:.2f})"]
-        ]
-        
-        # Print as table
-        print("")
-        print("")
-        print(tabulate(data, headers=["Metric", "Value"], tablefmt="grid"))
+
+        # Save to yml
+        # Prepare data
+        data = {
+            "total_GPU_Energy": total_energy,
+            "av_GPU_load": avg_gpu_utilization,
+            "av_GPU_power": avg_gpu_power, 
+            "max_GPU_power": max_power
+        }
+
+        # Save to YAML file
+        with open('./results/metrics.yml', 'w') as yaml_file:
+            yaml.dump(data, yaml_file, default_flow_style=False)
         
         # Optionally save plots based on --plot flag
         if plot_flag:
