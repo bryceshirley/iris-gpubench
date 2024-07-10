@@ -7,26 +7,30 @@ The Command
 This bash script has been written for sciml-benchmarks and will be generalized to any runnable GPU benchmark:
 
 ```
-./run_benchmark_and_monitor.sh <sciml benchmark command>
+./run.sh <sciml benchmark command>
 ```
 
 Or 
 
 ```
-./run_benchmark_and_monitor.sh <sciml benchmark command> --plot
+./run.sh <sciml benchmark command> --plot
 ```
 
 # How to use:
 ### 1. Before first run activate the bash script by:
 
 ```
-chmod +x run_benchmark_and_monitor.sh
+chmod +x run.sh
 ```
 
 ### 2. Run in terminal (from folder):
 
- ```
-./run_benchmark_and_monitor.sh <sciml benchmark command> 
+```
+./run.sh <sciml benchmark command> 
+```
+or **(outside of folder)**,
+```
+./gpu_benchmark_metrics/run.sh <sciml benchmark command>
 ```
 
 ### 3.  Live Monitoring
@@ -35,14 +39,16 @@ chmod +x run_benchmark_and_monitor.sh
 	b. (Optional)Timeseries Using the --plot option
   
 ```
-./run_benchmark_and_monitor.sh <sciml benchmark command> --plot
+./run.sh <sciml benchmark command> --plot
 ```
 
 Gives you a live timeseries for GPU power consumption and GPU utilization. Just open the png files created gpu_utilization_plot.png and gpu_power_usage_plot.png. They can be found there afterwards too
 
 ### 4. If you need to terminate the tool for any reason (ie press CTRL+C) then you must kill the tmux session by running:
-tmux kill-session
 
+```
+tmux kill-session
+```
 
 # Requirements:
 gpu_monitor.py 
