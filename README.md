@@ -4,6 +4,7 @@
  	- National grid carbon loading (national grid give api's that give regional live metrics for carbon) to get carbon cost.
   	- There is also an IRIS contact for this kind of thing
 - Make the below work for Benchmarks using more than one GPU
+- Add CI tests for python script and using shell check (similar to pylint) on bash script 
 
 The Command
 ===========
