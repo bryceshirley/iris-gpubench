@@ -34,7 +34,9 @@ chmod +x monitor.sh
 ```
 
 ### 3.  Live Monitoring
-	a. The Output of the Benchmark and Power/Utilization Are Tracked Live By Copying over The Tmux Outputs. Example:
+
+####		a. The Output of the Benchmark and Power/Utilization Are Tracked Live By Copying over The Tmux Outputs. Example:
+
 ```
 (bench) dnz75396@bs-scimlbench-a4000:~/gpu_benchmark_metrics$ ./monitor.sh "sciml-bench run synthetic_regression"
 Live Monitor: Power and Utilization
@@ -50,7 +52,7 @@ Epoch 0: 100%|███████████████████| 8000/80
 ....<ENDED> Saving training metrics to a file [ELAPSED = 0.000295 sec]
 ```   
 
-	b. (Optional)Timeseries Using the --plot option
+#####		b. (Optional)Timeseries Using the --plot option
   
 ```
 ./monitor.sh <sciml benchmark command> --plot
