@@ -92,15 +92,16 @@ Power and Utilization
 ```
 # Requirements:
 gpu_monitor.py 
-run_benchmark_and_monitor.sh
+monitor.sh
 
 
 * **Python Script (gpu_monitor.py):**
 	* Python interpreter.
 	* Required Python modules: subprocess, csv, time, os, datetime, argparse, matplotlib, tabulate.
 	* Dependency on nvidia-smi for GPU metrics.
-* **Bash Script (run_benchmark_and_monitor.sh):**
+* **Bash Script (monitor.sh):**
 	* Bash shell.
+ 	* jq
 	* External commands: tmux, conda (optional).
 	* Ensure correct paths for scripts (gpu_monitor.py) and temporary files.
 * **Permissions:**
