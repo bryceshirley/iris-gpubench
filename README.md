@@ -101,7 +101,7 @@ monitor.sh
 	* Dependency on nvidia-smi for GPU metrics.
 * **Bash Script (monitor.sh):**
 	* Bash shell.
- 	* jq
+ 	* pip install jq
 	* External commands: tmux, conda (optional).
 	* Ensure correct paths for scripts (gpu_monitor.py) and temporary files.
 * **Permissions:**
