@@ -23,7 +23,7 @@ Or
 chmod +x run_benchmark_and_monitor.sh
 ```
 
-### 2. Run in terminal:
+### 2. Run in terminal (from folder):
 
  ```
 ./run_benchmark_and_monitor.sh <sciml benchmark command> 
