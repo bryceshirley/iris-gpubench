@@ -12,8 +12,8 @@ from tabulate import tabulate
 SECONDS_IN_HOUR = 3600  # 60 seconds * 60 minutes
 
 # Absolute path to save plots
-utilization_plot_path = 'gpu_utilization_plot.png'
-power_usage_plot_path = 'gpu_power_usage_plot.png'
+utilization_plot_path = './results/gpu_utilization_plot.png'
+power_usage_plot_path = './results/gpu_power_usage_plot.png'
 
 def get_gpu_metrics():
     try:

@@ -58,16 +58,16 @@ is_benchmark_running() {
 # Wait for the benchmark to complete
 while is_benchmark_running; do
     # Read and display output from the power monitor script pane
-    tmux capture-pane -p -t "$SESSION_NAME:0.1" > power_monitor_output.txt
-    tmux capture-pane -p -t "$SESSION_NAME:0.0" > benchmark_output.txt
+    tmux capture-pane -p -t "$SESSION_NAME:0.1" > /tmp/power_monitor_output.txt
+    tmux capture-pane -p -t "$SESSION_NAME:0.0" > /tmp/benchmark_output.txt
     clear  # Optional: Clear the terminal for a cleaner output view
     echo -e "\nLive Monitor: Power and Utilization\n"
-    tail -n 2 power_monitor_output.txt
+    tail -n 2 /tmp/power_monitor_output.txt
     echo -e "\nLive Monitor: Benchmark Output\n"
-    tail -n 5 benchmark_output.txt
+    tail -n 5 /tmp/benchmark_output.txt
     sleep 1
-    rm benchmark_output.txt
-    rm power_monitor_output.txt
+    rm /tmp/benchmark_output.txt
+    rm /tmp/power_monitor_output.txt
 done
 
 # Kill the power monitor script
@@ -77,23 +77,23 @@ tmux send-keys -t "$SESSION_NAME:0.1" C-c
 sleep 5
 
 # Capture the output of both commands
-tmux capture-pane -p -t "$SESSION_NAME:0.0" > benchmark_output.txt
-tmux capture-pane -pJ -t "$SESSION_NAME:0.1" > power_monitor_output.txt
+tmux capture-pane -p -t "$SESSION_NAME:0.0" > /tmp/benchmark_output.txt
+tmux capture-pane -pJ -t "$SESSION_NAME:0.1" > /tmp/power_monitor_output.txt
 
 # Display the results
 {
   echo -e "\n+--------------------------------------------------------------------+"
   echo -e "\nBenchmark Results\n"
-  tail -n 5 benchmark_output.txt | head -n -4
+  tail -n 5 /tmp/benchmark_output.txt | head -n -4
   echo -e "\nPower and Utilization\n"
-  tail -n 11 power_monitor_output.txt | head -n 10
+  tail -n 11 /tmp/power_monitor_output.txt | head -n 10
   echo " "
-} > /home/dnz75396/benchmark_scores.txt
-cat /home/dnz75396/benchmark_scores.txt
+} > ./results/benchmark_scores.txt
+cat ./results/benchmark_scores.txt
 
 # Clean up temporary files
-rm benchmark_output.txt
-rm power_monitor_output.txt
+rm /tmp/benchmark_output.txt
+rm /tmp/power_monitor_output.txt
 
 # Kill the tmux session
 tmux kill-session -t "$SESSION_NAME"
