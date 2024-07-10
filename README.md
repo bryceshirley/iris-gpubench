@@ -7,26 +7,26 @@ The Command
 This bash script has been written for sciml-benchmarks and will be generalized to any runnable GPU benchmark:
 
 ```
-./run.sh <sciml benchmark command>
+./monitor.sh <sciml benchmark command>
 ```
 
 Or 
 
 ```
-./run.sh <sciml benchmark command> --plot
+./monitor.sh <sciml benchmark command> --plot
 ```
 
 # How to use:
 ### 1. Before first run activate the bash script by:
 
 ```
-chmod +x run.sh
+chmod +x monitor.sh
 ```
 
 ### 2. Run in terminal (from folder):
 
 ```
-./run.sh <sciml benchmark command> 
+./monitor.sh <sciml benchmark command> 
 ```
 
 ### 3.  Live Monitoring
@@ -35,7 +35,7 @@ chmod +x run.sh
 	b. (Optional)Timeseries Using the --plot option
   
 ```
-./run.sh <sciml benchmark command> --plot
+./monitor.sh <sciml benchmark command> --plot
 ```
 
 Gives you a live timeseries for GPU power consumption and GPU utilization. Just open the png files created gpu_utilization_plot.png and gpu_power_usage_plot.png. They can be found there afterwards too
