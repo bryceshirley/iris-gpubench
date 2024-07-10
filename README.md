@@ -1,6 +1,6 @@
-TO ADD:
-	- In 2023 the average emissions of United Kingdom were 217 g CO2eq/kWh. Can we add this to the benchmark power calculation? Ask Deniza
-	From <https://www.nowtricity.com/country/united-kingdom/>
+#TO ADD:
+- Should we add carbon produced to the benchmark power calculation? Ask Deniza
+	- In 2023 the average emissions of United Kingdom were 217 g CO2eq/kWh. From <https://www.nowtricity.com/country/united-kingdom/>
 
 The Command
 ===========
