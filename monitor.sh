@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script name: run_benchmark_and_monitor.sh
+# Script name: monitor.sh
 
 # Ensure a benchmark command is provided
 if [ $# -eq 0 ]; then
@@ -12,10 +12,10 @@ fi
 COMPLETION_FILE="/tmp/benchmark_complete"
 
 # Get the benchmark command from input and other commands
-BENCHMARK_COMMAND="$1"
+BENCHMARK_COMMAND="sciml-bench run --output_dir=/tmp/Results/ $1"
 shift
 EXTRA_ARGS=("$@")
-POWER_MONITOR_SCRIPT="python /home/dnz75396/gpu_monitor.py"
+POWER_MONITOR_SCRIPT="python ./gpu_monitor.py"
 CONDA_ACTIVATE="conda activate bench"
 COMPLETION_FILE_COMMAND="touch $COMPLETION_FILE"
 
@@ -55,19 +55,23 @@ is_benchmark_running() {
     [ ! -f "$COMPLETION_FILE" ]
 }
 
+# Temporary file to indicate benchmark completion
+POWER_MONITOR_FILE="/tmp/power_monitor_output.txt"
+BENCHMARK_MONITOR_FILE="/tmp/benchmark_output.txt"
+
 # Wait for the benchmark to complete
 while is_benchmark_running; do
     # Read and display output from the power monitor script pane
-    tmux capture-pane -p -t "$SESSION_NAME:0.1" > /tmp/power_monitor_output.txt
-    tmux capture-pane -p -t "$SESSION_NAME:0.0" > /tmp/benchmark_output.txt
+    tmux capture-pane -p -t "$SESSION_NAME:0.1" > "$POWER_MONITOR_FILE"
+    tmux capture-pane -p -t "$SESSION_NAME:0.0" > "$BENCHMARK_MONITOR_FILE"
     clear  # Optional: Clear the terminal for a cleaner output view
     echo -e "\nLive Monitor: Power and Utilization\n"
-    tail -n 2 /tmp/power_monitor_output.txt
+    tail -n 2 "$POWER_MONITOR_FILE"
     echo -e "\nLive Monitor: Benchmark Output\n"
-    tail -n 5 /tmp/benchmark_output.txt
+    tail -n 5 "$BENCHMARK_MONITOR_FILE"
     sleep 1
-    rm /tmp/benchmark_output.txt
-    rm /tmp/power_monitor_output.txt
+    rm "$BENCHMARK_MONITOR_FILE"
+    rm "$POWER_MONITOR_FILE"
 done
 
 # Kill the power monitor script
@@ -77,23 +81,44 @@ tmux send-keys -t "$SESSION_NAME:0.1" C-c
 sleep 5
 
 # Capture the output of both commands
-tmux capture-pane -p -t "$SESSION_NAME:0.0" > /tmp/benchmark_output.txt
-tmux capture-pane -pJ -t "$SESSION_NAME:0.1" > /tmp/power_monitor_output.txt
+tmux capture-pane -p -t "$SESSION_NAME:0.0" > "$BENCHMARK_MONITOR_FILE"
+tmux capture-pane -pJ -t "$SESSION_NAME:0.1" > "$POWER_MONITOR_FILE"
 
-# Display the results
-{
-  echo -e "\n+--------------------------------------------------------------------+"
-  echo -e "\nBenchmark Results\n"
-  tail -n 5 /tmp/benchmark_output.txt | head -n -4
-  echo -e "\nPower and Utilization\n"
-  tail -n 11 /tmp/power_monitor_output.txt | head -n 10
-  echo " "
-} > ./results/benchmark_scores.txt
-cat ./results/benchmark_scores.txt
+# Function to read value from YAML file
+read_yaml_value() {
+    local yaml_file="$1"
+    local key="$2"
+    yq -r ".$key" "$yaml_file"
+}
+
+# Paths to YAML files
+time_file="/tmp/Results/metrics.yml"
+metrics_file="./results/metrics.yml"
+
+# Read time value from time.yml
+time_value=$(read_yaml_value "$time_file" "time")
+
+if [ -z "$time_value" ]; then
+    echo "Error: Failed to read time value from $time_file"
+    exit 1
+fi
+
+# Prepend time value to metrics.yml
+temp_file=$(mktemp)
+echo "time: $time_value" > "$temp_file"
+cat "$metrics_file" >> "$temp_file"
+mv "$temp_file" "$metrics_file"
+
 
 # Clean up temporary files
-rm /tmp/benchmark_output.txt
-rm /tmp/power_monitor_output.txt
+rm "$BENCHMARK_MONITOR_FILE"
+rm "$POWER_MONITOR_FILE"
+rm -r ./results/benchmark_specific/*
+mv /tmp/Results/* ./results/benchmark_specific/
+rm -r /tmp/Results
 
 # Kill the tmux session
 tmux kill-session -t "$SESSION_NAME"
+
+# Output Results
+python ./format_results.py
