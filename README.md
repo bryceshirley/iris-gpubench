@@ -1,4 +1,4 @@
-#TO ADD:
+# TO ADD:
 - Should we add carbon produced to the benchmark power calculation? Ask Deniza
 	- In 2023 the average emissions of United Kingdom were 217 g CO2eq/kWh. From <https://www.nowtricity.com/country/united-kingdom/>
 
