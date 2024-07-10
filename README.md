@@ -1,6 +1,8 @@
 # TO ADD:
 - Should we add carbon produced to the benchmark power calculation?
 	- In 2023 the average emissions of United Kingdom were 217 g CO2eq/kWh. From <https://www.nowtricity.com/country/united-kingdom/>
+ 	- National grid carbon loading (national grid give api's that give regional live metrics for carbon) to get carbon cost.
+  	- There is also an IRIS contact for this kind of thing
 
 The Command
 ===========
