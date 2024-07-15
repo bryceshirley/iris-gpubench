@@ -31,7 +31,7 @@ Or
 ./monitor.sh <sciml benchmark command> 
 ```
 
-### 3.  Live Monitoring
+### 2.  Live Monitoring
 
 ####		a. The Output of the Benchmark and Power/Utilization Are Tracked Live By Copying over The Tmux Outputs. Example:
 
@@ -60,18 +60,18 @@ Epoch 1: 100%|█████████████████████| 8
 
 Gives you a live timeseries for GPU power consumption and GPU utilization. Just open the png files created gpu_utilization_plot.png and gpu_power_usage_plot.png. They can be found there afterwards too
 
-### 4. If you need to terminate the tool for any reason (ie press CTRL+C) then you must kill the tmux session by running:
+### 3. If you need to terminate the tool for any reason (ie press CTRL+C) then you must kill the tmux session by running:
 
 ```
 tmux kill-session
 ```
-### 5. Results 
+### 4. Results 
 
 * Results are saved to gpu_benchmark_metrics/results (these include):
 	* gpu_power_usage.png and gpu_utilization.png: Time series plots for gpu utilization and power usage
   	* metrics.yml: yml with the Benchmark Score and GPU Energy Performance results.
   	* benchmark_specific/: directory containing all the results output by the sciml-bench benchmark. 
- 	* formatted_scores.txt : Formatted version of metrics.yml, see example below.
+ 	* formatted_metrics.txt : Formatted version of metrics.yml, see example below.
 ```
 Benchmark Score and GPU Energy Performance
 
