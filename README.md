@@ -21,7 +21,7 @@ Or
 ./monitor.sh <--run_options sciml_benchmark> --plot
 ```
 
-# How to use:
+# Usage Instructions
 ### 1. Run in terminal (from folder):
 
 ```
@@ -107,10 +107,7 @@ Additional Information
 * The "error in nvidia-smi's power draw is ± 5%" according to:
   <https://arxiv.org/html/2312.02741v2#:~:text=The%20error%20in%20nvidia%2Dsmi's,%C2%B1%2030W%20of%20over%2Funderestimation.>  
 
-# Requirements:
-gpu_monitor.py 
-monitor.sh
-
+# Requirements
 
 * **Python Script (gpu_monitor.py):**
 	* Python interpreter.
@@ -121,8 +118,6 @@ monitor.sh
  	* pip install jq
 	* External commands: tmux, conda (optional).
 	* Ensure correct paths for scripts (gpu_monitor.py) and temporary files.
-* **Permissions:**
-	* Both scripts should have execution permissions (chmod +x script_name.sh).
 * **Dependencies:**
 	* Python dependencies (matplotlib, tabulate) must be installed.
 	* Availability of nvidia-smi for GPU metrics.
