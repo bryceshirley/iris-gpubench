@@ -1,9 +1,9 @@
-time: 35.65683126449585
-av_GPU_load: 43.607142857142854
-av_GPU_power: 119.02178571428571
-carbon_forcast: 246.0
-carbon_index: high
-date_time: '2024-07-15 14:42:11'
-max_GPU_power: 300.0
-total_GPU_Energy: 0.001397107244278987
-total_GPU_carbon: 0.3436883820926308
+time: 0.0
+av_GPU_load: 0.0
+av_GPU_power: 0.0
+carbon_forcast: 0.0
+carbon_index: None
+date_time: None
+max_GPU_power: 0.0
+total_GPU_Energy: 0.0
+total_GPU_carbon: 0.0
