@@ -25,13 +25,7 @@ Or
 ```
 
 # How to use:
-### 1. Before first run activate the bash script by:
-
-```
-chmod +x monitor.sh
-```
-
-### 2. Run in terminal (from folder):
+### 1. Run in terminal (from folder):
 
 ```
 ./monitor.sh <sciml benchmark command> 
@@ -41,25 +35,24 @@ chmod +x monitor.sh
 
 ####		a. The Output of the Benchmark and Power/Utilization Are Tracked Live By Copying over The Tmux Outputs. Example:
 
-This example uses the "synthetic_regression" benchmark and "-b epochs 2" option for two epochs (see sciml-bench docs for more options).
+This example uses the "synthetic_regression" benchmark with the "-b epochs 2" option for two epochs and "-b hidden_size 9000" options (see sciml-bench docs for more options)
 ```
-(bench) dnz75396@bs-scimlbench-a4000:~/gpu_benchmark_metrics$ ./monitor.sh "-b epochs 2 synthetic_regression" --plot
+(bench) dnz75396@bs-scimlbench-a4000:~/gpu_benchmark_metrics$ ./monitor.sh "-b epochs 2 -b hidden_size 9000 synthetic_regression" --plot
 
 Live Monitor: Power and Utilization
 
-Current GPU Power Usage: 133.29 W, GPU Utilization: 55.00 %
+Current GPU Power Usage: 89.62 W, GPU Utilization: 31.00 %
 
 
 Live Monitor: Benchmark Output
 
-h/trainer/connectors/data_connector.py:424: The 'train_dataloader' does not have
- many workers which may be a bottleneck. Consider increasing the value of the `n
-um_workers` argument` to `num_workers=15` in the `DataLoader` to improve perform
-ance.
-Epoch 1:  92%|██████████████████▎ | 7336/8000 [00:37<00:03, 195.41it/s, v_num=0]
+Epoch 1: 100%|█████████████████████| 8000/8000 [02:17<00:00, 58.13it/s, v_num=0]
+....<ENDED> Training model [ELAPSED = 276.374506 sec]
+....<BEGIN> Saving training metrics to a file
+....<ENDED> Saving training metrics to a file [ELAPSED = 0.000279 sec]
 ```   
 
-#####		b. (Optional)Timeseries Using the --plot option
+#####		b. (Optional)Timeseries Using the --plot Option
   
 ```
 ./monitor.sh <sciml benchmark command> --plot
@@ -76,23 +69,39 @@ tmux kill-session
 
 * Results are saved to gpu_benchmark_metrics/results (these include):
 	* gpu_power_usage.png and gpu_utilization.png: Time series plots for gpu utilization and power usage
-  	* metrics.yml: yml with the Benchmark Score and GPU Performance results.
+  	* metrics.yml: yml with the Benchmark Score and GPU Energy Performance results.
   	* benchmark_specific/: directory containing all the results output by the sciml-bench benchmark. 
  	* formatted_scores.txt : Formatted version of metrics.yml, see example below.
 ```
-Benchmark Score and GPU Performance
+Benchmark Score and GPU Energy Performance
+
++-----------------------------------+-----------+
+| Metric                            |     Value |
++===================================+===========+
+| Benchmark Score (s)               | 276.367   |
++-----------------------------------+-----------+
+| Total GPU Energy Consumed (kWh)   |   0.02166 |
++-----------------------------------+-----------+
+| Total GPU Carbon Emissions (gC02) |   4.76572 |
++-----------------------------------+-----------+
+
+Additional Information
 
 +----------------------------------------------+------------------------------+
 | Metric                                       | Value                        |
 +==============================================+==============================+
-| Benchmark Score (s)                          | 81.96181                     |
+| Average GPU Util. (for >0.00% GPU Util.) (%) | 96.86854                     |
 +----------------------------------------------+------------------------------+
-| Total GPU Energy Consumed (kWh)              | 0.00308                      |
+| Avg GPU Power (for >0.00% GPU Util.) (W)     | 278.99610 (max possible 300) |
 +----------------------------------------------+------------------------------+
-| Average GPU Util. (for >0.00% GPU Util.) (%) | 83.26984                     |
+| Carbon Forcast (gCO2/kWh), Carbon Index      | 220.0, high                  |
 +----------------------------------------------+------------------------------+
-| Avg GPU Power (for >0.00% GPU Util.) (W)     | 129.97778 (max possible 140) |
+| Carbon Intensity Reading Date & Time         | 2024-07-15 14:02:05          |
 +----------------------------------------------+------------------------------+
+
+Data is collected from the National Grid ESO Regional Carbon Intensity API: 
+https://api.carbonintensity.org.uk/regional
+The Carbon Forcast and Index Readings are updated every 30 minutes.
 ```
 
 # Requirements:
