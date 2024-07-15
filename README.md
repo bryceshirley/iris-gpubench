@@ -7,7 +7,8 @@
 - using shell check from bash script (similar to pylint) on bash script
 - use pylint and isort
 - add a requirements.txt file for setup
-- Add CI tests for python script 
+- Add CI tests for python script
+- Make monitor.sh collect errors from sciml-bench command
 
 The Command
 ===========
