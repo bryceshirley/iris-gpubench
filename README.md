@@ -1,4 +1,5 @@
 # TO ADD:
+- Edit The way "Carbon Forcast (gCO2/kWh)" is computed so that the program checks the Forcast every 30 mins (or less) and computes an average at the end. (Another way to do this would be to multiply the energy consumed each 30 mins (or time interval) by the Forecast for that time and then add them together for a more accurate result. This way we could also give live power updates) 
 - Make it work for Benchmarks that utilize more than one GPU
 - using shell check from bash script (similar to pylint) on bash script
 - add a requirements.txt file for setup
@@ -32,7 +33,7 @@ Or
 
 This example uses the "synthetic_regression" benchmark with the "-b epochs 2" option for two epochs and "-b hidden_size 9000" options (see sciml-bench docs for more options)
 ```
-(bench) dnz75396@bs-scimlbench-a4000:~/gpu_benchmark_metrics$ ./monitor.sh "-b epochs 2 -b hidden_size 9000 synthetic_regression"
+(bench) dnz75396@bs-scimlbench-a100:~/gpu_benchmark_metrics$ ./monitor.sh "-b epochs 2 -b hidden_size 9000 synthetic_regression"
 
 Live Monitor: Power and Utilization
 
