@@ -1,13 +1,11 @@
 # TO ADD:
-- Should we add carbon produced to the benchmark power calculation?
-	- In 2023 the average emissions of United Kingdom were 217 g CO2eq/kWh. From <https://www.nowtricity.com/country/united-kingdom/>
- 	- National grid carbon loading (national grid give api's that give regional live metrics for carbon) to get carbon cost. From <https://carbon-intensity.github.io/api-definitions/#regional>
-  	- There is also an IRIS contact for this kind of thing
-- Make it work for Benchmarks using more than one GPU
+- Edit The way "Carbon Forcast (gCO2/kWh)" is computed so that the program checks the Forcast every 30 mins (or less) and computes an average at the end. (Another way to do this would be to multiply the energy consumed each 30 mins (or time interval) by the Forecast for that time and then add them together for a more accurate result. This way we could also give live power updates) 
+- Make it work for Benchmarks that utilize more than one GPU
 - using shell check from bash script (similar to pylint) on bash script
-- use pylint and isort
 - add a requirements.txt file for setup
-- Add CI tests for python script 
+- Add CI tests for python scripts
+- Make monitor.sh collect errors from sciml-bench command
+
 
 The Command
 ===========
@@ -24,41 +22,34 @@ Or
 ```
 
 # How to use:
-### 1. Before first run activate the bash script by:
-
-```
-chmod +x monitor.sh
-```
-
-### 2. Run in terminal (from folder):
+### 1. Run in terminal (from folder):
 
 ```
 ./monitor.sh <sciml benchmark command> 
 ```
 
-### 3.  Live Monitoring
+### 2.  Live Monitoring
 
 ####		a. The Output of the Benchmark and Power/Utilization Are Tracked Live By Copying over The Tmux Outputs. Example:
 
-This example uses the "synthetic_regression" benchmark and "-b epochs 2" option for two epochs (see sciml-bench docs for more options).
+This example uses the "synthetic_regression" benchmark with the "-b epochs 2" option for two epochs and "-b hidden_size 9000" options (see sciml-bench docs for more options)
 ```
-(bench) dnz75396@bs-scimlbench-a4000:~/gpu_benchmark_metrics$ ./monitor.sh "-b epochs 2 synthetic_regression" --plot
+(bench) dnz75396@bs-scimlbench-a100:~/gpu_benchmark_metrics$ ./monitor.sh "-b epochs 2 -b hidden_size 9000 synthetic_regression"
 
 Live Monitor: Power and Utilization
 
-Current GPU Power Usage: 133.29 W, GPU Utilization: 55.00 %
+Current GPU Power Usage: 89.62 W, GPU Utilization: 31.00 %
 
 
 Live Monitor: Benchmark Output
 
-h/trainer/connectors/data_connector.py:424: The 'train_dataloader' does not have
- many workers which may be a bottleneck. Consider increasing the value of the `n
-um_workers` argument` to `num_workers=15` in the `DataLoader` to improve perform
-ance.
-Epoch 1:  92%|██████████████████▎ | 7336/8000 [00:37<00:03, 195.41it/s, v_num=0]
+Epoch 1: 100%|█████████████████████| 8000/8000 [02:17<00:00, 58.13it/s, v_num=0]
+....<ENDED> Training model [ELAPSED = 276.374506 sec]
+....<BEGIN> Saving training metrics to a file
+....<ENDED> Saving training metrics to a file [ELAPSED = 0.000279 sec]
 ```   
 
-#####		b. (Optional)Timeseries Using the --plot option
+#####		b. (Optional)Timeseries Using the --plot Option
   
 ```
 ./monitor.sh <sciml benchmark command> --plot
@@ -66,33 +57,55 @@ Epoch 1:  92%|██████████████████▎ | 7336/8
 
 Gives you a live timeseries for GPU power consumption and GPU utilization. Just open the png files created gpu_utilization_plot.png and gpu_power_usage_plot.png. They can be found there afterwards too
 
-### 4. If you need to terminate the tool for any reason (ie press CTRL+C) then you must kill the tmux session by running:
+### 3. If you need to terminate the tool for any reason (ie press CTRL+C) then you must kill the tmux session by running:
 
 ```
 tmux kill-session
 ```
-### 5. Results 
+### 4. Results 
 
 * Results are saved to gpu_benchmark_metrics/results (these include):
 	* gpu_power_usage.png and gpu_utilization.png: Time series plots for gpu utilization and power usage
-  	* metrics.yml: yml with the Benchmark Score and GPU Performance results.
+  	* metrics.yml: yml with the Benchmark Score and GPU Energy Performance results.
   	* benchmark_specific/: directory containing all the results output by the sciml-bench benchmark. 
- 	* formatted_scores.txt : Formatted version of metrics.yml, see example below.
+ 	* formatted_metrics.txt : Formatted version of metrics.yml, see example below.
 ```
-Benchmark Score and GPU Performance
+Benchmark Score and GPU Energy Performance
+
++-----------------------------------+-----------+
+| Metric                            |     Value |
++===================================+===========+
+| Benchmark Score (s)               | 276.367   |
++-----------------------------------+-----------+
+| Total GPU Energy Consumed (kWh)   |   0.02166 |
++-----------------------------------+-----------+
+| Total GPU Carbon Emissions (gC02) |   4.76572 |
++-----------------------------------+-----------+
+
+Additional Information
 
 +----------------------------------------------+------------------------------+
 | Metric                                       | Value                        |
 +==============================================+==============================+
-| Benchmark Score (s)                          | 81.96181                     |
+| Average GPU Util. (for >0.00% GPU Util.) (%) | 96.86854                     |
 +----------------------------------------------+------------------------------+
-| Total GPU Energy Consumed (kWh)              | 0.00308                      |
+| Avg GPU Power (for >0.00% GPU Util.) (W)     | 278.99610 (max possible 300) |
 +----------------------------------------------+------------------------------+
-| Average GPU Util. (for >0.00% GPU Util.) (%) | 83.26984                     |
+| Carbon Forcast (gCO2/kWh), Carbon Index      | 220.0, high                  |
 +----------------------------------------------+------------------------------+
-| Avg GPU Power (for >0.00% GPU Util.) (W)     | 129.97778 (max possible 140) |
+| Carbon Intensity Reading Date & Time         | 2024-07-15 14:02:05          |
 +----------------------------------------------+------------------------------+
 ```
+
+#### Please Note:
+* The Carbon Data is collected from the National Grid ESO Regional Carbon Intensity API:
+  <https://api.carbonintensity.org.uk/regional>
+* The Carbon Forcast and Index Readings are updated every 30 minutes.
+* Set your region in gpu_monitor.py: CARBON_INSTENSITY_REGION_SHORTHAND="South England"
+
+* The GPU power metrics and GPU utilization come from "nvidia-smi" results.
+* The "error in nvidia-smi's power draw is ± 5%" according to:
+  <https://arxiv.org/html/2312.02741v2#:~:text=The%20error%20in%20nvidia%2Dsmi's,%C2%B1%2030W%20of%20over%2Funderestimation.>  
 
 # Requirements:
 gpu_monitor.py 
