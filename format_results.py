@@ -1,5 +1,5 @@
-from tabulate import tabulate
 import yaml
+from tabulate import tabulate
 
 # Path to your metric.yml file
 file_path = './results/metrics.yml'
