@@ -43,16 +43,17 @@ formatted_data_extra = [
 ]
 # Print as table
 output = []
-output.append("Benchmark Score and GPU Performance")
+output.append("Benchmark Score and GPU Energy Performance")
 output.append("")
 output.append(tabulate(formatted_data_main, headers=["Metric", "Value"],
                        tablefmt="grid"))
 output.append("")
-output.append("Additional Results")
+output.append("Additional Information")
 output.append("")
 output.append(tabulate(formatted_data_extra, headers=["Metric", "Value"],
                        tablefmt="grid"))
 output.append("")
+
 
 # Print to console
 for line in output:
