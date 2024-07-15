@@ -1,10 +1,13 @@
 # TO ADD:
 - Should we add carbon produced to the benchmark power calculation?
 	- In 2023 the average emissions of United Kingdom were 217 g CO2eq/kWh. From <https://www.nowtricity.com/country/united-kingdom/>
- 	- National grid carbon loading (national grid give api's that give regional live metrics for carbon) to get carbon cost.
+ 	- National grid carbon loading (national grid give api's that give regional live metrics for carbon) to get carbon cost. From <https://carbon-intensity.github.io/api-definitions/#regional>
   	- There is also an IRIS contact for this kind of thing
-- Make the below work for Benchmarks using more than one GPU
-- Add CI tests for python script and using shell check (similar to pylint) on bash script 
+- Make it work for Benchmarks using more than one GPU
+- using shell check from bash script (similar to pylint) on bash script
+- use pylint and isort
+- add a requirements.txt file for setup
+- Add CI tests for python script 
 
 The Command
 ===========
