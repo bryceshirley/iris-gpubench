@@ -6,6 +6,7 @@
 - Add CI tests for python scripts
 - Make monitor.sh collect errors from sciml-bench command
 
+
 The Command
 ===========
 This bash script has been written for sciml-benchmarks and will be generalized to any runnable GPU benchmark:
