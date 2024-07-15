@@ -103,11 +103,11 @@ Additional Information
 #### Please Note:
 * The Carbon Data is collected from the National Grid ESO Regional Carbon Intensity API:
   <https://api.carbonintensity.org.uk/regional>
-  The Carbon Forcast and Index Readings are updated every 30 minutes.
-  Set your region in gpu_monitor.py: CARBON_INSTENSITY_REGION_SHORTHAND="South England"
+* The Carbon Forcast and Index Readings are updated every 30 minutes.
+* Set your region in gpu_monitor.py: CARBON_INSTENSITY_REGION_SHORTHAND="South England"
 
 * The GPU power metrics and GPU utilization come from "nvidia-smi" results.
-  The "error in nvidia-smi's power draw is ± 5%" according to:
+* The "error in nvidia-smi's power draw is ± 5%" according to:
   <https://arxiv.org/html/2312.02741v2#:~:text=The%20error%20in%20nvidia%2Dsmi's,%C2%B1%2030W%20of%20over%2Funderestimation.>  
 
 # Requirements:
