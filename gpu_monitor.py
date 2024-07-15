@@ -1,6 +1,7 @@
 """
 Collects live GPU metrics using nvidia-smi and carbon produced by GPU using 
-the nationalgrid API: https://api.carbonintensity.org.uk/regional
+The nationalgridESO Regional Carbon Intensity API:
+https://api.carbonintensity.org.uk/regional
 
 Usage:
     python gpu_monitor.py
@@ -8,6 +9,10 @@ Usage:
 Options:
     --plot
         Produces live plots of the collected GPU Metrics
+
+Parameters:
+    CARBON_INSTENSITY_REGION_SHORTHAND: The region for the The nationalgridESO 
+                                        Regional Carbon Intensity API 
 """
 import argparse
 import subprocess
@@ -23,9 +28,10 @@ import yaml
 # Constants
 SECONDS_IN_HOUR = 3600  # 60 seconds * 60 minutes
 
-# Absolute path to save plots
+# Absolute path to save plots and metrics
 UTILIZATION_PLOT_PATH = './results/gpu_utilization_plot.png'
 POWER_USAGE_PLOT_PATH = './results/gpu_power_usage_plot.png'
+METRICS_PATH = './results/metrics.yml'
 
 # Choose the Carbon Intensity Region
 # (ie "GB" or if in Oxford "South England")
@@ -63,15 +69,22 @@ def get_gpu_metrics() -> Tuple[Optional[float], Optional[float]]:
         print(f"Error accessing list elements: {error_message}")
         return None, None
 
-def get_carbon_forcast_and_index() -> Tuple[Optional[float], Optional[str]]:
+def get_carbon_forcast_and_index() -> Tuple[Optional[float], Optional[str],
+                                            Optional[str]]:
     '''
-    Uses nvidia-smi to return the GPU's power draw amd utilization at the time
-    the command it run.
+    Uses The nationalgridESO Regional Carbon Intensity API to collect the
+    current carbon emissions for regions in GB. These are updated the values 
+    every 30 minutes so the date and time is also recorded for the benchmark.
 
         Returns: 
             carbon_forcast(float): current carbon intensity (gC02/kWh)
             carbon_index(str): Very high/ High/ Moderate/ Low/ Very Low
+            date_and_time(str): The date and time of the reading.
     '''
+    # Record the current date and time
+    current_datetime = datetime.now()
+    formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+
     # Timeout to prevent program hanging indefinitley on request
     timeout_seconds = 30
     try:
@@ -91,8 +104,9 @@ def get_carbon_forcast_and_index() -> Tuple[Optional[float], Optional[str]]:
                 carbon_forcast = float(intensity['forecast'])
                 carbon_index = intensity['index']
 
-                return carbon_forcast, carbon_index
-        return None, None
+                return carbon_forcast, carbon_index, formatted_datetime
+        return None, None, formatted_datetime
+
 
     except requests.exceptions.RequestException as error_message:
         print(f"Error request timed out (30s): {error_message}")
@@ -176,8 +190,12 @@ def main(plot_flag):
 
                 # Plot timeseries if --plot flag is set
                 if plot_flag:
-                    plot_timeseries(metrics["timestamps"], metrics["gpu_utilizations"], 'Utilization (%)', UTILIZATION_PLOT_PATH)
-                    plot_timeseries(metrics["timestamps"], metrics["power_readings"], 'Power Usage (W)', POWER_USAGE_PLOT_PATH)
+                    plot_timeseries(metrics["timestamps"],
+                                    metrics["gpu_utilizations"],
+                                    'Utilization (%)', UTILIZATION_PLOT_PATH)
+                    plot_timeseries(metrics["timestamps"],
+                                    metrics["power_readings"],
+                                    'Power Usage (W)', POWER_USAGE_PLOT_PATH)
 
                 # Record power readings only when GPU utilization > 0.00%
                 if gpu_utilization > 0.00:
@@ -198,33 +216,34 @@ def main(plot_flag):
 
         # Fetch max power from nvidia-smi
         try:
-            cmd = ['nvidia-smi', '--query-gpu=power.limit', '--format=csv,noheader,nounits']
+            cmd = ['nvidia-smi', '--query-gpu=power.limit',
+                   '--format=csv,noheader,nounits']
             result = subprocess.run(cmd, stdout=subprocess.PIPE, check=True, text=True)
             max_power = float(result.stdout.strip())
         except subprocess.CalledProcessError as error_message:
             print(f"Error running nvidia-smi to get max power: {error_message}")
             max_power = None
-        
-        # Collect the Current Carbon Emission Rate and time/date
-        carbon_forcast, carbon_index, time_date = get_carbon_forcast_and_index()
 
-        # Compute the Carbon Emit by process
+        # Collect the Current Carbon Emission Rate and time/date
+        carbon_forcast, carbon_index, data_time = get_carbon_forcast_and_index()
+
+        # Compute the Carbon Emit by process gC02
         total_carbon = total_energy*carbon_forcast
 
         # Save to YAML file
         metrics_to_save = {
-            "total_GPU_Energy": total_energy,
-            "av_GPU_load": avg_gpu_utilization,
-            "av_GPU_power": avg_gpu_power, 
-            "max_GPU_power": max_power,
-            "carbon_forcast": carbon_forcast,
-            "carbon_index": carbon_index,
-            "total_GPU_carbon": total_carbon,
-            "carbon_intensity_time", time_date
+            "total_GPU_Energy": total_energy,   # kWh (kilo-Watt-hour)
+            "av_GPU_load": avg_gpu_utilization, # % (percent)
+            "av_GPU_power": avg_gpu_power,      # W (Watts)
+            "max_GPU_power": max_power,         # W (Watts)
+            "carbon_forcast": carbon_forcast,   # gCO2/kWh
+            "carbon_index": str(carbon_index),       # Very Low to Very High
+            "total_GPU_carbon": total_carbon,   # gC02 (grams of CO2)
+            "date_time": data_time              # Carbon Reading Date-Time 
         }
 
         # Save to YAML file
-        with open('./results/metrics.yml', 'w') as yaml_file:
+        with open(METRICS_PATH, 'w', encoding='utf-8') as yaml_file:
             yaml.dump(metrics_to_save, yaml_file, default_flow_style=False)
 
         # Optionally save plots based on --plot flag
