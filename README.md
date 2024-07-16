@@ -1,5 +1,5 @@
-GPU Performance Benchmarking
-============================
+GPU Energy and Carbon Performance Benchmarking
+==============================================
 
 # The Command
 The command produces a summary of a benchmark or workloads GPU power and real-time carbon performance. It's currently compatible with sciml-benchmarks but can be generalized to any benchmark that utilizes NVIDIA GPUs:
