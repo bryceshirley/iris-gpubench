@@ -1,6 +1,6 @@
 The Command
 ===========
-This bash script has been written for sciml-benchmarks and will be generalized to any runnable GPU benchmark:
+This bash script has been written for sciml-benchmarks and will be generalized to any benchmark that utilizes NVIDIA GPUs:
 
 ```
 ./monitor.sh <--run_options sciml_benchmark>
