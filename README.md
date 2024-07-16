@@ -1,6 +1,6 @@
 The Command
 ===========
-The command produces a summary of a benchmark or workloads GPU power and carbon performance. It's currently compatible with sciml-benchmarks but can be generalized to any benchmark that utilizes NVIDIA GPUs:
+The command produces a summary of a benchmark or workloads GPU power and real-time carbon performance. It's currently compatible with sciml-benchmarks but can be generalized to any benchmark that utilizes NVIDIA GPUs:
 
 ```
 ./monitor.sh <--run_options sciml_benchmark>
