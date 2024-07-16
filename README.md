@@ -89,7 +89,7 @@ Additional Information
 ```
 
 #### Please Note:
-* The Carbon Data is collected from the National Grid ESO Regional Carbon Intensity API:
+* The Carbon Data is collected in real-time from the National Grid ESO Regional Carbon Intensity API:
   <https://api.carbonintensity.org.uk/regional>
 * The Carbon Forcast and Index Readings are updated every 30 minutes.
 * Set your region in gpu_monitor.py: CARBON_INSTENSITY_REGION_SHORTHAND="South England"
