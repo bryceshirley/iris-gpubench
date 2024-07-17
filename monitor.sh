@@ -74,8 +74,6 @@ while is_benchmark_running; do
     rm "$POWER_MONITOR_FILE"
 done
 
-echo -e "\nLive Monitor: Finished. \n"
-
 # Kill the power monitor script
 tmux send-keys -t "$SESSION_NAME:0.1" C-c
 
@@ -83,8 +81,11 @@ tmux send-keys -t "$SESSION_NAME:0.1" C-c
 sleep 5
 
 # Capture the output of both commands
-tmux capture-pane -p -t "$SESSION_NAME:0.0" > "$BENCHMARK_MONITOR_FILE"
-tmux capture-pane -pJ -t "$SESSION_NAME:0.1" > "$POWER_MONITOR_FILE"
+#tmux capture-pane -p -t "$SESSION_NAME:0.0" > "$BENCHMARK_MONITOR_FILE"
+#tmux capture-pane -pJ -t "$SESSION_NAME:0.1" > "$POWER_MONITOR_FILE"
+
+# Live Monitoring has Finished
+echo -e "\nLive Monitor: Finished. \n"
 
 # Function to read value from YAML file
 read_yaml_value() {
