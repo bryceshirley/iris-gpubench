@@ -74,6 +74,8 @@ while is_benchmark_running; do
     rm "$POWER_MONITOR_FILE"
 done
 
+echo -e "\nLive Monitor: Finished. \n"
+
 # Kill the power monitor script
 tmux send-keys -t "$SESSION_NAME:0.1" C-c
 
