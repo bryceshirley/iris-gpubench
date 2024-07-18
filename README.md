@@ -7,7 +7,7 @@ GPU Energy and Carbon Performance Benchmarking
 
 * [Usage Instructions](https://github.com/bryceshirley/gpu_benchmark_metrics#usage-instructions)
 
-* [Results](https://github.com/bryceshirley/gpu_benchmark_metrics#results)
+* [Benchmark Results](https://github.com/bryceshirley/gpu_benchmark_metrics#results)
 
 * [Requirements](https://github.com/bryceshirley/gpu_benchmark_metrics#requirements)
 
@@ -74,7 +74,7 @@ tmux kill-session
 
 -----------
 
-# Results 
+# Benchmark Results 
 
 * Results are saved to gpu_benchmark_metrics/results (these include):
 	* gpu_power_usage.png and gpu_utilization.png: Time series plots for gpu utilization and power usage
