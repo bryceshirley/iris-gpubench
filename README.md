@@ -18,13 +18,13 @@ GPU Energy and Carbon Performance Benchmarking
 # The Command
 The command produces a summary of a benchmark or workloads GPU power and real-time carbon performance. It's currently compatible with sciml-benchmarks but can be generalized to any benchmark that utilizes NVIDIA GPUs:
 
-```
+```bash
 ./monitor.sh <--run_options sciml_benchmark>
 ```
 
 Or 
 
-```
+```bash
 ./monitor.sh <--run_options sciml_benchmark> --plot
 ```
 
@@ -33,7 +33,7 @@ Or
 # Usage Instructions
 ### 1. Run in terminal (from folder):
 
-```
+```bash
 ./monitor.sh <sciml benchmark command> 
 ```
 
@@ -42,7 +42,7 @@ Or
 ####		a. The Output of the Benchmark and Power/Utilization Are Tracked Live By Copying over The Tmux Outputs. Example:
 
 This example uses the "synthetic_regression" benchmark with the "-b epochs 2" option for two epochs and "-b hidden_size 9000" options (see sciml-bench docs for more options)
-```
+```bash
 (bench) dnz75396@bs-scimlbench-a100:~/gpu_benchmark_metrics$ ./monitor.sh "-b epochs 2 -b hidden_size 9000 synthetic_regression"
 
 Live Monitor: Power and Utilization
@@ -60,7 +60,7 @@ Epoch 1: 100%|█████████████████████| 8
 
 #####		b. (Optional)Timeseries Using the --plot Option
   
-```
+```bash
 ./monitor.sh <sciml benchmark command> --plot
 ```
 
@@ -68,7 +68,7 @@ Gives you a live timeseries for GPU power consumption and GPU utilization. Just 
 
 ### 3. If you need to terminate the tool for any reason (ie press CTRL+C) then you must kill the tmux session by running:
 
-```
+```bash
 tmux kill-session
 ```
 
@@ -77,11 +77,10 @@ tmux kill-session
 # Benchmark Results 
 
 * Results are saved to gpu_benchmark_metrics/results (these include):
-	* gpu_power_usage.png and gpu_utilization.png: Time series plots for gpu utilization and power usage
   	* metrics.yml: yml with the Benchmark Score and GPU Energy Performance results.
   	* benchmark_specific/: directory containing all the results output by the sciml-bench benchmark. 
  	* formatted_metrics.txt : Formatted version of metrics.yml, see example below.
-```
+```bash
 Benchmark Score and GPU Energy Performance
 
 +-----------------------------------+-----------+
@@ -108,7 +107,9 @@ Additional Information
 | Carbon Intensity Reading Date & Time         | 2024-07-15 14:02:05          |
 +----------------------------------------------+------------------------------+
 ```
-
+	* gpu_power_usage.png and gpu_utilization.png: Time series plots for gpu utilization and power usage. See example below:
+  <img src="docs_image1.png" alt="GPU Utilization Output" width="500"/>
+  <img src="docs_image2.png" alt="GPU Power Output" width="500"/>
 
 #### Please Note:
 * The Carbon Data is collected in real-time from the National Grid ESO Regional Carbon Intensity API:
