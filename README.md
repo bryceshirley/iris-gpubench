@@ -109,6 +109,7 @@ Additional Information
 ```
 
 	* gpu_power_usage.png and gpu_utilization.png: Time series plots for gpu utilization and power usage. See example below:
+ 
   <img src="docs_image1.png" alt="GPU Utilization Output" width="500"/>
   <img src="docs_image2.png" alt="GPU Power Output" width="500"/>
 
