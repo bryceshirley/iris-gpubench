@@ -7,7 +7,11 @@ GPU Energy and Carbon Performance Benchmarking
 
 * [Usage Instructions](https://github.com/bryceshirley/gpu_benchmark_metrics#usage-instructions)
 
-* [Results]()
+* [Results](https://github.com/bryceshirley/gpu_benchmark_metrics#results)
+
+* [Requirements](https://github.com/bryceshirley/gpu_benchmark_metrics#requirements)
+
+* [Work To Do](https://github.com/bryceshirley/gpu_benchmark_metrics#work-to-do)
 
 -----------
 
@@ -118,16 +122,6 @@ Additional Information
 
 -----------
 
-# Work To Do
-- Edit The way "Carbon Forcast (gCO2/kWh)" is computed so that the program checks the Forcast every 30 mins (or less) and computes an average at the end. (Another way to do this would be to multiply the energy consumed each 30 mins (or time interval) by the Forecast for that time and then add them together for a more accurate result. This way we could also give live power updates) 
-- Make it work for Benchmarks that utilize more than one GPU
-- using shell check from bash script (similar to pylint) on bash script
-- add a requirements.txt file for setup
-- Add CI tests for python scripts
-- Make monitor.sh collect errors from sciml-bench command
-
------------
-
 # Requirements
 
 * **Python Script (gpu_monitor.py):**
@@ -145,3 +139,14 @@ Additional Information
 * **Configuration:**
 	* Set environment variables (PATH, PYTHONPATH) appropriately.
 	* Verify paths and environment configurations to prevent command not found errors.
+
+-----------
+
+# Work To Do
+- Edit The way "Carbon Forcast (gCO2/kWh)" is computed so that the program checks the Forcast every 30 mins (or less) and computes an average at the end. (Another way to do this would be to multiply the energy consumed each 30 mins (or time interval) by the Forecast for that time and then add them together for a more accurate result. This way we could also give live power updates) 
+- Make it work for Benchmarks that utilize more than one GPU
+- using shell check from bash script (similar to pylint) on bash script
+- add a requirements.txt file for setup
+- Add CI tests for python scripts
+- Make monitor.sh collect errors from sciml-bench command
+
