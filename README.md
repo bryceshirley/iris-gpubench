@@ -64,7 +64,7 @@ Epoch 1: 100%|█████████████████████| 8
 ./monitor.sh <sciml benchmark command> --plot
 ```
 
-Gives you a live timeseries for GPU power consumption and GPU utilization. Just open the png files created gpu_utilization_plot.png and gpu_power_usage_plot.png. They can be found there afterwards too
+Gives you a live timeseries for GPU power consumption and GPU utilization. Just open the png files created gpu_utilization_plot.png and gpu_power_usage_plot.png. They can be found there afterwards too. See [Plot Results](https://github.com/bryceshirley/gpu_benchmark_metrics/edit/main/README.md#4-gpu-power-and-utilization-plots).
 
 ### 3. If you need to terminate the tool for any reason (ie press CTRL+C) then you must kill the tmux session by running:
 
@@ -76,10 +76,19 @@ tmux kill-session
 
 # Benchmark Results 
 
-* Results are saved to gpu_benchmark_metrics/results (these include):
-  	* metrics.yml: yml with the Benchmark Score and GPU Energy Performance results.
-  	* benchmark_specific/: directory containing all the results output by the sciml-bench benchmark. 
- 	* formatted_metrics.txt : Formatted version of metrics.yml, see example below.
+## Results are saved to gpu_benchmark_metrics/results (these include):
+### 1. Result Metrics
+
+* metrics.yml: yml with the Benchmark Score and GPU Energy Performance results.
+
+### 2. Benchmark Specific
+
+* benchmark_specific/: directory containing all the results output by the sciml-bench benchmark. 
+
+### 3. Formatted Results
+
+* formatted_metrics.txt : Formatted version of metrics.yml, see example below.
+
 ```bash
 Benchmark Score and GPU Energy Performance
 
@@ -108,7 +117,9 @@ Additional Information
 +----------------------------------------------+------------------------------+
 ```
 
-	* gpu_power_usage.png and gpu_utilization.png: Time series plots for gpu utilization and power usage. See example below:
+### 4. GPU Power and Utilization Plots 
+
+* gpu_power_usage.png and gpu_utilization.png: Time series plots for gpu utilization and power usage. See example below:
  
   <img src="docs_image1.png" alt="GPU Utilization Output" width="500"/>
   <img src="docs_image2.png" alt="GPU Power Output" width="500"/>
