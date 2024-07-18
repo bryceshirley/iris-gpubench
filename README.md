@@ -1,6 +1,16 @@
 GPU Energy and Carbon Performance Benchmarking
 ==============================================
 
+-----------
+## Table of Contents
+* [The Command](https://github.com/bryceshirley/gpu_benchmark_metrics#the-command)
+
+* [Usage Instructions](https://github.com/bryceshirley/gpu_benchmark_metrics#usage-instructions)
+
+* [Results]()
+
+-----------
+
 # The Command
 The command produces a summary of a benchmark or workloads GPU power and real-time carbon performance. It's currently compatible with sciml-benchmarks but can be generalized to any benchmark that utilizes NVIDIA GPUs:
 
@@ -13,6 +23,8 @@ Or
 ```
 ./monitor.sh <--run_options sciml_benchmark> --plot
 ```
+
+-----------
 
 # Usage Instructions
 ### 1. Run in terminal (from folder):
@@ -55,7 +67,10 @@ Gives you a live timeseries for GPU power consumption and GPU utilization. Just 
 ```
 tmux kill-session
 ```
-### 4. Results 
+
+-----------
+
+# Results 
 
 * Results are saved to gpu_benchmark_metrics/results (these include):
 	* gpu_power_usage.png and gpu_utilization.png: Time series plots for gpu utilization and power usage
@@ -90,6 +105,7 @@ Additional Information
 +----------------------------------------------+------------------------------+
 ```
 
+
 #### Please Note:
 * The Carbon Data is collected in real-time from the National Grid ESO Regional Carbon Intensity API:
   <https://api.carbonintensity.org.uk/regional>
@@ -100,13 +116,18 @@ Additional Information
 * The "error in nvidia-smi's power draw is ± 5%" according to:
   <https://arxiv.org/html/2312.02741v2#:~:text=The%20error%20in%20nvidia%2Dsmi's,%C2%B1%2030W%20of%20over%2Funderestimation.>  
 
-# To Add
+-----------
+
+# Work To Do
 - Edit The way "Carbon Forcast (gCO2/kWh)" is computed so that the program checks the Forcast every 30 mins (or less) and computes an average at the end. (Another way to do this would be to multiply the energy consumed each 30 mins (or time interval) by the Forecast for that time and then add them together for a more accurate result. This way we could also give live power updates) 
 - Make it work for Benchmarks that utilize more than one GPU
 - using shell check from bash script (similar to pylint) on bash script
 - add a requirements.txt file for setup
 - Add CI tests for python scripts
 - Make monitor.sh collect errors from sciml-bench command
+
+-----------
+
 # Requirements
 
 * **Python Script (gpu_monitor.py):**
