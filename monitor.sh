@@ -87,7 +87,6 @@ echo -e "\nLive Monitor: Finished. \n"
 read_yaml_value() {
     local yaml_file="$1"
     local key="$2"
-    yq -r ".$key" "$yaml_file"
 
     if [ -f "$yaml_file" ]; then
         yq -r ".$key" "$yaml_file"
