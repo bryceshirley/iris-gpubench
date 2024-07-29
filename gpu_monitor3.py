@@ -65,19 +65,96 @@ class GPUMonitor:
         self.collect_interval = collect_interval/ SECONDS_IN_HOUR # Convert to hours
         self.carbon_region_shorthand = carbon_region_shorthand
         self.port = port
-        self.metrics = {
-            "gpu_power": [],  # List of lists, one per GPU
-            "gpu_usage": [],  # List of lists, one per GPU
-            "gpu_temp": [],  # List of lists, one per GPU
-        }
 
         # Initialize pynvml
         pynvml.nvmlInit()
 
         # Set up Prometheus metrics
-        self.setup_prometheus_metrics()
+        self.__setup_prometheus_metrics()
 
-    def setup_prometheus_metrics(self):
+        # Initialize private GPU metrics attribute
+        self._gpu_metrics = []
+
+        # Initialize stats
+        self.__setup_stats()
+
+    @property
+    def stats(self) -> dict:
+        """
+        Gets the current statistics dictionary.
+
+        The dictionary has the following keys and default values:
+
+        - 'av_load': Average GPU load as a percentage (default 0.0).
+        - 'av_power': Average power consumption in watts (default 0.0).
+        - 'av_temp': Average GPU temperature in degrees Celsius (default 0.0).
+        - 'av_mem': Average GPU memory usage in MiB (default 0.0).
+        - 'av_carbon_forcast': Average carbon forecast in grams of CO2 per kWh (default 0.0).
+        - 'end_datetime': End date and time of the measurement period (default '').
+        - 'end_carbon_forcast': Forecasted carbon intensity in grams of CO2 per
+            kWh at the end time (default 0.0).
+        - 'max_power_limit': Maximum power limit of the GPU in watts (retrieved from GPU).
+        - 'name': Name of the GPU device (retrieved from GPU).
+        - 'start_carbon_forecast': Forecasted carbon intensity in grams of CO2
+            per kWh at the start time (retrieved during setup).
+        - 'start_datetime': Start date and time of the measurement period 
+            (default to current datetime).
+        - 'total_carbon': Total carbon emissions in grams of CO2 (default 0.0).
+        - 'total_energy': Total energy consumed in kilowatt-hours (default 0.0).
+        - 'total_mem': Total memory of the GPU in MiB (retrieved from GPU).
+
+        Returns:
+            dict: The dictionary containing GPU statistics.
+        """
+        return self._stats
+
+    @stats.setter
+    def stats(self, value: dict) -> None:
+        """
+        Sets the statistics dictionary using __setup_stats.
+
+        Args:
+            value (dict): The dictionary containing GPU statistics.
+        """
+        # We can perform some validation or other logic here if needed
+        self._stats = value
+
+    def __setup_stats(self) -> dict:
+        """
+        Initializes and returns a dictionary with GPU statistics and default values.
+
+        Returns:
+            dict: Dictionary with initialized metrics and default values.
+        """
+        # Find The First GPU's Name and Max Power
+        first_handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        gpu_name = pynvml.nvmlDeviceGetName(first_handle)
+        power_limit = pynvml.nvmlDeviceGetPowerManagementLimit(first_handle)
+        power_limit = power_limit/ 1000.0  # Convert from mW to W
+        total_memory_info = pynvml.nvmlDeviceGetMemoryInfo(first_handle)
+        total_memory = total_memory_info.total / (1024 ** 2)  # Convert bytes to MiB
+
+        # Collect initial carbon forecast
+        carbon_forcast = self.__collect_carbon_forecast()
+
+        self.stats = {
+            "av_load": 0.0,
+            "av_power": 0.0,
+            "av_temp": 0.0,
+            "av_mem": 0.0,
+            "av_carbon_forcast": 0.0,
+            "end_datetime": '',
+            "end_carbon_forcast": 0.0,
+            "max_power_limit": power_limit,
+            "name": gpu_name,
+            "start_carbon_forecast": carbon_forcast,
+            "start_datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "total_carbon": 0.0,
+            "total_energy": 0.0,
+            "total_mem": total_memory,
+        }
+
+    def __setup_prometheus_metrics(self):
         """
         Sets up Prometheus metrics.
         """
@@ -86,6 +163,7 @@ class GPUMonitor:
 
         device_count = pynvml.nvmlDeviceGetCount()
         for i in range(device_count):
+            # Create gauges for each GPU
             self.gpu_metrics_gauges.append({
                 'power_gauge': Gauge(f'gpu_{i}_power_usage',
                                      'GPU Power Usage (W)',
@@ -98,17 +176,20 @@ class GPUMonitor:
                 'temperature_gauge': Gauge(f'gpu_{i}_temperature',
                                            'GPU Temperature (C)',
                                            labelnames=['gpu_index'],
-                                           registry=self.registry)
+                                           registry=self.registry),
+                'memory_gauge': Gauge(f'gpu_{i}_memory_usage',
+                                      'GPU Memory Usage (MiB)',
+                                      labelnames=['gpu_index'],
+                                      registry=self.registry)
             })
 
-    @staticmethod
-    def __collect_gpu_metrics() -> List[Tuple[int, float, float, int]]:
+    def update_gpu_metrics(self) -> None:
         """
         Retrieves the current GPU metrics for all GPUs.
 
         Returns:
-            List[Tuple[int, float, float, int]]: A list of tuples with GPU
-              metrics (index, utilization, power, temperature).
+            List[Tuple[int, float, float, int,float]]: A list of tuples with GPU
+              metrics (index, utilization, power, temperature, memory).
         """
         try:
             device_count = pynvml.nvmlDeviceGetCount()
@@ -119,24 +200,25 @@ class GPUMonitor:
                 utilization = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu
                 power = pynvml.nvmlDeviceGetPowerUsage(handle) / 1000.0  # Convert mW to W
                 temperature = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
-                current_gpu_metrics.append((i, utilization, power, temperature))
+                # Get GPU memory metrics
+                memory_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                memory = memory_info.used / (1024 ** 2)  # Convert bytes to MiB
 
-            return current_gpu_metrics
+                current_gpu_metrics.append((i, utilization, power, temperature, memory))
+
+            self.current_gpu_metrics = current_gpu_metrics
 
         except pynvml.NVMLError as error_message:
             print(f"NVML Error: {error_message}")
-        return []
+            self.current_gpu_metrics = []
 
-    def __collect_carbon_metrics(self) -> Tuple[Optional[float], Optional[str], Optional[str]]:
+    def __collect_carbon_forecast(self) -> float:
         """
         Uses The nationalgridESO Regional Carbon Intensity API to collect current carbon emissions.
 
         Returns:
-            Tuple[Optional[float], Optional[str], Optional[str]]: Current carbon intensity, carbon index, and date/time.
+            Tuple[Optional[float], Optional[str]]: Current carbon intensity, carbon index.
         """
-        current_datetime = datetime.now()
-        formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
-
         timeout_seconds = 30
         try:
             response = requests.get(CARBON_INTENTSITY_URL,
@@ -150,17 +232,15 @@ class GPUMonitor:
                 if region['shortname'] == self.carbon_region_shorthand:
                     intensity = region['intensity']
                     carbon_forecast = float(intensity['forecast'])
-                    carbon_index = intensity['index']
 
-                    carbon_metrics = (carbon_forecast, carbon_index, formatted_datetime])
-                    return carbon_metrics
+                    return carbon_forecast
 
         except requests.exceptions.RequestException as error_message:
             print(f"Error request timed out (30s): {error_message}")
 
-        return None, None, formatted_datetime
+        return None
 
-    def calculate_total_energy(self) -> float:
+    def __calculate_total_energy(self) -> float:
         """
         Computes the total energy consumed by all GPUs.
 
@@ -172,7 +252,7 @@ class GPUMonitor:
         # Iterate over each GPU's power readings
         # And transpose the list of lists to iterate over each gpu
         for gpu_readings in zip(*self.metrics["gpu_power"]):
-    
+
             for i in range(1, len(gpu_readings)):
                 # Calculate average power between two consecutive readings
                 avg_power = (gpu_readings[i - 1] + gpu_readings[i]) / 2
@@ -181,119 +261,55 @@ class GPUMonitor:
                 total_energy_wh += energy_increment_wh
 
         total_energy_kwh = total_energy_wh / 1000  # Convert Wh to kWh
+
         return total_energy_kwh
 
-    def calculate_metrics(self) -> dict:
+    def __completion_stats(self) -> None:
         """
-        Calculates various metrics for all GPUs.
+        Calculates and Updates completiont metrics.
 
         Returns:
             dict: A dictionary of calculated metrics.
         """
-        total_energy = self.calculate_total_energy()
-        avg_gpu_utilization = sum(sum(readings) for readings in zip(*self.metrics["gpu_utilizations"])) / len(
-            self.metrics["gpu_utilizations"]) if self.metrics["gpu_utilizations"] else 0.0
-        avg_gpu_power = sum(sum(readings) for readings in zip(*self.metrics["power_readings"])) / len(
-            self.metrics["power_readings"]) if self.metrics["power_readings"] else 0.0
+        # First Fill Carbon Forecast End time and End Forecast
+        self.stats["end_datetime"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.stats["end_carbon_forcast"] = self.__collect_carbon_forecast()
 
-        try:
-            max_powers = [pynvml.nvmlDeviceGetPowerManagementLimit(
-                pynvml.nvmlDeviceGetHandleByIndex(i)) / 1000.0 for i in range(pynvml.nvmlDeviceGetCount())]
-            max_power = max(max_powers) if max_powers else None
-        except pynvml.NVMLError as error_message:
-            print(f"Error getting max power limit from NVML: {error_message}")
-            max_power = None
+        # Fill Total Energy and Total Carbon Estimations
+        self.stats["total_energy"] = self.__calculate_total_energy()
+        self.stats["av_carbon_forcast"] = (self.stats["start_carbon_forcast"] +
+                                           self.stats["end_carbon_forcast"])/2
+        self.stats["total_carbon"] = (self.stats["total_energy"] *
+                                      self.stats["av_carbon_forecast"])
 
-        carbon_forecast, carbon_index, _ = self.__collect_carbon_metrics()
-        total_carbon = total_energy * carbon_forecast if carbon_forecast else None
+        # Add code for "av_load", "av_power", "av_temp", "av_mem"
 
-        return {
-            "total_GPU_Energy": total_energy,  # kWh (kilo-Watt-hour)
-            "av_GPU_load": avg_gpu_utilization,  # % (percent)
-            "av_GPU_power": avg_gpu_power,  # W (Watts)
-            "max_GPU_power": max_power,  # W (Watts)
-            "carbon_forecast": carbon_forecast,  # gCO2/kWh
-            "carbon_index": carbon_index,  # Very Low to Very High
-            "total_GPU_carbon": total_carbon,  # gCO2 (grams of CO2)
-            "date_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Carbon Reading Date-Time 
-        }
-
-    def save_to_yaml(self, file_path: str):
+    def __save_stats_to_yaml(self, file_path: str):
         """
-        Saves calculated metrics to a YAML file.
+        Saves stats to a YAML file.
 
         Args:
             file_path (str): Path to the YAML file.
         """
-        metrics = self.calculate_metrics()
         with open(file_path, 'w', encoding='utf-8') as yaml_file:
-            yaml.dump(metrics, yaml_file, default_flow_style=False)
-
-    def print_and_save_formatted_metrics(self):
-        """
-        Formats the metrics from the YAML file, prints to the command line, and saves to a text file.
-        """
-        try:
-            with open(METRICS_FILE_PATH, 'r', encoding='utf-8') as file:
-                data = yaml.safe_load(file)
-
-            # Extract and convert values to appropriate types
-            time_value = data.get('time', 0)
-            av_gpu_load = data.get('av_GPU_load', 0)
-            av_gpu_power = data.get('av_GPU_power', 0)
-            max_gpu_power = int(data.get('max_GPU_power', 0))
-            total_gpu_energy = data.get('total_GPU_Energy', 0)
-            carbon_forecast = data.get('carbon_forecast', 0)
-            carbon_index = data.get('carbon_index', 'Unknown')
-            total_GPU_carbon = data.get('total_GPU_carbon', 0)
-            date_time = data.get("date_time", "Unknown")
-
-            # Prepare data for tabulate
-            formatted_data_main = [
-                ["Benchmark Score (s)", f"{time_value:.5f}"],
-                ["Total GPU Energy Consumed (kWh)", f"{total_gpu_energy:.5f}"],
-                ["Total GPU Carbon Emissions (gC02)", f"{total_GPU_carbon:.5f}"],
-            ]
-
-            formatted_data_extra = [
-                ["Average GPU Utilization (%)", f"{av_gpu_load:.5f}"],
-                ["Avg GPU Power (W)", f"{av_gpu_power:.5f} (max possible {max_gpu_power})"],
-                ["Carbon Forecast (gCO2/kWh), Carbon Index", f"{carbon_forecast:.1f}, {carbon_index}"],
-                ["Carbon Intensity Reading Date & Time", date_time]
-            ]
-
-            # Print as table
-            output = []
-            output.append("Benchmark Score and GPU Energy Performance")
-            output.append("")
-            output.append(tabulate(formatted_data_main, headers=["Metric", "Value"], tablefmt="grid"))
-            output.append("")
-            output.append("Additional Information")
-            output.append("")
-            output.append(tabulate(formatted_data_extra, headers=["Metric", "Value"], tablefmt="grid"))
-            output.append("")
-
-            # Print to console
-            for line in output:
-                print(line)
-
-            # Save output to file
-            with open(FORMATTED_METRICS_PATH, 'w', encoding='utf-8') as output_file:
-                for line in output:
-                    output_file.write(line + "\n")
-
-        except FileNotFoundError:
-            print(f"Metrics file {METRICS_FILE_PATH} not found. Please run the monitoring script first.")
+            yaml.dump(self.stats, yaml_file, default_flow_style=False)
 
     def update_prometheus_metrics(self):
         """
         Updates Prometheus metrics with the latest GPU data.
         """
-        gpu_metrics = self.__collect_gpu_metrics()
-        for gpu_index, utilization, power, temperature in gpu_metrics:
+        for gpu_index, utilization, power, temperature, memory in self._gpu_metrics:
+            # Update the power gauge
             self.gpu_metrics_gauges[gpu_index]['power_gauge'].labels(gpu_index=str(gpu_index)).set(power)
+            
+            # Update the utilization gauge
             self.gpu_metrics_gauges[gpu_index]['utilization_gauge'].labels(gpu_index=str(gpu_index)).set(utilization)
+            
+            # Update the temperature gauge
             self.gpu_metrics_gauges[gpu_index]['temperature_gauge'].labels(gpu_index=str(gpu_index)).set(temperature)
+            
+            # Update the memory usage gauge
+            self.gpu_metrics_gauges[gpu_index]['memory_gauge'].labels(gpu_index=str(gpu_index)).set(memory)
 
     def run(self):
         """
@@ -304,31 +320,46 @@ class GPUMonitor:
         httpd.socket = ssl.wrap_socket(httpd.socket, keyfile=KEYFILE, certfile=CERTFILE, server_side=True)
         print(f"Prometheus HTTPS exporter running on port {self.port}")
 
+        # Initialize counters for GPU metrics
+        av_count = av_util = av_power = av_temp = av_mem = 0
+
         try:
             while True:
-                gpu_metrics = self.__collect_gpu_metrics()
-                current_time = time.time()
-
-                for i, (gpu_index, utilization, power, _) in enumerate(gpu_metrics):
-                    self.metrics["timestamps"].append(current_time)
-                    if i == 0:
-                        # Initialize power and utilization lists for each timestamp
-                        self.metrics["power_readings"].append([])
-                        self.metrics["gpu_utilizations"].append([])
-
-                    self.metrics["power_readings"][-1].append(power)
-                    self.metrics["gpu_utilizations"][-1].append(utilization)
-
-                print(f"Current GPU Metrics: {gpu_metrics}")
-
+                self.update_gpu_metrics()
                 self.update_prometheus_metrics()
 
-                time.sleep(self.collect_interval)  # Check every `collect_interval` seconds
+                # Aggregate metrics for GPUs with utilization > 0
+                for _, util, power, temp, mem in self.current_gpu_metrics:
+                    if util > 0.0:
+                        av_util += util
+                        av_power += power
+                        av_temp += temp
+                        av_mem += mem
+                        av_count += 1
+
+                # Print current GPU metrics
+                print(f"Current GPU Metrics: {self.current_gpu_metrics}")
+
+                # Sleep for the defined collection interval
+                time.sleep(self.collect_interval)
 
         except KeyboardInterrupt:
+            # Store Completion Stats
+            self.__completion_stats()
+
+            # Compute and store final statistics
+            if av_count > 0:  # Prevent division by zero
+                self.stats["av_load"] = av_util / av_count
+                self.stats["av_power"] = av_power / av_count
+                self.stats["av_temp"] = av_temp / av_count
+                self.stats["av_mem"] = av_mem / av_count
+            else:
+                # Handle the case where no valid metrics were collected
+                self.stats["av_load"] = self.stats["av_power"] = self.stats["av_temp"] = self.stats["av_mem"] = None
+
             print("Monitoring stopped by user.")
-            self.save_to_yaml(METRICS_FILE_PATH)  # Save metrics to YAML file when interrupted
-            self.print_and_save_formatted_metrics()  # Print and save formatted metrics when interrupted
+            self.__save_stats_to_yaml(METRICS_FILE_PATH)  # Save metrics to YAML file when interrupted
+
 
 
 if __name__ == "__main__":
