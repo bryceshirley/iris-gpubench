@@ -62,7 +62,7 @@ class GPUMonitor:
             collect_interval (int): Interval in seconds for collecting GPU metrics.
             port (int): Port for the Prometheus metrics HTTP server.
         """
-        self.collect_interval = collect_interval
+        self.collect_interval = collect_interval/ SECONDS_IN_HOUR # Convert to hours
         self.carbon_region_shorthand = carbon_region_shorthand
         self.port = port
         self.metrics = {
@@ -102,7 +102,7 @@ class GPUMonitor:
             })
 
     @staticmethod
-    def __get_current_gpu_metrics() -> List[Tuple[int, float, float, int]]:
+    def __collect_gpu_metrics() -> List[Tuple[int, float, float, int]]:
         """
         Retrieves the current GPU metrics for all GPUs.
 
@@ -127,8 +127,7 @@ class GPUMonitor:
             print(f"NVML Error: {error_message}")
         return []
 
-    @staticmethod
-    def __get_carbon_metrics() -> Tuple[Optional[float], Optional[str], Optional[str]]:
+    def __collect_carbon_metrics(self) -> Tuple[Optional[float], Optional[str], Optional[str]]:
         """
         Uses The nationalgridESO Regional Carbon Intensity API to collect current carbon emissions.
 
@@ -148,11 +147,13 @@ class GPUMonitor:
             regions = data['data'][0]['regions']
 
             for region in regions:
-                if region['shortname'] == CARBON_INSTENSITY_REGION_SHORTHAND:
+                if region['shortname'] == self.carbon_region_shorthand:
                     intensity = region['intensity']
                     carbon_forecast = float(intensity['forecast'])
                     carbon_index = intensity['index']
-                    return carbon_forecast, carbon_index, formatted_datetime
+
+                    carbon_metrics = (carbon_forecast, carbon_index, formatted_datetime])
+                    return carbon_metrics
 
         except requests.exceptions.RequestException as error_message:
             print(f"Error request timed out (30s): {error_message}")
@@ -167,18 +168,20 @@ class GPUMonitor:
             float: Total energy in kWh.
         """
         total_energy_wh = 0.0
-        timestamps = self.metrics["timestamps"]
 
-        # Ensure power readings are consistent across all GPUs
-        power_readings = [sum(readings) for readings in zip(*self.metrics["power_readings"])]
+        # Iterate over each GPU's power readings
+        # And transpose the list of lists to iterate over each gpu
+        for gpu_readings in zip(*self.metrics["gpu_power"]):
+    
+            for i in range(1, len(gpu_readings)):
+                # Calculate average power between two consecutive readings
+                avg_power = (gpu_readings[i - 1] + gpu_readings[i]) / 2
+                # Increment energy for the time interval
+                energy_increment_wh = avg_power * self.collect_interval
+                total_energy_wh += energy_increment_wh
 
-        for i in range(1, len(timestamps)):
-            delta_time = timestamps[i] - timestamps[i - 1]
-            avg_power = power_readings[i - 1] + power_readings[i]
-            energy_increment_wh = avg_power * delta_time / SECONDS_IN_HOUR  # Convert to Wh
-            total_energy_wh += energy_increment_wh
-
-        return total_energy_wh / 1000  # Convert Wh to kWh
+        total_energy_kwh = total_energy_wh / 1000  # Convert Wh to kWh
+        return total_energy_kwh
 
     def calculate_metrics(self) -> dict:
         """
@@ -201,7 +204,7 @@ class GPUMonitor:
             print(f"Error getting max power limit from NVML: {error_message}")
             max_power = None
 
-        carbon_forecast, carbon_index, _ = self.get_carbon_forecast_and_index()
+        carbon_forecast, carbon_index, _ = self.__collect_carbon_metrics()
         total_carbon = total_energy * carbon_forecast if carbon_forecast else None
 
         return {
@@ -286,7 +289,7 @@ class GPUMonitor:
         """
         Updates Prometheus metrics with the latest GPU data.
         """
-        gpu_metrics = self.__get_current_gpu_metrics()
+        gpu_metrics = self.__collect_gpu_metrics()
         for gpu_index, utilization, power, temperature in gpu_metrics:
             self.gpu_metrics_gauges[gpu_index]['power_gauge'].labels(gpu_index=str(gpu_index)).set(power)
             self.gpu_metrics_gauges[gpu_index]['utilization_gauge'].labels(gpu_index=str(gpu_index)).set(utilization)
@@ -303,7 +306,7 @@ class GPUMonitor:
 
         try:
             while True:
-                gpu_metrics = self.__get_current_gpu_metrics()
+                gpu_metrics = self.__collect_gpu_metrics()
                 current_time = time.time()
 
                 for i, (gpu_index, utilization, power, _) in enumerate(gpu_metrics):
