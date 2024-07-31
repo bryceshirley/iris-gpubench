@@ -1,204 +1,494 @@
 """
-Collects live GPU metrics using nvidia-smi and carbon produced by GPU using 
+Collects live GPU metrics using nvidia-smi and carbon produced by GPU using
 The nationalgridESO Regional Carbon Intensity API:
 https://api.carbonintensity.org.uk/regional
 
 Usage:
     python gpu_monitor.py
 
-Options:
-    --plot
-        Produces live plots of the collected GPU Metrics
-
 Parameters:
-    CARBON_INSTENSITY_REGION_SHORTHAND: The region for the The nationalgridESO 
-                                        Regional Carbon Intensity API 
+    CARBON_INSTENSITY_REGION_SHORTHAND: The region for The nationalgridESO
+                                        Regional Carbon Intensity API
 """
 
-import ssl  # SSL/TLS encryption for the HTTP server
-import time  # Time functions like sleep
-from typing import Tuple, Optional, List
-from http.server import BaseHTTPRequestHandler, HTTPServer  # HTTP server and request handling
+import logging
+import os
+import time
+from datetime import datetime
+from typing import Dict, List, Optional
 
-import yaml  # A library for parsing and writing YAML files, used here for saving GPU metrics
-
- # Prometheus client library for Python; used to define and expose metrics
-from prometheus_client import CollectorRegistry, Gauge, generate_latest
 import pynvml
+import requests
+import yaml
+from prometheus_client import CollectorRegistry, Gauge, start_http_server
+from tabulate import tabulate
 
+# Constants
+CARBON_INTENSITY_URL = (
+    "https://api.carbonintensity.org.uk/regional"
+)
+SECONDS_IN_HOUR = 3600  # Number of seconds in an hour
+METRICS_FILE_PATH = './results/metrics.yml'
 
-class GPUMetrics:
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    filename='gpu_monitor.log',  # Specify the log file name
+    filemode='w'  # Overwrite the file on each run; use 'a' to append
+)
+LOGGER = logging.getLogger(__name__)
+
+class PrometheusServer:
     """
-    Manages NVIDIA GPU metrics using NVML.
-
-    Attributes:
-        collect_interval (int): Interval in seconds for metric collection.
-        gpu_names (dict): Maps GPU indices to names.
-        gpu_metrics_over_time (list): List of GPU metrics collected over time.
-
-    Methods:
-        __init__(collect_interval=1):
-            Initializes NVML and sets up metrics collection.
-
-        get_gpu_metrics():
-            Retrieves GPU metrics (utilization, power, temperature).
-
-        collect_metrics():
-            Collects and stores GPU metrics.
-
-        calculate_statistics():
-            Computes average metrics and total energy consumption.
-
-        shutdown():
-            Shuts down NVML.
+    Manages the setup and operation of a Prometheus HTTP server.
     """
-    def __init__(self, collect_interval=1):
+
+    DEFAULT_PROMETHEUS_SERVER_CONFIG = {
+        'port': 8000,
+        'addr': '0.0.0.0'
+    }
+
+    def __init__(self, config: Optional[Dict[str, str]] = None):
         """
-        Initializes the GPUMetrics class and NVML.
+        Initializes the PrometheusServer class.
 
         Args:
-            collect_interval (int): Interval for data collection in seconds.
+            config (dict, optional): Configuration for the Prometheus server.
+        """
+        self.config = config or self.DEFAULT_PROMETHEUS_SERVER_CONFIG
+        self.registry = CollectorRegistry()
+        self.gauges = {}
+
+    def start(self):
+        """
+        Starts the Prometheus HTTP server.
+        """
+        self.__validate_config()
+        start_http_server(
+            port=self.config['port'],
+            addr=self.config['addr'],
+            registry=self.registry
+        )
+        LOGGER.info("Prometheus server started on %s:%s",
+                    self.config['addr'], self.config['port'])
+
+    def add_metric(self, name: str, description: str, labels: List[str]) -> None:
+        """
+        Adds a new metric to the Prometheus server.
+
+        Args:
+            name (str): The name of the metric.
+            description (str): A description of the metric.
+            labels (list of str): List of labels for the metric.
+        """
+        self.gauges[name] = Gauge(
+            name, description, labelnames=labels, registry=self.registry
+        )
+        LOGGER.info("Added metric '%s' with description '%s' and labels %s",
+                    name, description, labels)
+
+    def update_metric(self, name: str, value: float, **labels) -> None:
+        """
+        Updates the value of an existing metric.
+
+        Args:
+            name (str): The name of the metric to update.
+            value (float): The new value for the metric.
+            **labels: The labels for the metric.
+        """
+        if name in self.gauges:
+            self.gauges[name].labels(**labels).set(value)
+            LOGGER.info("Updated metric '%s' to value %f with labels %s",
+                        name, value, labels)
+        else:
+            LOGGER.error("Metric '%s' does not exist.", name)
+            raise ValueError(f"Metric '{name}' does not exist.")
+
+    def __validate_config(self) -> None:
+        """
+        Validates the configuration settings for the Prometheus server.
+        """
+        if not isinstance(self.config['port'], int) or not 1 <= self.config['port'] <= 65535:
+            LOGGER.error("Port must be an integer between 1 and 65535.")
+            raise ValueError("Port must be an integer between 1 and 65535.")
+        if not isinstance(self.config['addr'], str) or not self.config['addr']:
+            LOGGER.error("Address must be a non-empty string.")
+            raise ValueError("Address must be a non-empty string.")
+
+class GPUMonitor:
+    """
+    Manages NVIDIA GPU metrics using NVML and collects carbon metrics from the
+    The nationalgridESO Regional Carbon Intensity API.
+    """
+
+    def __init__(self,
+                 collect_interval=1,
+                 carbon_region_shorthand="South England",
+                 prometheus_config=None):
+        """
+        Initializes the GPUMonitor class.
+
+        Args:
+            collect_interval (int): Interval in seconds for collecting GPU metrics.
+            carbon_region_shorthand (str): Region for carbon intensity API.
+            prometheus_config (dict, optional): Configuration for the Prometheus server.
         """
         self.collect_interval = collect_interval
-        self.gpu_names = {}
-        self.gpu_metrics_over_time = []
-        
-        # Initialize NVML
+        self.carbon_region_shorthand = carbon_region_shorthand
+
+        # Initialize private GPU metrics as a dict of Lists
+        self._gpu_metrics = {
+            'gpu_idx': [],
+            'util': [],
+            'power': [],
+            'temp': [],
+            'mem': []
+        }
+
+        # Initialize Previous Power
+        self.previous_power = []
+
+        # Initialize stats
+        self._stats = {}
+
+        # Initialize pynvml
         pynvml.nvmlInit()
+        LOGGER.info("NVML initialized")
 
-        # Define Prometheus metrics
-        registry = CollectorRegistry()
-        self.gpu_utilization_gauge = Gauge('gpu_utilization',
-                                           'GPU Utilization',
-                                           ['gpu'],
-                                           registry=registry)
+        # Set up Prometheus server
+        self.prometheus_server = PrometheusServer(config=prometheus_config)
+        LOGGER.info("Prometheus server configured")
 
-        self.gpu_power_gauge = Gauge('gpu_power',
-                                     'GPU Power Draw',
-                                     ['gpu'],
-                                     registry=registry)
+        # Set up Prometheus metrics
+        self.__setup_prometheus_metrics()
 
-        self.gpu_temperature_gauge = Gauge('gpu_temperature',
-                                           'GPU Temperature',
-                                           ['gpu'],
-                                           registry=registry)
+        # Start the Prometheus HTTP server
+        self.prometheus_server.start()
 
-        # Internal attribute for metrics
-        self._gpu_metrics = []
-
-    def __set_gpu_metrics(self):
+    def __setup_stats(self) -> None:
         """
-        Retrieves and sets metrics for all available NVIDIA GPUs.
+        Initializes and returns a dictionary with GPU statistics and default values.
+
+        The dictionary has the following keys and default values:
+
+        - 'av_carbon_forecast': Average carbon forecast in grams of CO2 per kWh (default 0.0).
+        - 'end_datetime': End date and time of the measurement period (default '').
+        - 'end_carbon_forecast': Forecasted carbon intensity in grams of CO2 per
+            kWh at the end time (default 0.0).
+        - 'max_power_limit': Maximum power limit of the GPU in watts (retrieved from GPU).
+        - 'name': Name of the GPU device (retrieved from GPU).
+        - 'start_carbon_forecast': Forecasted carbon intensity in grams of CO2
+            per kWh at the start time (retrieved during setup).
+        - 'start_datetime': Start date and time of the measurement period
+            (default to current datetime).
+        - 'total_carbon': Total carbon emissions in grams of CO2 (default 0.0).
+        - 'total_energy': Total energy consumed in kilowatt-hours (default 0.0).
+        - 'total_mem': Total memory of the GPU in MiB (retrieved from GPU).
+        """
+        # Find The First GPU's Name and Max Power
+        first_handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        gpu_name = pynvml.nvmlDeviceGetName(first_handle)
+        power_limit = pynvml.nvmlDeviceGetPowerManagementLimit(first_handle)
+        power_limit = power_limit / 1000.0  # Convert from mW to W
+        total_memory_info = pynvml.nvmlDeviceGetMemoryInfo(first_handle)
+        total_memory = total_memory_info.total / (1024 ** 2)  # Convert bytes to MiB
+
+        # Collect initial carbon forecast
+        carbon_forecast = self.__update_carbon_forecast()
+
+        self._stats = {
+            "av_carbon_forecast": 0.0,
+            "end_datetime": '',
+            "end_carbon_forecast": 0.0,
+            "max_power_limit": power_limit,
+            "name": gpu_name,
+            "start_carbon_forecast": carbon_forecast,
+            "start_datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "total_carbon": 0.0,
+            "total_energy": 0.0,
+            "total_mem": total_memory,
+        }
+        LOGGER.info("Statistics initialized: %s", self._stats)
+
+    def __setup_prometheus_metrics(self):
+        """
+        Sets up Prometheus metrics.
+        """
+        device_count = pynvml.nvmlDeviceGetCount()
+        for i in range(device_count):
+            # Create metrics for each GPU
+            self.prometheus_server.add_metric(
+                name=f'gpu_{i}_power_usage',
+                description='GPU Power Usage (W)',
+                labels=['gpu_index']
+            )
+            self.prometheus_server.add_metric(
+                name=f'gpu_{i}_utilization',
+                description='GPU Utilization (%)',
+                labels=['gpu_index']
+            )
+            self.prometheus_server.add_metric(
+                name=f'gpu_{i}_temperature',
+                description='GPU Temperature (C)',
+                labels=['gpu_index']
+            )
+            self.prometheus_server.add_metric(
+                name=f'gpu_{i}_memory_usage',
+                description='GPU Memory Usage (MiB)',
+                labels=['gpu_index']
+            )
+        LOGGER.info("Prometheus metrics setup complete")
+
+    def __update_gpu_metrics(self) -> None:
+        """
+        Retrieves the current GPU metrics for all GPUs and updates the internal dictionary.
+
+        This method updates `self._gpu_metrics` with the following information:
+            - 'gpu_idx': List of GPU indices
+            - 'util': List of GPU utilization percentages
+            - 'power': List of GPU power usage in watts
+            - 'temp': List of GPU temperatures in degrees Celsius
+            - 'mem': List of used GPU memory in MiB
         """
         try:
             device_count = pynvml.nvmlDeviceGetCount()
-            gpu_metrics = []
 
+            # Store previous power readings
+            self.previous_power = self._gpu_metrics['power']
+
+            # Clear existing lists in the dictionary to start fresh
+            self._gpu_metrics['gpu_idx'] = []
+            self._gpu_metrics['util'] = []
+            self._gpu_metrics['power'] = []
+            self._gpu_metrics['temp'] = []
+            self._gpu_metrics['mem'] = []
+
+            # Retrieve metrics for each GPU and append to the dictionary lists
             for i in range(device_count):
                 handle = pynvml.nvmlDeviceGetHandleByIndex(i)
-                name = pynvml.nvmlDeviceGetName(handle).decode('utf-8')
                 utilization = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu
                 power = pynvml.nvmlDeviceGetPowerUsage(handle) / 1000.0  # Convert mW to W
-                temperature = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+                temperature = pynvml.nvmlDeviceGetTemperature(
+                    handle, pynvml.NVML_TEMPERATURE_GPU
+                )
+                memory_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                memory = memory_info.used / (1024 ** 2)  # Convert bytes to MiB
 
-                gpu_metrics.append((i, utilization, power, temperature))
-                self.gpu_names[i] = name
+                # Append metrics directly to the dictionary lists
+                self._gpu_metrics['gpu_idx'].append(i)
+                self._gpu_metrics['util'].append(utilization)
+                self._gpu_metrics['power'].append(power)
+                self._gpu_metrics['temp'].append(temperature)
+                self._gpu_metrics['mem'].append(memory)
 
-            self._gpu_metrics = gpu_metrics
+            # Call a method to perform calculations based on updated metrics
+            if len(self.previous_power) > 0:
+                self.__update_total_energy()
+            LOGGER.info("Updated GPU metrics: %s", self._gpu_metrics)
 
         except pynvml.NVMLError as error_message:
-            print(f"NVML Error: {error_message}")
+            LOGGER.error("NVML Error: %s", error_message)
 
-    @property
-    def gpu_metrics(self) -> List[Tuple[int, int, float, int]]:
+    def __update_carbon_forecast(self) -> Optional[float]:
         """
-        Retrieves the currently stored GPU metrics, refreshing them if necessary.
+        Uses The nationalgridESO Regional Carbon Intensity API to collect current carbon emissions.
 
         Returns:
-            List[Tuple[int, int, float, int]]: A list of tuples with GPU metrics.
+            Optional[float]: Current carbon intensity.
         """
-        self.__set_gpu_metrics()  # Refresh metrics before returning
-        return self._gpu_metrics
+        timeout_seconds = 30
+        try:
+            response = requests.get(CARBON_INTENSITY_URL,
+                                    headers={'Accept': 'application/json'},
+                                    timeout=timeout_seconds)
+            response.raise_for_status()
+            data = response.json()
+            regions = data['data'][0]['regions']
 
-    def collect_and_expose_gpu_metrics(self):
+            for region in regions:
+                if region['shortname'] == self.carbon_region_shorthand:
+                    intensity = region['intensity']
+                    carbon_forecast = float(intensity['forecast'])
+                    LOGGER.info("Carbon forecast for '%s': %f",
+                                self.carbon_region_shorthand, carbon_forecast)
+                    return carbon_forecast
+
+        except requests.exceptions.RequestException as error_message:
+            LOGGER.error("Error request timed out (30s): %s", error_message)
+
+        return None
+
+    def __update_total_energy(self) -> None:
         """
-        Collects GPU metrics and updates Prometheus gauges.
-
-        This function retrieves GPU metrics (utilization, power usage, temperature) using
-        `get_gpu_metrics()`, stores them in `gpu_metrics_over_time`, and updates the
-        corresponding Prometheus gauges.
-
-        Metrics:
-            - Utilization percentage
-            - Power usage in watts
-            - Temperature in Celsius
+        Computes the total energy consumed by all GPUs.
         """
+        device_count = pynvml.nvmlDeviceGetCount()
+        current_power = self._gpu_metrics['power']
 
-         # Retrieve the latest GPU metrics
-        current_metrics = self.gpu_metrics  # This will call the property getter and refresh metrics
+        # Check if previous_power and current_power have the same length
+        if len(self.previous_power) != device_count or len(current_power) != device_count:
+            LOGGER.error(
+                "Length of previous_power or current_power does not match the number of devices."
+            )
+            raise ValueError(
+                "Length of previous_power or current_power does not match the number of devices."
+            )
 
-        # Store the metrics for historical data
-        self.gpu_metrics_over_time.append(current_metrics)
-        
+        # Convert Collection Interval from Seconds to Hours
+        collection_interval_h = self.collect_interval / SECONDS_IN_HOUR
 
-        for gpu_index, utilization, power, temperature in current_metrics:
-            gpu_name = self.gpu_names[gpu_index]
+        # Calculate total energy consumed in kWh
+        energy_wh = sum(
+            ((prev + curr) / 2) * collection_interval_h
+            for prev, curr in zip(self.previous_power, current_power)
+        )
+        energy_kwh = energy_wh / 1000.0  # Convert Wh to kWh
 
-            # Update Prometheus gauges with the current metrics
-            self.gpu_utilization_gauge.labels(gpu=gpu_name).set(utilization)
-            self.gpu_power_gauge.labels(gpu=gpu_name).set(power)
-            self.gpu_temperature_gauge.labels(gpu=gpu_name).set(temperature)
+        # Update total energy in stats
+        self._stats["total_energy"] += energy_kwh
+        LOGGER.info("Updated total energy: %f kWh", self._stats['total_energy'])
 
-    def collect_metrics(self):
+    def __update_prometheus_metrics(self):
         """
-        Collects and stores GPU metrics over time.
+        Updates Prometheus metrics with the latest GPU data.
         """
-        gpu_metrics = self.get_gpu_metrics()
-        self.gpu_metrics_over_time.append(gpu_metrics)
+        # Retrieve GPU indices
+        gpu_indices = self._gpu_metrics['gpu_idx']
 
-    def calculate_statistics(self):
+        # Update all metrics for each GPU index
+        for gpu_index in gpu_indices:
+            gpu_str = str(gpu_index)
+            # Retrieve the metrics for the current GPU index
+            utilization = self._gpu_metrics['util'][gpu_index]
+            power = self._gpu_metrics['power'][gpu_index]
+            temperature = self._gpu_metrics['temp'][gpu_index]
+            memory = self._gpu_metrics['mem'][gpu_index]
+
+            # Update the metrics using PrometheusServer methods
+            self.prometheus_server.update_metric(
+                name=f'gpu_{gpu_index}_power_usage',
+                value=power,
+                gpu_index=gpu_str
+            )
+            self.prometheus_server.update_metric(
+                name=f'gpu_{gpu_index}_utilization',
+                value=utilization,
+                gpu_index=gpu_str
+            )
+            self.prometheus_server.update_metric(
+                name=f'gpu_{gpu_index}_temperature',
+                value=temperature,
+                gpu_index=gpu_str
+            )
+            self.prometheus_server.update_metric(
+                name=f'gpu_{gpu_index}_memory_usage',
+                value=memory,
+                gpu_index=gpu_str
+            )
+        LOGGER.info("Prometheus metrics updated")
+
+    def __completion_stats(self) -> None:
         """
-        Calculates average metrics and total energy consumption.
+        Calculates and Updates completion metrics.
 
         Returns:
-            tuple: Total energy in kWh, average power, utilization, and temperature.
+            dict: A dictionary of calculated metrics.
         """
-        num_gpus = len(self.gpu_metrics_over_time[0])
-        total_energy_kwh = [0.0] * num_gpus
-        total_utilization = [0.0] * num_gpus
-        total_power = [0.0] * num_gpus
-        total_temperature = [0.0] * num_gpus
+        # First Fill Carbon Forecast End time and End Forecast
+        self._stats["end_datetime"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self._stats["end_carbon_forecast"] = self.__update_carbon_forecast()
 
-        for gpu_metrics in self.gpu_metrics_over_time:
-            for gpu_index in range(num_gpus):
-                utilization = gpu_metrics[gpu_index][1]
-                power_w = gpu_metrics[gpu_index][2]
-                temperature = gpu_metrics[gpu_index][3]
-                total_utilization[gpu_index] += utilization
-                total_power[gpu_index] += power_w
-                total_temperature[gpu_index] += temperature
-                total_energy_kwh[gpu_index] += power_w * self.collect_interval / 3600 / 1000
+        # Fill Total Energy and Total Carbon Estimations
+        self._stats["av_carbon_forecast"] = (
+            self._stats["start_carbon_forecast"] +
+            self._stats["end_carbon_forecast"]
+        ) / 2
+        self._stats["total_carbon"] = (
+            self._stats["total_energy"] * self._stats["av_carbon_forecast"]
+        )
+        LOGGER.info("Completion stats updated: %s", self._stats)
 
-        avg_utilization = [total_utilization[gpu_index] / len(self.gpu_metrics_over_time)
-                           for gpu_index in range(num_gpus)]
-        avg_power = [total_power[gpu_index] / len(self.gpu_metrics_over_time)
-                     for gpu_index in range(num_gpus)]
-        avg_temperature = [total_temperature[gpu_index] / len(self.gpu_metrics_over_time)
-                           for gpu_index in range(num_gpus)]
-
-        return total_energy_kwh, avg_power, avg_utilization, avg_temperature
-
-    def shutdown(self):
+    def save_stats_to_yaml(self, file_path: str):
         """
-        Shuts down the NVML library.
+        Saves stats to a YAML file.
+
+        Args:
+            file_path (str): Path to the YAML file.
         """
-        pynvml.nvmlShutdown()
+        try:
+            with open(file_path, 'w', encoding='utf-8') as yaml_file:
+                yaml.dump(self._stats, yaml_file, default_flow_style=False)
+            LOGGER.info("Stats saved to YAML file: %s", file_path)
+        except IOError as io_error:
+            LOGGER.error("Failed to save stats to YAML file: %s. Error: %s",
+                         file_path, io_error)
 
+    def _live_monitor(self) -> None:
+        """
+        Clears the terminal and prints the current GPU metrics in a formatted table.
 
-# Example usage
+        This method clears the terminal screen, fetches the current date and time,
+        and then prints the GPU metrics as a grid table with headers.
+        """
+        os.system('clear')
+        # Get the current date and time
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Define headers for the table
+        headers = [
+            f'GPU Index ({self._stats["name"]})',
+            'Utilization (%)',
+            f"Power (W) / Max {self._stats['max_power_limit']} W",
+            'Temperature (C)',
+            f"Memory (MiB) / Total {self._stats['total_mem']} MiB"
+        ]
+
+        # Print current GPU metrics with date and time
+        print(
+            f"Current GPU Metrics as of {current_time}:\n"
+            f"{tabulate(self._gpu_metrics, headers=headers, tablefmt='grid')}"
+        )
+
+    def run(self, live_monitoring: bool = True) -> None:
+        """
+        Starts the GPU monitoring and Prometheus HTTP server with HTTPS.
+
+        This method initializes and runs an HTTP server that exposes GPU metrics via
+        Prometheus.
+        """
+
+        # Print the metrics as a formatted table
+        try:
+            # Initialize statistics and metrics
+            self.__setup_stats()
+
+            # Start the monitoring loop
+            while True:
+                # Update GPU metrics
+                self.__update_gpu_metrics()
+
+                # Update Prometheus metrics with the latest GPU data
+                self.__update_prometheus_metrics()
+
+                if live_monitoring:
+                    self._live_monitor()
+
+                # Wait for the defined collection interval before the next iteration
+                time.sleep(self.collect_interval)
+
+        except KeyboardInterrupt:
+            # Handle interruption (e.g., Ctrl+C) by storing completion stats
+            self.__completion_stats()
+            LOGGER.info("Monitoring stopped.")
+            print("\nMonitoring stopped.")
+
+        finally:
+            # Properly shut down pynvml
+            pynvml.nvmlShutdown()
+            LOGGER.info("NVML shutdown")
+
 if __name__ == "__main__":
-    GPU_METRICS = GPUMetrics(collect_interval=1)
-    GPU_METRICS.collect_metrics()
-    print(GPU_METRICS.calculate_statistics())
-    GPU_METRICS.shutdown()
-
+    MONITOR = GPUMonitor()
+    MONITOR.run()
+    MONITOR.save_stats_to_yaml(METRICS_FILE_PATH)
