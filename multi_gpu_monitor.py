@@ -4,7 +4,7 @@ National Grid ESO Regional Carbon Intensity API:
 https://api.carbonintensity.org.uk/regional
 
 Usage:
-    python gpu_monitor.py [--live_monitor] [--interval INTERVAL] [--carbon_region REGION]
+    python3 mutli_gpu_monitor.py [--live_monitor] [--interval INTERVAL] [--carbon_region REGION]
 
 Parameters:
     --live_monitor: Enables live monitoring of GPU metrics. If not specified,
@@ -15,7 +15,7 @@ Parameters:
     Grid ESO Regional Carbon Intensity API. Default is 'South England'.
 
 Example:
-    python gpu_monitor_class.py --live_monitor --interval 30 --carbon_region "North Scotland"
+    python3 multi_gpu_monitor_class.py --live_monitor --interval 30 --carbon_region "North Scotland"
 
     This command enables live monitoring, sets the monitoring interval to 30
     seconds, and uses "North Scotland" as the carbon intensity region.
