@@ -105,6 +105,9 @@ class GPUMonitor:
         # Initialize stats
         self._stats = {}
 
+        # Number of GPUS
+        self.device_count = pynvml.nvmlDeviceGetCount()
+
         # Initialize pynvml
         pynvml.nvmlInit()
         LOGGER.info("NVML initialized")
@@ -156,7 +159,6 @@ class GPUMonitor:
             - 'total_energy': List of total energy consumed in kWh
         """
         try:
-            device_count = pynvml.nvmlDeviceGetCount()
 
             # Store previous power readings
             # Store previous power readings
@@ -170,7 +172,7 @@ class GPUMonitor:
             self.current_gpu_metrics['temp'] = []
             self.current_gpu_metrics['mem'] = []
 
-            for i in range(device_count):
+            for i in range(self.self.device_count):
                 handle = pynvml.nvmlDeviceGetHandleByIndex(i)
                 utilization = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu
                 power_usage = pynvml.nvmlDeviceGetPowerUsage(handle) / 1000.0  # Convert mW to W
@@ -239,11 +241,11 @@ class GPUMonitor:
 
         Updates the total energy consumed and stores it in `self._stats`.
         """
-        device_count = pynvml.nvmlDeviceGetCount()
+        
         current_power = self.current_gpu_metrics['power']
 
         # Check if previous_power and current_power have the same length
-        if len(self.previous_power) != device_count or len(current_power) != device_count:
+        if len(self.previous_power) != self.device_count or len(current_power) != self.device_count:
             LOGGER.error(
                 "Length of previous_power or current_power does not match the number of devices."
             )
@@ -347,7 +349,7 @@ class GPUMonitor:
         fig1.tight_layout(pad=4.0)
 
         # Plot GPU power usage
-        for i in range(len(power_data[0])):
+        for i in range(self.device_count):
             axes[0, 0].plot(timestamps, [p[i] for p in self._time_series_data['power']], label=f'GPU {i}')
         axes[0, 0].axhline(y=self._stats["max_power_limit"], color='r',
                            linestyle='--', label='Power Limit')
@@ -358,7 +360,7 @@ class GPUMonitor:
         plt.setp(axes[0, 0].xaxis.get_majorticklabels(), rotation=45, ha='right')
 
         # Plot GPU utilization
-        for i in range(len(power_data[0])):
+        for i in range(self.device_count):
             axes[0, 1].plot(timestamps, [u[i] for u in self._time_series_data['util']],
                             label=f'GPU {i}')
         axes[0, 1].set_title('GPU Utilization')
@@ -368,7 +370,7 @@ class GPUMonitor:
         plt.setp(axes[0, 1].xaxis.get_majorticklabels(), rotation=45, ha='right')
 
         # Plot GPU temperature
-        for i in range(len(temperature_data[0])):
+        for i in range(self.device_count):
             axes[1, 0].plot(timestamps, [t[i] for t in self._time_series_data['temp']], label=f'GPU {i}')
         axes[1, 0].set_title('GPU Temperature')
         axes[1, 0].set_xlabel('Timestamp')
@@ -377,7 +379,7 @@ class GPUMonitor:
         plt.setp(axes[1,0].xaxis.get_majorticklabels(), rotation=45, ha='right')
 
         # Plot GPU memory usage
-        for i in range(len(memory_data[0])):
+        for i in range(self.device_count):
             axes[1, 1].plot(timestamps, [m[i] for m in self._time_series_data['mem']], label=f'GPU {i}')
         axes[1, 1].axhline(y=self._stats["total_mem"], color='r',
                            linestyle='--', label='Total Memory')
