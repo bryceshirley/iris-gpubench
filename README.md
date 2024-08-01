@@ -34,7 +34,7 @@ Or
 ### 1. Run in terminal (from folder):
 
 ```bash
-./monitor.sh <sciml benchmark command> 
+./multi_gpu_monitor.sh <sciml benchmark command> 
 ```
 
 ### 2.  Live Monitoring
@@ -43,19 +43,34 @@ Or
 
 This example uses the "synthetic_regression" benchmark with the "-b epochs 2" option for two epochs and "-b hidden_size 9000" options (see sciml-bench docs for more options)
 ```bash
-(bench) dnz75396@bs-scimlbench-a100:~/gpu_benchmark_metrics$ ./monitor.sh "-b epochs 2 -b hidden_size 9000 synthetic_regression"
+(bench) dnz75396@bs-scimlbench-a100:~/gpu_benchmark_metrics$ ./multi_gpu_monitor.sh '-b epochs 1 -b gpus 2 stemdl_classification'
 
-Live Monitor: Power and Utilization
+Live Monitor: GPU Metrics
 
-Current GPU Power Usage: 89.62 W, GPU Utilization: 31.00 %
+Current GPU Metrics as of 2024-08-01 23:32:47:
++------------------------------------+-------------------+---------------------------+-------------------+------------------------------------+
+|   GPU Index (Tesla V100-PCIE-32GB) |   Utilization (%) |   Power (W) / Max 250.0 W |   Temperature (C) |   Memory (MiB) / Total 32768.0 MiB |
++====================================+===================+===========================+===================+====================================+
+|                                  0 |                60 |                    87.027 |                34 |                            2075.62 |
++------------------------------------+-------------------+---------------------------+-------------------+------------------------------------+
+|                                  1 |                63 |                    87.318 |                40 |                            2075.62 |
++------------------------------------+-------------------+---------------------------+-------------------+------------------------------------+
+
 
 
 Live Monitor: Benchmark Output
 
-Epoch 1: 100%|█████████████████████| 8000/8000 [02:17<00:00, 58.13it/s, v_num=0]
-....<ENDED> Training model [ELAPSED = 276.374506 sec]
-....<BEGIN> Saving training metrics to a file
-....<ENDED> Saving training metrics to a file [ELAPSED = 0.000279 sec]
+2 | f1_score | MulticlassF1Score  | 0      | train
+--------------------------------------------------------
+24.0 M    Trainable params
+0         Non-trainable params
+24.0 M    Total params
+95.925    Total estimated model params size (MB)
+Sanity Checking DataLoader 0: 100%|████████████████████████████████████████████████████████████████████████████████| 2/2 [00:01<00:00,  1.98it/s]
+/root/anaconda3/envs/bench/lib/python3.9/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:439: It is recommended to
+use `self.log('val_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
+Epoch 0:  15%|█████████████                                                                            | 77/525 [00:05<00:29, 15.21it/s, v_num=0]
+
 ```   
 
 #####		b. (Optional)Timeseries Using the --plot Option
@@ -92,37 +107,38 @@ tmux kill-session
 ```bash
 Benchmark Score and GPU Energy Performance
 
-+-----------------------------------+-----------+
-| Metric                            |     Value |
-+===================================+===========+
-| Benchmark Score (s)               | 276.367   |
-+-----------------------------------+-----------+
-| Total GPU Energy Consumed (kWh)   |   0.02166 |
-+-----------------------------------+-----------+
-| Total GPU Carbon Emissions (gC02) |   4.76572 |
-+-----------------------------------+-----------+
++-----------------------------------+----------+
+| Metric                            |    Value |
++===================================+==========+
+| Benchmark Score (s)               | 44.2312  |
++-----------------------------------+----------+
+| Total GPU Energy Consumed (kWh)   |  0.00206 |
++-----------------------------------+----------+
+| Total GPU Carbon Emissions (gC02) |  0.426   |
++-----------------------------------+----------+
 
 Additional Information
 
-+----------------------------------------------+------------------------------+
-| Metric                                       | Value                        |
-+==============================================+==============================+
-| Average GPU Util. (for >0.00% GPU Util.) (%) | 96.86854                     |
-+----------------------------------------------+------------------------------+
-| Avg GPU Power (for >0.00% GPU Util.) (W)     | 278.99610 (max possible 300) |
-+----------------------------------------------+------------------------------+
-| Carbon Forcast (gCO2/kWh), Carbon Index      | 220.0, high                  |
-+----------------------------------------------+------------------------------+
-| Carbon Intensity Reading Date & Time         | 2024-07-15 14:02:05          |
-+----------------------------------------------+------------------------------+
++--------------------------------------------------+------------------------------------+
+| Metric                                           | Value                              |
++==================================================+====================================+
+| Average GPU Util. (for >0.00% GPU Util.) (%)     | 56.44186                           |
++--------------------------------------------------+------------------------------------+
+| Avg GPU Power (for >0.00% GPU Util.) (W)         | 78.89320 (Power Limit: 250)        |
++--------------------------------------------------+------------------------------------+
+| Avg GPU Temperature (for >0.00% GPU Util.) (C)   | 38.62791                           |
++--------------------------------------------------+------------------------------------+
+| Avg GPU Memory (for >0.00% GPU Util.) (MiB)      | 2032.53198 (Total Memory: 32768.0) |
++--------------------------------------------------+------------------------------------+
+| Average Carbon Forcast from start/end (gCO2/kWh) | 207.0                              |
++--------------------------------------------------+------------------------------------+
 ```
 
 ### 4. GPU Power and Utilization Plots 
 
 * gpu_power_usage.png and gpu_utilization.png: Time series plots for gpu utilization and power usage. See example below:
  
-  <img src="docs_image1.png" alt="GPU Utilization Output" width="500"/>
-  <img src="docs_image2.png" alt="GPU Power Output" width="500"/>
+  <img src="docs_image.png" alt="GPU Metrics Output" width="500"/>
 
 #### Please Note:
 * The Carbon Data is collected in real-time from the National Grid ESO Regional Carbon Intensity API:
