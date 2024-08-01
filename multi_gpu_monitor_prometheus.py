@@ -28,76 +28,137 @@ import sys
 import time
 from datetime import datetime
 from typing import Dict, List, Optional
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+
 import pynvml
 import requests
 import yaml
+from prometheus_client import CollectorRegistry, Gauge, start_http_server
 from tabulate import tabulate
 
-# Ensure the results directory exists
-os.makedirs("./results", exist_ok=True)
-
+os.mkdir("/tmp/results")
 # Constants
 CARBON_INTENSITY_URL = (
     "https://api.carbonintensity.org.uk/regional"
 )
 SECONDS_IN_HOUR = 3600  # Number of seconds in an hour
-METRICS_FILE_PATH = './results/metrics.yml'
+METRICS_FILE_PATH = '/tmp/results/metrics.yml'
 TIMEOUT_SECONDS = 30
 
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    filename='./results/gpu_monitor.log',  # Specify the log file name
+    filename='/tmp/results/gpu_monitor.log',  # Specify the log file name
     filemode='w'  # Overwrite the file on each run; use 'a' to append
 )
 LOGGER = logging.getLogger(__name__)
 
+class PrometheusServer:
+    """
+    Manages the setup and operation of a Prometheus HTTP server.
+    """
+
+    DEFAULT_PROMETHEUS_SERVER_CONFIG = {
+        'port': 8000,
+        'addr': '0.0.0.0'
+    }
+
+    def __init__(self, config: Optional[Dict[str, str]] = None):
+        """
+        Initializes the PrometheusServer class.
+
+        Args:
+            config (dict, optional): Configuration for the Prometheus server.
+        """
+        self.config = config or self.DEFAULT_PROMETHEUS_SERVER_CONFIG
+        self.registry = CollectorRegistry()
+        self.gauges = {}
+
+    def start(self):
+        """
+        Starts the Prometheus HTTP server.
+        """
+        self.__validate_config()
+        start_http_server(
+            port=self.config['port'],
+            addr=self.config['addr'],
+            registry=self.registry
+        )
+        LOGGER.info("Prometheus server started on %s:%s",
+                    self.config['addr'], self.config['port'])
+
+    def add_metric(self, name: str, description: str, labels: List[str]) -> None:
+        """
+        Adds a new metric to the Prometheus server.
+
+        Args:
+            name (str): The name of the metric.
+            description (str): A description of the metric.
+            labels (list of str): List of labels for the metric.
+        """
+        self.gauges[name] = Gauge(
+            name, description, labelnames=labels, registry=self.registry
+        )
+        LOGGER.info("Added metric '%s' with description '%s' and labels %s",
+                    name, description, labels)
+
+    def update_metric(self, name: str, value: float, **labels) -> None:
+        """
+        Updates the value of an existing metric.
+
+        Args:
+            name (str): The name of the metric to update.
+            value (float): The new value for the metric.
+            **labels: The labels for the metric.
+        """
+        if name in self.gauges:
+            self.gauges[name].labels(**labels).set(value)
+            LOGGER.info("Updated metric '%s' to value %f with labels %s",
+                        name, value, labels)
+        else:
+            LOGGER.error("Metric '%s' does not exist.", name)
+            raise ValueError(f"Metric '{name}' does not exist.")
+
+    def __validate_config(self) -> None:
+        """
+        Validates the configuration settings for the Prometheus server.
+        """
+        if not isinstance(self.config['port'], int) or not 1 <= self.config['port'] <= 65535:
+            LOGGER.error("Port must be an integer between 1 and 65535.")
+            raise ValueError("Port must be an integer between 1 and 65535.")
+        if not isinstance(self.config['addr'], str) or not self.config['addr']:
+            LOGGER.error("Address must be a non-empty string.")
+            raise ValueError("Address must be a non-empty string.")
+
 class GPUMonitor:
     """
     Manages NVIDIA GPU metrics using NVML and collects carbon metrics from the
-    National Grid ESO Regional Carbon Intensity API.
+    The nationalgridESO Regional Carbon Intensity API.
     """
 
     def __init__(self,
                  monitor_interval=1,
-                 carbon_region_shorthand="South England"):
+                 carbon_region_shorthand="South England",
+                 prometheus_config=None):
         """
         Initializes the GPUMonitor class.
 
         Args:
             monitor_interval (int): Interval in seconds for collecting GPU metrics.
             carbon_region_shorthand (str): Region for carbon intensity API.
+            prometheus_config (dict, optional): Configuration for the Prometheus server.
         """
         self.monitor_interval = monitor_interval
         self.carbon_region_shorthand = carbon_region_shorthand
 
-        # Initialize time series data for GPU metrics
-        self._time_series_data = {
-            'timestamp': [],
-            'gpu_idx': [],
-            'util': [],
-            'power': [],
-            'temp': [],
-            'mem': [],
-            'total_energy': []  # Added for storing total energy time series
-        }
-
         # Initialize private GPU metrics as a dict of Lists
-        self.current_gpu_metrics = {
+        self._gpu_metrics = {
             'gpu_idx': [],
             'util': [],
             'power': [],
             'temp': [],
             'mem': []
         }
-
-        # Initialize Previous Power
-        self.previous_power = []
 
         # Initialize Previous Power
         self.previous_power = []
@@ -109,9 +170,35 @@ class GPUMonitor:
         pynvml.nvmlInit()
         LOGGER.info("NVML initialized")
 
+        # Set up Prometheus server
+        self.prometheus_server = PrometheusServer(config=prometheus_config)
+        LOGGER.info("Prometheus server configured")
+
+        # Set up Prometheus metrics
+        self.__setup_prometheus_metrics()
+
+        # Start the Prometheus HTTP server
+        self.prometheus_server.start()
+
     def __setup_stats(self) -> None:
         """
         Initializes and returns a dictionary with GPU statistics and default values.
+
+        The dictionary has the following keys and default values:
+
+        - 'av_carbon_forecast': Average carbon forecast in grams of CO2 per kWh (default 0.0).
+        - 'end_datetime': End date and time of the measurement period (default '').
+        - 'end_carbon_forecast': Forecasted carbon intensity in grams of CO2 per
+            kWh at the end time (default 0.0).
+        - 'max_power_limit': Maximum power limit of the GPU in watts (retrieved from GPU).
+        - 'name': Name of the GPU device (retrieved from GPU).
+        - 'start_carbon_forecast': Forecasted carbon intensity in grams of CO2
+            per kWh at the start time (retrieved during setup).
+        - 'start_datetime': Start date and time of the measurement period
+            (default to current datetime).
+        - 'total_carbon': Total carbon emissions in grams of CO2 (default 0.0).
+        - 'total_energy': Total energy consumed in kilowatt-hours (default 0.0).
+        - 'total_mem': Total memory of the GPU in MiB (retrieved from GPU).
         """
         # Find The First GPU's Name and Max Power
         first_handle = pynvml.nvmlDeviceGetHandleByIndex(0)
@@ -125,10 +212,6 @@ class GPUMonitor:
         carbon_forecast = self.__update_carbon_forecast()
 
         self._stats = {
-            "av_temp": 0.0,
-            "av_util": 0.0,
-            "av_mem": 0.0,
-            "av_power": 0.0,
             "av_carbon_forecast": 0.0,
             "end_datetime": '',
             "end_carbon_forecast": 0.0,
@@ -142,38 +225,64 @@ class GPUMonitor:
         }
         LOGGER.info("Statistics initialized: %s", self._stats)
 
+    def __setup_prometheus_metrics(self):
+        """
+        Sets up Prometheus metrics.
+        """
+        device_count = pynvml.nvmlDeviceGetCount()
+        for i in range(device_count):
+            # Create metrics for each GPU
+            self.prometheus_server.add_metric(
+                name=f'gpu_{i}_power_usage',
+                description='GPU Power Usage (W)',
+                labels=['gpu_index']
+            )
+            self.prometheus_server.add_metric(
+                name=f'gpu_{i}_utilization',
+                description='GPU Utilization (%)',
+                labels=['gpu_index']
+            )
+            self.prometheus_server.add_metric(
+                name=f'gpu_{i}_temperature',
+                description='GPU Temperature (C)',
+                labels=['gpu_index']
+            )
+            self.prometheus_server.add_metric(
+                name=f'gpu_{i}_memory_usage',
+                description='GPU Memory Usage (MiB)',
+                labels=['gpu_index']
+            )
+        LOGGER.info("Prometheus metrics setup complete")
+
     def __update_gpu_metrics(self) -> None:
         """
-        Retrieves the current GPU metrics for all GPUs and updates the internal time series data.
+        Retrieves the current GPU metrics for all GPUs and updates the internal dictionary.
 
-        This method updates `self._time_series_data` with the following information:
-            - 'timestamp': List of timestamps
+        This method updates `self._gpu_metrics` with the following information:
             - 'gpu_idx': List of GPU indices
             - 'util': List of GPU utilization percentages
             - 'power': List of GPU power usage in watts
             - 'temp': List of GPU temperatures in degrees Celsius
             - 'mem': List of used GPU memory in MiB
-            - 'total_energy': List of total energy consumed in kWh
         """
         try:
             device_count = pynvml.nvmlDeviceGetCount()
 
             # Store previous power readings
-            # Store previous power readings
-            self.previous_power = self.current_gpu_metrics['power']
+            self.previous_power = self._gpu_metrics['power']
 
-            # Retrieve metrics for each GPU
-            timestamps = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            self.current_gpu_metrics['gpu_idx'] = []
-            self.current_gpu_metrics['util'] = []
-            self.current_gpu_metrics['power'] = []
-            self.current_gpu_metrics['temp'] = []
-            self.current_gpu_metrics['mem'] = []
+            # Clear existing lists in the dictionary to start fresh
+            self._gpu_metrics['gpu_idx'] = []
+            self._gpu_metrics['util'] = []
+            self._gpu_metrics['power'] = []
+            self._gpu_metrics['temp'] = []
+            self._gpu_metrics['mem'] = []
 
+            # Retrieve metrics for each GPU and append to the dictionary lists
             for i in range(device_count):
                 handle = pynvml.nvmlDeviceGetHandleByIndex(i)
                 utilization = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu
-                power_usage = pynvml.nvmlDeviceGetPowerUsage(handle) / 1000.0  # Convert mW to W
+                power = pynvml.nvmlDeviceGetPowerUsage(handle) / 1000.0  # Convert mW to W
                 temperature = pynvml.nvmlDeviceGetTemperature(
                     handle, pynvml.NVML_TEMPERATURE_GPU
                 )
@@ -181,29 +290,19 @@ class GPUMonitor:
                 memory = memory_info.used / (1024 ** 2)  # Convert bytes to MiB
 
                 # Append metrics directly to the dictionary lists
-                self.current_gpu_metrics['gpu_idx'].append(i)
-                self.current_gpu_metrics['util'].append(utilization)
-                self.current_gpu_metrics['power'].append(power_usage)
-                self.current_gpu_metrics['temp'].append(temperature)
-                self.current_gpu_metrics['mem'].append(memory)
+                self._gpu_metrics['gpu_idx'].append(i)
+                self._gpu_metrics['util'].append(utilization)
+                self._gpu_metrics['power'].append(power)
+                self._gpu_metrics['temp'].append(temperature)
+                self._gpu_metrics['mem'].append(memory)
 
-            # Append new data to time series
-            self._time_series_data['timestamp'].append(timestamps)
-            self._time_series_data['gpu_idx'].append(self.current_gpu_metrics['gpu_idx'])
-            self._time_series_data['util'].append(self.current_gpu_metrics['util'])
-            self._time_series_data['power'].append(self.current_gpu_metrics['power'])
-            self._time_series_data['temp'].append(self.current_gpu_metrics['temp'])
-            self._time_series_data['mem'].append(self.current_gpu_metrics['mem'])
-
-            # Update total energy and append to time series
+            # Call a method to perform calculations based on updated metrics
             if len(self.previous_power) > 0:
                 self.__update_total_energy()
-                self._time_series_data['total_energy'].append(self._stats['total_energy'])
-            LOGGER.info("Updated GPU metrics: %s", self._time_series_data)
+            LOGGER.info("Updated GPU metrics: %s", self._gpu_metrics)
 
         except pynvml.NVMLError as error_message:
             LOGGER.error("NVML Error: %s", error_message)
-
 
     def __update_carbon_forecast(self) -> Optional[float]:
         """
@@ -236,11 +335,9 @@ class GPUMonitor:
     def __update_total_energy(self) -> None:
         """
         Computes the total energy consumed by all GPUs.
-
-        Updates the total energy consumed and stores it in `self._stats`.
         """
         device_count = pynvml.nvmlDeviceGetCount()
-        current_power = self.current_gpu_metrics['power']
+        current_power = self._gpu_metrics['power']
 
         # Check if previous_power and current_power have the same length
         if len(self.previous_power) != device_count or len(current_power) != device_count:
@@ -265,9 +362,44 @@ class GPUMonitor:
         self._stats["total_energy"] += energy_kwh
         LOGGER.info("Updated total energy: %f kWh", self._stats['total_energy'])
 
-        # Update previous power for the next interval
-        self.previous_power = current_power
+    def __update_prometheus_metrics(self):
+        """
+        Updates Prometheus metrics with the latest GPU data.
+        """
+        # Retrieve GPU indices
+        gpu_indices = self._gpu_metrics['gpu_idx']
 
+        # Update all metrics for each GPU index
+        for gpu_index in gpu_indices:
+            gpu_str = str(gpu_index)
+            # Retrieve the metrics for the current GPU index
+            utilization = self._gpu_metrics['util'][gpu_index]
+            power = self._gpu_metrics['power'][gpu_index]
+            temperature = self._gpu_metrics['temp'][gpu_index]
+            memory = self._gpu_metrics['mem'][gpu_index]
+
+            # Update the metrics using PrometheusServer methods
+            self.prometheus_server.update_metric(
+                name=f'gpu_{gpu_index}_power_usage',
+                value=power,
+                gpu_index=gpu_str
+            )
+            self.prometheus_server.update_metric(
+                name=f'gpu_{gpu_index}_utilization',
+                value=utilization,
+                gpu_index=gpu_str
+            )
+            self.prometheus_server.update_metric(
+                name=f'gpu_{gpu_index}_temperature',
+                value=temperature,
+                gpu_index=gpu_str
+            )
+            self.prometheus_server.update_metric(
+                name=f'gpu_{gpu_index}_memory_usage',
+                value=memory,
+                gpu_index=gpu_str
+            )
+        LOGGER.info("Prometheus metrics updated")
 
     def __completion_stats(self) -> None:
         """
@@ -288,33 +420,7 @@ class GPUMonitor:
         self._stats["total_carbon"] = (
             self._stats["total_energy"] * self._stats["av_carbon_forecast"]
         )
-
-        # Compute average power/ utilization/ memory and temperature
-        util = self._time_series_data["util"]
-        power = self._time_series_data["power"]
-        temp = self._time_series_data["temp"]
-        mem = self._time_series_data["mem"]
-
-        n_utilized = 0
-        for gpu_idx in util:
-            for reading in gpu_idx:
-                if reading > 0:
-                    self._stats["av_util"] += util[gpu_idx][reading]
-                    self._stats["av_power"] += power[gpu_idx][reading]
-                    self._stats["av_mem"] += temp[gpu_idx][reading]
-                    self._stats["av_temp"] += mem[gpu_idx][reading]
-                    n_utilized += 1
-
-        # Avoid division by zero
-        if n_utilized > 0:
-            self._stats["av_util"] /= n_utilized
-            self._stats["av_power"] /= n_utilized
-            self._stats["av_mem"] /= n_utilized
-            self._stats["av_temp"] /= n_utilized
-
         LOGGER.info("Completion stats updated: %s", self._stats)
-
-        LOGGER.info("Completion statistics updated: %s", self._stats)
 
     def save_stats_to_yaml(self, file_path: str):
         """
@@ -330,83 +436,6 @@ class GPUMonitor:
         except IOError as io_error:
             LOGGER.error("Failed to save stats to YAML file: %s. Error: %s",
                          file_path, io_error)
-
-    def plot_metrics(self):
-        """
-        Plot and save the GPU metrics to a file.
-        """
-        timestamps = self._time_series_data['timestamp']
-        total_energy_data = self._time_series_data['total_energy']
-
-        timestamps = [
-            datetime.strptime(ts, '%Y-%m-%d %H:%M:%S').strftime('%H:%M:%S') for ts in timestamps
-        ]
-
-        # Plot 2x2 grid of power, utilization, temperature, and memory
-        fig1, axes = plt.subplots(nrows=2, ncols=2, figsize=(14, 12))
-        fig1.tight_layout(pad=4.0)
-
-        # Plot GPU power usage
-        for i in range(len(power_data[0])):
-            axes[0, 0].plot(timestamps, [p[i] for p in self._time_series_data['power']], label=f'GPU {i}')
-        axes[0, 0].axhline(y=self._stats["max_power_limit"], color='r',
-                           linestyle='--', label='Power Limit')
-        axes[0, 0].set_title('GPU Power Usage')
-        #axes[0, 0].set_xlabel('Timestamp')
-        axes[0, 0].set_ylabel('Power (W)')
-        axes[0, 0].legend()
-        plt.setp(axes[0, 0].xaxis.get_majorticklabels(), rotation=45, ha='right')
-
-        # Plot GPU utilization
-        for i in range(len(power_data[0])):
-            axes[0, 1].plot(timestamps, [u[i] for u in self._time_series_data['util']],
-                            label=f'GPU {i}')
-        axes[0, 1].set_title('GPU Utilization')
-        # axes[0, 1].set_xlabel('Timestamp')
-        axes[0, 1].set_ylabel('Utilization (%)')
-        axes[0, 1].legend()
-        plt.setp(axes[0, 1].xaxis.get_majorticklabels(), rotation=45, ha='right')
-
-        # Plot GPU temperature
-        for i in range(len(temperature_data[0])):
-            axes[1, 0].plot(timestamps, [t[i] for t in self._time_series_data['temp']], label=f'GPU {i}')
-        axes[1, 0].set_title('GPU Temperature')
-        axes[1, 0].set_xlabel('Timestamp')
-        axes[1, 0].set_ylabel('Temperature (C)')
-        axes[1, 0].legend()
-        plt.setp(axes[1,0].xaxis.get_majorticklabels(), rotation=45, ha='right')
-
-        # Plot GPU memory usage
-        for i in range(len(memory_data[0])):
-            axes[1, 1].plot(timestamps, [m[i] for m in self._time_series_data['mem']], label=f'GPU {i}')
-        axes[1, 1].axhline(y=self._stats["total_mem"], color='r',
-                           linestyle='--', label='Total Memory')
-        axes[1, 1].set_title('GPU Memory Usage')
-        axes[1, 1].set_xlabel('Timestamp')
-        axes[1, 1].set_ylabel('Memory (MiB)')
-        axes[1, 1].legend()
-        plt.setp(axes[1,1].xaxis.get_majorticklabels(), rotation=45, ha='right')
-
-        # Save the 2x2 grid plot
-        plot_filename_1 = "./results/metrics_grid_plot.png"
-        plt.savefig(plot_filename_1, bbox_inches='tight')
-        plt.close(fig1)
-
-        # Plot total energy
-        fig2, ax = plt.subplots(figsize=(12, 6))
-        if len(timestamps) > 1 and len(total_energy_data) == len(timestamps) - 1:
-            ax.plot(timestamps[1:], total_energy_data, marker='o', color='blue')
-            ax.set_title('Total Energy Consumed')
-            ax.set_xlabel('Timestamp')
-            ax.set_ylabel('Energy (kWh)')
-            plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
-        else:
-            ax.text(0.5, 0.5, 'Data mismatch for total energy.', ha='center', va='center')
-
-        # Save the total energy plot
-        plot_filename_2 = "./results/total_energy_plot.png"
-        plt.savefig(plot_filename_2, bbox_inches='tight')
-        plt.close(fig2)
 
     def _live_monitor(self) -> None:
         """
@@ -431,15 +460,17 @@ class GPUMonitor:
         # Print current GPU metrics with date and time
         print(
             f"Current GPU Metrics as of {current_time}:\n"
-            f"{tabulate(self.current_gpu_metrics, headers=headers, tablefmt='grid')}"
+            f"{tabulate(self._gpu_metrics, headers=headers, tablefmt='grid')}"
         )
 
-
-
-    def run(self, live_monitoring: bool = False, plot: bool = False) -> None:
+    def run(self, live_monitoring: bool = False) -> None:
         """
-        Runs the GPU monitoring and plotting process.
+        Starts the GPU monitoring and Prometheus HTTP server with HTTPS.
+
+        This method initializes and runs an HTTP server that exposes GPU metrics via
+        Prometheus.
         """
+
         # Print the metrics as a formatted table
         try:
             # Initialize statistics and metrics
@@ -450,9 +481,8 @@ class GPUMonitor:
                 # Update GPU metrics
                 self.__update_gpu_metrics()
 
-                # Update the plot every iteration or after a certain interval
-                if plot:
-                    self.plot_metrics()
+                # Update Prometheus metrics with the latest GPU data
+                self.__update_prometheus_metrics()
 
                 if live_monitoring:
                     self._live_monitor()
@@ -499,24 +529,21 @@ def fetch_carbon_region_names():
                      TIMEOUT_SECONDS, error_message)
         return []
 
-def main():
-    """
-    Main function for parsing command-line arguments and running the GPUMonitor.
-    """
-        # Create an argument parser
-    parser = argparse.ArgumentParser(description='Monitor GPU metrics')
+if __name__ == "__main__":
+    # Create an argument parser
+    PARSER = argparse.ArgumentParser(description='Monitor GPU metrics')
 
     # Argument for enabling live monitoring
-    parser.add_argument('--live_monitor', action='store_true',
+    PARSER.add_argument('--live_monitor', action='store_true',
                         help='Enable live monitoring of GPU metrics.')
 
     # Argument for setting the monitoring interval
-    parser.add_argument('--interval', type=int, default=1,
+    PARSER.add_argument('--interval', type=int, default=10,
                         help='Interval in seconds for collecting GPU metrics'
-                             '(default is 1 seconds).')
+                             '(default is 10 seconds).')
 
     # Argument for specifying the carbon region
-    parser.add_argument(
+    PARSER.add_argument(
         '--carbon_region',
         type=str,
         default='South England',
@@ -524,41 +551,34 @@ def main():
              '(default is "South England").'
     )
 
-    # Argument for enabling plotting
-    parser.add_argument('--plot', action='store_true',
-                        help='Enable plotting of GPU metrics.')
-
     # Parse the command-line arguments
-    args = parser.parse_args()
+    ARGS = PARSER.parse_args()
 
     # Validate the interval argument
-    if args.interval <= 0:
-        error_message = f"Monitoring interval must be a positive integer. " \
-                        f"Provided value: {args.interval}"
-        print(error_message)
-        LOGGER.error(error_message)
+    if ARGS.interval <= 0:
+        ERROR_MESSAGE = f"Monitoring interval must be a positive integer. " \
+                        f"Provided value: {ARGS.interval}"
+        print(ERROR_MESSAGE)
+        LOGGER.error(ERROR_MESSAGE)
         sys.exit(1)  # Exit with error code 1
 
     # Validate the carbon region argument
-    valid_regions = fetch_carbon_region_names()
-    if args.carbon_region not in valid_regions:
-        error_message = (f"Invalid carbon region. Provided value: '{args.carbon_region}'. "
-                         f"Valid options are: {', '.join(valid_regions)}")
-        print(error_message)
-        LOGGER.error(error_message)
+    VALID_REGIONS = fetch_carbon_region_names()
+    if ARGS.carbon_region not in VALID_REGIONS:
+        ERROR_MESSAGE = (f"Invalid carbon region. Provided value: '{ARGS.carbon_region}'. "
+                         f"Valid options are: {', '.join(VALID_REGIONS)}")
+        print(ERROR_MESSAGE)
+        LOGGER.error(ERROR_MESSAGE)
         sys.exit(1)  # Exit with error code 1
 
     # Initialize the GPUMonitor with parsed arguments
-    monitor = GPUMonitor(
-        monitor_interval=args.interval,
-        carbon_region_shorthand=args.carbon_region
+    MONITOR = GPUMonitor(
+        monitor_interval=ARGS.interval,
+        carbon_region_shorthand=ARGS.carbon_region
     )
 
     # Start monitoring with the specified options
-    monitor.run(live_monitoring=args.live_monitor,plot=args.plot)
+    MONITOR.run(live_monitoring=ARGS.live_monitor)
 
     # Save collected metrics to a YAML file
-    monitor.save_stats_to_yaml(METRICS_FILE_PATH)
-
-if __name__ == "__main__":
-    main()
+    MONITOR.save_stats_to_yaml(METRICS_FILE_PATH)
