@@ -4,21 +4,31 @@ National Grid ESO Regional Carbon Intensity API:
 https://api.carbonintensity.org.uk/regional
 
 Usage:
-    python3 mutli_gpu_monitor.py [--live_monitor] [--interval INTERVAL] [--carbon_region REGION]
+    python3 multi_gpu_monitor.py [--live_monitor] [--interval INTERVAL] [--carbon_region REGION] [--plot] [--live_plot]
 
 Parameters:
     --live_monitor: Enables live monitoring of GPU metrics. If not specified,
     live monitoring is disabled.
+
     --interval INTERVAL: Sets the interval (in seconds) for collecting GPU
-    metrics. Default is 10 seconds.
+    metrics. Default is 1 second.
+
     --carbon_region REGION: Specifies the region shorthand for the National
     Grid ESO Regional Carbon Intensity API. Default is 'South England'.
 
+    --plot: Enables plotting of GPU metrics after monitoring. If not specified,
+    plotting is disabled.
+
+    --live_plot: Enables live plotting of GPU metrics. Note: Live plotting is not
+    recommended as errors may arise if the code is interrupted during the plot saving
+    process.
+
 Example:
-    python3 multi_gpu_monitor_class.py --live_monitor --interval 30 --carbon_region "North Scotland"
+    python3 multi_gpu_monitor.py --live_monitor --interval 30 --carbon_region "North Scotland" --plot
 
     This command enables live monitoring, sets the monitoring interval to 30
-    seconds, and uses "North Scotland" as the carbon intensity region.
+    seconds, uses "North Scotland" as the carbon intensity region, and generates
+    plots after collecting metrics.
 """
 
 import argparse
@@ -27,25 +37,34 @@ import os
 import sys
 import time
 from datetime import datetime
-from typing import Dict, List, Optional
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
-import matplotlib.pyplot as plt
+from typing import Optional
+
+# import matplotlib
+# import matplotlib.pyplot as plt
+# import matplotlib.ticker as ticker
+import matplotlib.figure as figure
+import matplotlib.backends.backend_agg as agg
+import matplotlib.ticker as ticker
 import matplotlib.dates as mdates
+
 import pynvml
 import requests
 import yaml
 from tabulate import tabulate
 
+# matplotlib.use('Agg')  # Use non-interactive backend
+
 # Ensure the results directory exists
-os.makedirs("./results", exist_ok=True)
+RESULTS_DIR = './results'
+os.makedirs(RESULTS_DIR, exist_ok=True)
 
 # Constants
 CARBON_INTENSITY_URL = (
     "https://api.carbonintensity.org.uk/regional"
 )
 SECONDS_IN_HOUR = 3600  # Number of seconds in an hour
-METRICS_FILE_PATH = './results/metrics.yml'
+METRICS_FILE_PATH = os.path.join(RESULTS_DIR, 'metrics.yml')
+METRIC_PLOT_PATH = os.path.join(RESULTS_DIR, 'metric_plot.png')
 TIMEOUT_SECONDS = 30
 
 # Setup logging
@@ -84,7 +103,7 @@ class GPUMonitor:
             'power': [],
             'temp': [],
             'mem': [],
-            'total_energy': []  # Added for storing total energy time series
+            # 'total_energy': []  # Added for storing total energy time series
         }
 
         # Initialize private GPU metrics as a dict of Lists
@@ -105,12 +124,12 @@ class GPUMonitor:
         # Initialize stats
         self._stats = {}
 
-        # Number of GPUS
-        self.device_count = pynvml.nvmlDeviceGetCount()
-
         # Initialize pynvml
         pynvml.nvmlInit()
         LOGGER.info("NVML initialized")
+
+        # Number of GPUS
+        self.device_count = pynvml.nvmlDeviceGetCount()
 
     def __setup_stats(self) -> None:
         """
@@ -172,7 +191,7 @@ class GPUMonitor:
             self.current_gpu_metrics['temp'] = []
             self.current_gpu_metrics['mem'] = []
 
-            for i in range(self.self.device_count):
+            for i in range(self.device_count):
                 handle = pynvml.nvmlDeviceGetHandleByIndex(i)
                 utilization = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu
                 power_usage = pynvml.nvmlDeviceGetPowerUsage(handle) / 1000.0  # Convert mW to W
@@ -200,7 +219,7 @@ class GPUMonitor:
             # Update total energy and append to time series
             if len(self.previous_power) > 0:
                 self.__update_total_energy()
-                self._time_series_data['total_energy'].append(self._stats['total_energy'])
+                # self._time_series_data['total_energy'].append(self._stats['total_energy'])
             LOGGER.info("Updated GPU metrics: %s", self._time_series_data)
 
         except pynvml.NVMLError as error_message:
@@ -291,20 +310,23 @@ class GPUMonitor:
             self._stats["total_energy"] * self._stats["av_carbon_forecast"]
         )
 
-        # Compute average power/ utilization/ memory and temperature
+        # Number of Readings where GPUs are being utilized
+        n_utilized = 0
+
+        # Compute average power/ utilization/ memory and temperature whilst gpus
+        # are being utilized
         util = self._time_series_data["util"]
         power = self._time_series_data["power"]
         temp = self._time_series_data["temp"]
         mem = self._time_series_data["mem"]
 
-        n_utilized = 0
-        for gpu_idx in util:
-            for reading in gpu_idx:
-                if reading > 0:
-                    self._stats["av_util"] += util[gpu_idx][reading]
-                    self._stats["av_power"] += power[gpu_idx][reading]
-                    self._stats["av_mem"] += temp[gpu_idx][reading]
-                    self._stats["av_temp"] += mem[gpu_idx][reading]
+        for gpu_idx, gpu_util in enumerate(util):  # Iterate over each GPU index and its utilization
+            for reading_idx, util_reading in enumerate(gpu_util):  # Iterate over each reading
+                if util_reading > 0:
+                    self._stats["av_util"] += util_reading
+                    self._stats["av_power"] += power[gpu_idx][reading_idx]
+                    self._stats["av_mem"] += mem[gpu_idx][reading_idx]
+                    self._stats["av_temp"] += temp[gpu_idx][reading_idx]
                     n_utilized += 1
 
         # Avoid division by zero
@@ -333,82 +355,86 @@ class GPUMonitor:
             LOGGER.error("Failed to save stats to YAML file: %s. Error: %s",
                          file_path, io_error)
 
+    @staticmethod
+    def plot_metric(ax, data, line_info=None, ylim=None):
+        """
+        Helper function to plot a GPU metric on a given axis.
+        """
+        timestamps, y_data, title, ylabel, xlabel = data
+
+        for i, gpu_data in enumerate(y_data):
+            ax.plot(timestamps, gpu_data, label=f'GPU {i}', marker='*')
+
+        if line_info:
+            yline, yline_label = line_info
+            ax.axhline(y=yline, color='r', linestyle='--', label=yline_label)
+
+        ax.set_title(title, fontweight='bold')
+        ax.set_ylabel(ylabel, fontweight='bold')
+        if xlabel:
+            ax.set_xlabel(xlabel, fontweight='bold')
+        ax.legend()
+        ax.grid(True)
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(5))
+        ax.tick_params(axis='x', rotation=45)
+
+        if ylim:
+            ax.set_ylim(ylim)
+
     def plot_metrics(self):
         """
         Plot and save the GPU metrics to a file.
         """
         timestamps = self._time_series_data['timestamp']
-        total_energy_data = self._time_series_data['total_energy']
 
-        timestamps = [
-            datetime.strptime(ts, '%Y-%m-%d %H:%M:%S').strftime('%H:%M:%S') for ts in timestamps
-        ]
+        # Prepare data for plotting
+        power_data = [[p[i] for p in self._time_series_data['power']] for i in range(self.device_count)]
+        util_data = [[u[i] for u in self._time_series_data['util']] for i in range(self.device_count)]
+        temp_data = [[t[i] for t in self._time_series_data['temp']] for i in range(self.device_count)]
+        mem_data = [[m[i] for m in self._time_series_data['mem']] for i in range(self.device_count)]
 
-        # Plot 2x2 grid of power, utilization, temperature, and memory
-        fig1, axes = plt.subplots(nrows=2, ncols=2, figsize=(14, 12))
-        fig1.tight_layout(pad=4.0)
+        # Create a new figure and axes
+        fig = figure.Figure(figsize=(20, 15))
+        axes = fig.subplots(nrows=2, ncols=2)
 
-        # Plot GPU power usage
-        for i in range(self.device_count):
-            axes[0, 0].plot(timestamps, [p[i] for p in self._time_series_data['power']], label=f'GPU {i}')
-        axes[0, 0].axhline(y=self._stats["max_power_limit"], color='r',
-                           linestyle='--', label='Power Limit')
-        axes[0, 0].set_title('GPU Power Usage')
-        #axes[0, 0].set_xlabel('Timestamp')
-        axes[0, 0].set_ylabel('Power (W)')
-        axes[0, 0].legend()
-        plt.setp(axes[0, 0].xaxis.get_majorticklabels(), rotation=45, ha='right')
+        # Create a backend for rendering the plot
+        canvas = agg.FigureCanvasAgg(fig)
 
-        # Plot GPU utilization
-        for i in range(self.device_count):
-            axes[0, 1].plot(timestamps, [u[i] for u in self._time_series_data['util']],
-                            label=f'GPU {i}')
-        axes[0, 1].set_title('GPU Utilization')
-        # axes[0, 1].set_xlabel('Timestamp')
-        axes[0, 1].set_ylabel('Utilization (%)')
-        axes[0, 1].legend()
-        plt.setp(axes[0, 1].xaxis.get_majorticklabels(), rotation=45, ha='right')
+        # Plot each metric using the helper function
+        self.plot_metric(
+            axes[0, 0],
+            (timestamps,
+             power_data,
+             f'GPU Power Usage, Total Energy: {self._stats["total_energy"]:.3g}kWh',
+             'Power (W)', 'Timestamp'),
+            (self._stats["max_power_limit"], 'Power Limit')
+        )
+        self.plot_metric(
+            axes[0, 1],
+            (timestamps, util_data, 'GPU Utilization', 'Utilization (%)', 'Timestamp'),
+            ylim=(0, 100)  # Set y-axis limits for utilization
+        )
+        self.plot_metric(
+            axes[1, 0],
+            (timestamps, temp_data, 'GPU Temperature', 'Temperature (C)', 'Timestamp')
+        )
+        self.plot_metric(
+            axes[1, 1],
+            (timestamps, mem_data, 'GPU Memory Usage', 'Memory (MiB)', 'Timestamp'),
+            (self._stats["total_mem"], 'Total Memory')
+        )
 
-        # Plot GPU temperature
-        for i in range(self.device_count):
-            axes[1, 0].plot(timestamps, [t[i] for t in self._time_series_data['temp']], label=f'GPU {i}')
-        axes[1, 0].set_title('GPU Temperature')
-        axes[1, 0].set_xlabel('Timestamp')
-        axes[1, 0].set_ylabel('Temperature (C)')
-        axes[1, 0].legend()
-        plt.setp(axes[1,0].xaxis.get_majorticklabels(), rotation=45, ha='right')
-
-        # Plot GPU memory usage
-        for i in range(self.device_count):
-            axes[1, 1].plot(timestamps, [m[i] for m in self._time_series_data['mem']], label=f'GPU {i}')
-        axes[1, 1].axhline(y=self._stats["total_mem"], color='r',
-                           linestyle='--', label='Total Memory')
-        axes[1, 1].set_title('GPU Memory Usage')
-        axes[1, 1].set_xlabel('Timestamp')
-        axes[1, 1].set_ylabel('Memory (MiB)')
-        axes[1, 1].legend()
-        plt.setp(axes[1,1].xaxis.get_majorticklabels(), rotation=45, ha='right')
+        # Ensure tight_layout is applied
+        fig.tight_layout(pad=3.0)
 
         # Save the 2x2 grid plot
-        plot_filename_1 = "./results/metrics_grid_plot.png"
-        plt.savefig(plot_filename_1, bbox_inches='tight')
-        plt.close(fig1)
+        canvas.draw()  # Render the figure to the canvas
+        canvas.figure.savefig(METRIC_PLOT_PATH, bbox_inches='tight')  # Save the plot as PNG
 
-        # Plot total energy
-        fig2, ax = plt.subplots(figsize=(12, 6))
-        if len(timestamps) > 1 and len(total_energy_data) == len(timestamps) - 1:
-            ax.plot(timestamps[1:], total_energy_data, marker='o', color='blue')
-            ax.set_title('Total Energy Consumed')
-            ax.set_xlabel('Timestamp')
-            ax.set_ylabel('Energy (kWh)')
-            plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
-        else:
-            ax.text(0.5, 0.5, 'Data mismatch for total energy.', ha='center', va='center')
 
-        # Save the total energy plot
-        plot_filename_2 = "./results/total_energy_plot.png"
-        plt.savefig(plot_filename_2, bbox_inches='tight')
-        plt.close(fig2)
+        # Close the figure to free memory
+        canvas.draw()  # Ensure the figure is fully rendered
+        del fig  # Remove reference to figure to free memory
 
     def _live_monitor(self) -> None:
         """
@@ -438,7 +464,8 @@ class GPUMonitor:
 
 
 
-    def run(self, live_monitoring: bool = False, plot: bool = False) -> None:
+    def run(self, live_monitoring: bool = False, plot: bool = False,
+            live_plot: bool = False) -> None:
         """
         Runs the GPU monitoring and plotting process.
         """
@@ -453,8 +480,12 @@ class GPUMonitor:
                 self.__update_gpu_metrics()
 
                 # Update the plot every iteration or after a certain interval
-                if plot:
-                    self.plot_metrics()
+                if live_plot:
+                    try:
+                        self.plot_metrics()
+                    except (FileNotFoundError, IOError) as plot_error:
+                        LOGGER.error("Error during plotting: %s", plot_error)
+                        continue  # Skip plotting and continue monitoring
 
                 if live_monitoring:
                     self._live_monitor()
@@ -467,6 +498,12 @@ class GPUMonitor:
             self.__completion_stats()
             LOGGER.info("Monitoring stopped.")
             print("\nMonitoring stopped.")
+
+            if plot:
+                try:
+                    self.plot_metrics()
+                except (FileNotFoundError, IOError) as plot_error:
+                    LOGGER.error("Error during plotting: %s", plot_error)
 
         finally:
             # Properly shut down pynvml
@@ -530,6 +567,10 @@ def main():
     parser.add_argument('--plot', action='store_true',
                         help='Enable plotting of GPU metrics.')
 
+    # Argument for enabling live plotting
+    parser.add_argument('--live_plot', action='store_true',
+                        help='Enable live plotting of GPU metrics.')
+
     # Parse the command-line arguments
     args = parser.parse_args()
 
@@ -557,7 +598,10 @@ def main():
     )
 
     # Start monitoring with the specified options
-    monitor.run(live_monitoring=args.live_monitor,plot=args.plot)
+    monitor.run(live_monitoring=args.live_monitor,
+                plot=args.plot,
+                live_plot=args.live_plot
+                )
 
     # Save collected metrics to a YAML file
     monitor.save_stats_to_yaml(METRICS_FILE_PATH)

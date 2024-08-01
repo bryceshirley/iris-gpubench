@@ -137,7 +137,7 @@ def plot_timeseries(timestamps: list, data_reading: list, ylabel: str,
     '''
     Plots the timeseries for a given data reading.
 
-        Returns: 
+        Returns:
             Saves the plot as a image file.
     '''
     if not timestamps or not data_reading:
