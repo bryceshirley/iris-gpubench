@@ -16,7 +16,9 @@ with open(METRICS_FILE_PATH, 'r', encoding='utf-8') as file:
     data = yaml.safe_load(file)
 
 # Extract and convert values to appropriate types
-time_value = data['time']
+
+if 'time' in data: # Check if time has be retrieved
+    time_value = data['time']
 av_util = data['av_util']
 av_temp = data['av_temp']
 av_power = data['av_power']
@@ -32,10 +34,13 @@ name = data["name"]
 
 # Prepare data for tabulate
 formatted_data_main = [
-    ["Benchmark Score (s)", f"{time_value:.5f}"],
     ["Total GPU Energy Consumed (kWh)", f"{total_gpu_energy:.5f}"],
     ["Total GPU Carbon Emissions (gC02)",f"{total_carbon:.5f}"],
 ]
+
+# Check if time has be retrieved
+if 'time' in data:
+    formatted_data_main.insert(0,["Benchmark Score (s)", f"{time_value:.5f}"])
 
 formatted_data_extra = [
     ["Average GPU Util. (for >0.00% GPU Util.) (%)", f"{av_util:.5f}"],

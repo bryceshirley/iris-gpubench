@@ -87,19 +87,24 @@ read_yaml_value() {
 time_file="/tmp/Results/metrics.yml"
 metrics_file="./results/metrics.yml"
 
-# Read time value from time.yml
-time_value=$(read_yaml_value "$time_file" "time")
+# Check if the `time` key exists in the YAML file
+if key_exists "$time_file" "time"; then
+    # Read time value from time.yml
+    time_value=$(read_yaml_value "$time_file" "time")
 
-if [ -z "$time_value" ]; then
-    echo "Error: Failed to read time value from $time_file"
-    exit 1
+    if [ -z "$time_value" ]; then
+        echo "Error: Failed to read time value from $time_file"
+        exit 1
+    fi
+
+    # Prepend time value to metrics.yml
+    temp_file=$(mktemp)
+    echo "time: $time_value" > "$temp_file"
+    cat "$metrics_file" >> "$temp_file"
+    mv "$temp_file" "$metrics_file"
+else
+    echo "Error: Key 'time' does not exist in $time_file"
 fi
-
-# Prepend time value to metrics.yml
-temp_file=$(mktemp)
-echo "time: $time_value" > "$temp_file"
-cat "$metrics_file" >> "$temp_file"
-mv "$temp_file" "$metrics_file"
 
 # Clean up temporary files
 if [ -d "./results/benchmark_specific" ]; then
