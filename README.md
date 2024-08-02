@@ -2,7 +2,7 @@ GPU Energy and Carbon Performance Benchmarking
 ==============================================
 
 -----------
-## Table of Contents
+## Table of Contents (Links need updating)
 * [The Command](https://github.com/bryceshirley/gpu_benchmark_metrics#the-command)
 
 * [Results](https://github.com/bryceshirley/gpu_benchmark_metrics#results)
