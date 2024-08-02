@@ -5,7 +5,7 @@ GPU Energy and Carbon Performance Benchmarking
 ## Table of Contents
 * [The Command](https://github.com/bryceshirley/gpu_benchmark_metrics#the-command)
 
-* [Usage Instructions](https://github.com/bryceshirley/gpu_benchmark_metrics#usage-instructions)
+* [Results](https://github.com/bryceshirley/gpu_benchmark_metrics#results)
 
 * [Benchmark Results](https://github.com/bryceshirley/gpu_benchmark_metrics#results)
 
@@ -46,12 +46,71 @@ Example:
 ```
 Sets the monitoring interval to 30 seconds, uses "North Scotland" as the carbon intensity region, and generates plots for metrics throughout.
 
+Note: If you need to terminate the tool for any reason (ie press CTRL+C) then you must kill the tmux session by running...
+
+```bash
+tmux kill-session
+```
+
 -----------
 
-# Live Monitoring
+# Results 
+
+Results are saved to gpu_benchmark_metrics/results (these include):
+
+## 1. Formatted Results
+
+* formatted_metrics.txt : Formatted version of metrics.yml, see example below.
+
+```bash
+Benchmark Score and GPU Energy Performance
+
++-----------------------------------+----------+
+| Metric                            |    Value |
++===================================+==========+
+| Benchmark Score (s)               | 44.2312  |
++-----------------------------------+----------+
+| Total GPU Energy Consumed (kWh)   |  0.00206 |
++-----------------------------------+----------+
+| Total GPU Carbon Emissions (gC02) |  0.426   |
++-----------------------------------+----------+
+
+Additional Information
+
++--------------------------------------------------+------------------------------------+
+| Metric                                           | Value                              |
++==================================================+====================================+
+| Average GPU Util. (for >0.00% GPU Util.) (%)     | 56.44186                           |
++--------------------------------------------------+------------------------------------+
+| Avg GPU Power (for >0.00% GPU Util.) (W)         | 78.89320 (Power Limit: 250)        |
++--------------------------------------------------+------------------------------------+
+| Avg GPU Temperature (for >0.00% GPU Util.) (C)   | 38.62791                           |
++--------------------------------------------------+------------------------------------+
+| Avg GPU Memory (for >0.00% GPU Util.) (MiB)      | 2032.53198 (Total Memory: 32768.0) |
++--------------------------------------------------+------------------------------------+
+| Average Carbon Forcast from start/end (gCO2/kWh) | 207.0                              |
++--------------------------------------------------+------------------------------------+
+```
+## 2. GPU Metric Plots 
+
+* metrics_plot.png: Time series plots for gpu utilization, power usage, temperature and Memory. See example below:
+ 
+  <img src="docs_image.png" alt="GPU Metrics Output" width="500"/>
+
+## 3. Result Metrics
+
+* metrics.yml: yml with the Benchmark Score and GPU Energy Performance results.
+
+## 4. Benchmark Specific
+
+* benchmark_specific/: directory containing all the results output by the sciml-bench benchmark.
+  
+-----------
+
+# Live Monitoring (Long Term Plan - Integrate with Grafana via Prometheus - see Prometheus branch)
 
 
-### a. The Output of the Benchmark and GPU Metrics Are Tracked Live By Copying over The Tmux Outputs. Example:
+## 1. The Output of the Benchmark and GPU Metrics Are Tracked Live By Copying over The Tmux Outputs. Example:
 
 This example uses the "stemdl_classification" benchmark with the "-b epochs 1" option for two epochs and "-b gpus 2" too utilize both gpus available (see sciml-bench docs for more options)
 
@@ -87,7 +146,7 @@ Epoch 0:  15%|█████████████                           
 ```
 
 
-### b. (Optional) Live Timeseries Using the --plot_live Option (TODO: WORKS FOR PYTHON BUT NEEDS ADDING TO BASH SCRIPT)
+## 2. (Optional) Live Timeseries Using the --plot_live Option (TODO: WORKS FOR PYTHON BUT NEEDS ADDING TO BASH SCRIPT)
   
 ```bash
 ./multi_gpu_monitor.sh <sciml benchmark command> --plot_live
@@ -95,67 +154,9 @@ Epoch 0:  15%|█████████████                           
 
 Gives you saves plot png during every reading so that the metrics can be viewed live. They can be found there afterwards too. See [Plot Results](https://github.com/bryceshirley/gpu_benchmark_metrics/edit/main/README.md#4-gpu-power-and-utilization-plots).
 
-### 3. If you need to terminate the tool for any reason (ie press CTRL+C) then you must kill the tmux session by running:
+----------- 
 
-```bash
-tmux kill-session
-```
-
------------
-
-# Benchmark Results 
-
-## Results are saved to gpu_benchmark_metrics/results (these include):
-
-### 1. Formatted Results
-
-* formatted_metrics.txt : Formatted version of metrics.yml, see example below.
-
-```bash
-Benchmark Score and GPU Energy Performance
-
-+-----------------------------------+----------+
-| Metric                            |    Value |
-+===================================+==========+
-| Benchmark Score (s)               | 44.2312  |
-+-----------------------------------+----------+
-| Total GPU Energy Consumed (kWh)   |  0.00206 |
-+-----------------------------------+----------+
-| Total GPU Carbon Emissions (gC02) |  0.426   |
-+-----------------------------------+----------+
-
-Additional Information
-
-+--------------------------------------------------+------------------------------------+
-| Metric                                           | Value                              |
-+==================================================+====================================+
-| Average GPU Util. (for >0.00% GPU Util.) (%)     | 56.44186                           |
-+--------------------------------------------------+------------------------------------+
-| Avg GPU Power (for >0.00% GPU Util.) (W)         | 78.89320 (Power Limit: 250)        |
-+--------------------------------------------------+------------------------------------+
-| Avg GPU Temperature (for >0.00% GPU Util.) (C)   | 38.62791                           |
-+--------------------------------------------------+------------------------------------+
-| Avg GPU Memory (for >0.00% GPU Util.) (MiB)      | 2032.53198 (Total Memory: 32768.0) |
-+--------------------------------------------------+------------------------------------+
-| Average Carbon Forcast from start/end (gCO2/kWh) | 207.0                              |
-+--------------------------------------------------+------------------------------------+
-```
-
-### 2. GPU Metric Plots 
-
-* metrics_plot.png: Time series plots for gpu utilization, power usage, temperature and Memory. See example below:
- 
-  <img src="docs_image.png" alt="GPU Metrics Output" width="500"/>
-
-### 3. Result Metrics
-
-* metrics.yml: yml with the Benchmark Score and GPU Energy Performance results.
-
-### 4. Benchmark Specific
-
-* benchmark_specific/: directory containing all the results output by the sciml-bench benchmark. 
-
-#### Please Note:
+## Please Note:
 * The Carbon Data is collected in real-time from the National Grid ESO Regional Carbon Intensity API:
   <https://api.carbonintensity.org.uk/regional>
 * The Carbon Forcast and Index Readings are updated every 30 minutes.
