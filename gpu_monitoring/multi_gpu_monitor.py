@@ -32,27 +32,21 @@ Example:
 """
 
 import argparse
-import logging
 import os
 import sys
 import time
 from datetime import datetime
+import logging
 from typing import Optional
 
-# import matplotlib
-# import matplotlib.pyplot as plt
-# import matplotlib.ticker as ticker
 import matplotlib.figure as figure
 import matplotlib.backends.backend_agg as agg
 import matplotlib.ticker as ticker
-import matplotlib.dates as mdates
 
 import pynvml
 import requests
 import yaml
 from tabulate import tabulate
-
-# matplotlib.use('Agg')  # Use non-interactive backend
 
 # Ensure the results directory exists
 RESULTS_DIR = './results'
@@ -225,35 +219,6 @@ class GPUMonitor:
         except pynvml.NVMLError as error_message:
             LOGGER.error("NVML Error: %s", error_message)
 
-
-    def __update_carbon_forecast(self) -> Optional[float]:
-        """
-        Uses The nationalgridESO Regional Carbon Intensity API to collect current carbon emissions.
-
-        Returns:
-            Optional[float]: Current carbon intensity.
-        """
-        try:
-            response = requests.get(CARBON_INTENSITY_URL,
-                                    headers={'Accept': 'application/json'},
-                                    timeout=TIMEOUT_SECONDS)
-            response.raise_for_status()
-            data = response.json()
-            regions = data['data'][0]['regions']
-
-            for region in regions:
-                if region['shortname'] == self.carbon_region_shorthand:
-                    intensity = region['intensity']
-                    carbon_forecast = float(intensity['forecast'])
-                    LOGGER.info("Carbon forecast for '%s': %f",
-                                self.carbon_region_shorthand, carbon_forecast)
-                    return carbon_forecast
-
-        except requests.exceptions.RequestException as error_message:
-            LOGGER.error("Error request timed out (30s): %s", error_message)
-
-        return None
-
     def __update_total_energy(self) -> None:
         """
         Computes the total energy consumed by all GPUs.
@@ -299,7 +264,7 @@ class GPUMonitor:
         """
         # First Fill Carbon Forecast End time and End Forecast
         self._stats["end_datetime"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self._stats["end_carbon_forecast"] = self.__update_carbon_forecast()
+        self._stats["end_carbon_forecast"] = self.update_carbon_forecast()
 
         # Fill Total Energy and Total Carbon Estimations
         self._stats["av_carbon_forecast"] = (
@@ -463,7 +428,6 @@ class GPUMonitor:
         )
 
 
-
     def run(self, live_monitoring: bool = False, plot: bool = False,
             live_plot: bool = False) -> None:
         """
@@ -510,39 +474,11 @@ class GPUMonitor:
             pynvml.nvmlShutdown()
             LOGGER.info("NVML shutdown")
 
-def fetch_carbon_region_names():
-    """
-    Retrieves and returns the short names of all regions from the carbon intensity API.
-
-    Returns:
-        List[str]: Short names of the regions.
-    """
-    try:
-        response = requests.get(CARBON_INTENSITY_URL,
-                                headers={'Accept': 'application/json'},
-                                timeout=TIMEOUT_SECONDS)
-        response.raise_for_status()
-        data = response.json()
-
-        # Extract the list of regions
-        regions = data['data'][0]['regions']
-
-        # Extract short names of all regions
-        region_names = [region['shortname'] for region in regions]
-
-        LOGGER.info("Extracted region names: %s", region_names)
-        return region_names
-
-    except requests.exceptions.RequestException as error_message:
-        LOGGER.error("Error occurred during request (timeout %ds): %s",
-                     TIMEOUT_SECONDS, error_message)
-        return []
-
 def main():
     """
     Main function for parsing command-line arguments and running the GPUMonitor.
     """
-        # Create an argument parser
+    # Create an argument parser
     parser = argparse.ArgumentParser(description='Monitor GPU metrics')
 
     # Argument for enabling live monitoring
@@ -570,6 +506,10 @@ def main():
     # Argument for enabling live plotting
     parser.add_argument('--live_plot', action='store_true',
                         help='Enable live plotting of GPU metrics.')
+
+    # Argument for enabling data export to VictoriaMetrics
+    parser.add_argument('--export_to_victoria', action='store_true',
+                        help='Enable exporting of collected data to VictoriaMetrics.')
 
     # Parse the command-line arguments
     args = parser.parse_args()
@@ -605,6 +545,13 @@ def main():
 
     # Save collected metrics to a YAML file
     monitor.save_stats_to_yaml(METRICS_FILE_PATH)
+
+    # Check if data export to VictoriaMetrics is enabled
+    if args.export_to_victoria:
+        LOGGER.info("Exporting data to VictoriaMetrics")
+        exporter = VictoriaMetricsExporter(monitor._time_series_data)
+        #exporter.send_to_victoria()
+        LOGGER.info("Data export to VictoriaMetrics completed")
 
 if __name__ == "__main__":
     main()

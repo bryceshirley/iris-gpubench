@@ -1,3 +1,4 @@
+# pylint: disable=invalid-name
 """
 Formats the metric.yml file, ouputs in time to command line and saves to a txt
 file.
