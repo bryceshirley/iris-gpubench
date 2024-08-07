@@ -24,6 +24,7 @@ Logging:
 
 from typing import List, Optional
 import requests
+from requests.exceptions import HTTPError, Timeout, ConnectionError as RequestsConnectionError
 
 from .utils import setup_logging
 
@@ -35,7 +36,7 @@ CARBON_INTENSITY_URL = "https://api.carbonintensity.org.uk/regional"
 DEFAULT_REGION = "South England"
 TIMEOUT_SECONDS = 30
 
-def fetch_carbon_region_names() -> List[str]:
+def get_carbon_region_names() -> List[str]:
     """
     Retrieves and returns the short names of all regions from the Carbon Intensity API.
 
@@ -43,9 +44,11 @@ def fetch_carbon_region_names() -> List[str]:
         List[str]: Short names of the regions.
     """
     try:
-        response = requests.get(CARBON_INTENSITY_URL,
-                                headers={'Accept': 'application/json'},
-                                timeout=TIMEOUT_SECONDS)
+        response = requests.get(
+            CARBON_INTENSITY_URL,
+            headers={'Accept': 'application/json'},
+            timeout=TIMEOUT_SECONDS
+        )
         response.raise_for_status()
         data = response.json()
 
@@ -58,10 +61,14 @@ def fetch_carbon_region_names() -> List[str]:
         LOGGER.info("Extracted region names: %s", region_names)
         return region_names
 
-    except requests.exceptions.RequestException as error_message:
-        LOGGER.error("Error occurred during request (timeout %ds): %s",
-                     TIMEOUT_SECONDS, error_message)
-        return []
+    except (HTTPError, RequestsConnectionError) as network_error:
+        LOGGER.error("Network error occurred: %s", network_error)
+    except Timeout:
+        LOGGER.error("Request timed out after %d seconds.", TIMEOUT_SECONDS)
+    except ValueError as json_error:
+        LOGGER.error("Failed to decode JSON response: %s", json_error)
+
+    return []
 
 def get_carbon_forecast(carbon_region_shorthand: str = DEFAULT_REGION) -> Optional[float]:
     """
@@ -75,9 +82,11 @@ def get_carbon_forecast(carbon_region_shorthand: str = DEFAULT_REGION) -> Option
         Optional[float]: Current carbon intensity forecast, or None if an error occurs.
     """
     try:
-        response = requests.get(CARBON_INTENSITY_URL,
-                                headers={'Accept': 'application/json'},
-                                timeout=TIMEOUT_SECONDS)
+        response = requests.get(
+            CARBON_INTENSITY_URL,
+            headers={'Accept': 'application/json'},
+            timeout=TIMEOUT_SECONDS
+        )
         response.raise_for_status()
         data = response.json()
         regions = data['data'][0]['regions']
@@ -87,10 +96,17 @@ def get_carbon_forecast(carbon_region_shorthand: str = DEFAULT_REGION) -> Option
                 intensity = region['intensity']
                 carbon_forecast = float(intensity['forecast'])
                 LOGGER.info("Carbon forecast for '%s': %f",
-                            carbon_region_shorthand, carbon_forecast)
+                            carbon_region_shorthand,
+                            carbon_forecast)
                 return carbon_forecast
 
-    except requests.exceptions.RequestException as error_message:
-        LOGGER.error("Error request timed out (30s): %s", error_message)
+        LOGGER.warning("Region '%s' not found in the response.", carbon_region_shorthand)
+
+    except (HTTPError, RequestsConnectionError) as network_error:
+        LOGGER.error("Network error occurred: %s", network_error)
+    except Timeout:
+        LOGGER.error("Request timed out after %d seconds.", TIMEOUT_SECONDS)
+    except ValueError as json_error:
+        LOGGER.error("Failed to decode JSON response: %s", json_error)
 
     return None
