@@ -1,14 +1,14 @@
-av_carbon_forecast: 60.0
+av_carbon_forecast: 0.0
 av_mem: 0.0
 av_power: 0.0
 av_temp: 0.0
 av_util: 0.0
-end_carbon_forecast: 60.0
-end_datetime: '2024-08-05 12:20:55'
+end_carbon_forecast: 0.0
+end_datetime: ''
 max_power_limit: 250.0
 name: Tesla V100-PCIE-32GB
-start_carbon_forecast: 60.0
-start_datetime: '2024-08-05 12:20:39'
-total_carbon: 0.012045283333333334
-total_energy: 0.00020075472222222222
+start_carbon_forecast: 109.0
+start_datetime: '2024-08-07 19:06:49'
+total_carbon: 0.0
+total_energy: 0.0002969448611111111
 total_mem: 32768.0

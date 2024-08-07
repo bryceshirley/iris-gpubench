@@ -4,10 +4,7 @@
 
 # Ensure a benchmark command is provided
 if [ $# -eq 0 ]; then
-    echo "Usage: $0 <benchmark_command>"
-    echo
-    echo "Parameters:"
-    echo "    <benchmark_command>       Command to execute the benchmark."
+    echo "Usage: gpu_monitor [gpu_monitor options] <benchmark_command>"
     echo
     echo "Example:"
     echo "    $0 <benchmark_command>"
@@ -18,12 +15,12 @@ fi
 COMPLETION_FILE="/tmp/benchmark_complete"
 
 # Extract the benchmark command
-BENCHMARK_COMMAND="sciml-bench run --output_dir=/tmp/Results/ $1"
+BENCHMARK_COMMAND="sciml-bench run --output_dir=/tmp/Results/ $2"
 CONDA_ACTIVATE="conda activate bench"
 COMPLETION_FILE_COMMAND="touch $COMPLETION_FILE"
 
 # Power monitor script
-POWER_MONITOR_SCRIPT="python3 multi_gpu_monitor.py --live_monitor --plot --interval 1"
+POWER_MONITOR_SCRIPT= "gpu_monitor" # Needs editing to add the gpu_monitor options
 
 # Names of the tmux sessions
 BENCHMARK_SESSION="benchmark_session"
@@ -125,4 +122,4 @@ tmux kill-session -t "$BENCHMARK_SESSION"
 tmux kill-session -t "$MONITOR_SESSION"
 
 # Output Results
-python3 ./format_results.py
+#python3 ./format_results.py
