@@ -1,6 +1,7 @@
 - FIX THE SAVING BUG for save plots/ metrics/ figs into the correct directory
 - FIX THE CARBON METRIC BUG for end carbon
 - Fix victoria_metrics exporter (username and password needed) and Test with grafana (add grafana link to docs)
+- Edit Formatted Results so that the time is the total time it took for the benchmark container to run.
 
 # GPU Monitoring Tool Usage
 
