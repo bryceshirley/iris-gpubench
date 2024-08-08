@@ -1,12 +1,8 @@
 - FIX THE SAVING BUG for save plots/ metrics/ figs into the correct directory
 - FIX THE CARBON METRIC BUG for end carbon
-- Fix victoria_metrics exporter (username and password needed) and Test with grafana
+- Fix victoria_metrics exporter (username and password needed) and Test with grafana (add grafana link to docs)
 
 # GPU Monitoring Tool Usage
-
-## Overview
-
-This tool monitors GPU metrics using the `GPUMonitor` class and optionally exports the collected data to VictoriaMetrics. 
 
 ## Overview
 
