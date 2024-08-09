@@ -11,7 +11,7 @@ Python Version:
 from setuptools import setup, find_packages
 
 setup(
-    name='gpu_monitor',
+    name='iris_gpubench',
     version='0.1.0-dev1',  # Development version
     packages=find_packages(),  # Automatically find packages in the current directory
     install_requires=[
@@ -24,12 +24,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'gpu_monitor=gpu_monitor.main:main',
+            'iris-gpubench=iris_gpubench.main:main',
         ],
     },
     python_requires='==3.8.10',  # Ensure compatibility with Python 3.8.10
-    package_data={
-        'gpu_monitor': ['config/default_config.yml'],
-    },
 )
-
