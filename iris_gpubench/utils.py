@@ -191,7 +191,7 @@ def image_exists(image_name: str) -> bool:
 
         # List images with the specified name
         images = client.images.list(name=image_name)
-        print(images)
+
         # Check if any image matches the specified name
         return any(image_name in tag for img in images for tag in img.tags)
     except docker.errors.DockerException as e:

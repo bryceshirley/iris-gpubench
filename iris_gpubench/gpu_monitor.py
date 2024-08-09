@@ -478,11 +478,23 @@ class GPUMonitor:
                 f"Memory (MiB) / Total {self._stats['total_mem']} MiB"
             ]
 
-            # Print the current GPU metrics in a grid format
-            print(
-                f"Current GPU Metrics as of {current_time}:\n"
-                f"{tabulate(self.current_gpu_metrics, headers=headers, tablefmt='grid')}"
+            # Format GPU metrics
+            gpu_metrics_str = tabulate(self.current_gpu_metrics, headers=headers, tablefmt='grid')
+            
+            # Collect container logs
+            container_logs = self.container.logs(follow=False,tail).decode('utf-8')
+
+            # Build the full message
+            message = (
+                f"\nCurrent GPU Metrics as of {current_time}:\n"
+                f"{gpu_metrics_str}\n\n"
+                f"Container Logs as of {current_time}:\n"
+                f"\n{container_logs}"
             )
+
+            # Print the current GPU metrics in a grid format
+            print(message)
+
         except OSError as os_error:
             # Log any OS-related errors during live monitoring
             LOGGER.error("OS error in live monitoring: %s", os_error)
@@ -493,28 +505,35 @@ class GPUMonitor:
             # Log any unexpected errors
             LOGGER.error("Unexpected error in live monitoring: %s", ex)
 
-    def run(self, container_image: str, live_monitoring: bool = False, plot: bool = False,
+    def run(self, benchmark_image: str, live_monitoring: bool = False, plot: bool = False,
             live_plot: bool = False) -> None:
         """
         Runs the GPU monitoring and plotting process while executing a container.
 
         Args:
-            container_image (str): The Docker container image to run.
+            benchmark_image (str): The Docker container image to run.
             live_monitoring (bool): If True, enables live monitoring display.
             plot (bool): If True, saves the metrics plot at the end.
             live_plot (bool): If True, updates the plot in real-time.
         """
         # Initialize GPU statistics
-        self.__setup_stats()
+        self.__setup_stats() 
 
-        # Run the container in the background
-        container = self.client.containers.run(container_image, detach=True)
+        try:
+            # Run the container in the background
+            self.container = self.client.containers.run(
+                benchmark_image,
+                detach=True,
+                device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])]
+            )
+            
+            # Reload to update status from created to running
+            self.container.reload()
 
-        try:   
-            while container.status == 'running':
+            while self.container.status == 'running':
                 try:
                     # Reload container status to check if it is still running
-                    container.reload()
+                    self.container.reload()
 
                     # Update the current GPU metrics
                     self.__update_gpu_metrics()
@@ -538,6 +557,10 @@ class GPUMonitor:
                 except (KeyboardInterrupt, SystemExit):
                     # Break the loop if user interrupts or system exits
                     LOGGER.info("Monitoring interrupted by user.")
+                    print(
+                        f"Monitoring interrupted by user.\n"
+                        f"Stopping gracefully, please wait..."
+                    )
                     break
                 except Exception as ex:
                     # Log any unexpected errors that occur during the monitoring loop
@@ -550,6 +573,9 @@ class GPUMonitor:
             # Handle any unexpected errors that occur during container setup
             LOGGER.error("Unexpected error: %s", ex)
         finally:
+            # Remove the container
+            self.container.remove()
+
             # Finalize statistics and perform cleanup
             self.__completion_stats()
             LOGGER.info("Monitoring stopped.")
@@ -568,8 +594,7 @@ class GPUMonitor:
             LOGGER.info("NVML shutdown")
 
             # Stop and wait for the container to finish if it is still running
-            if container.status == 'running':
-                container.stop()  # Stop the container
-                container.wait()  # Wait for the container to finish
+            if self.container.status == 'running':
+                self.container.stop()  # Stop the container
+                self.container.wait()  # Wait for the container to finish
                 LOGGER.info("Container stopped.")
-

@@ -51,8 +51,8 @@ def parse_arguments():
                         help='Enable live monitoring of GPU metrics.')
 
     # Argument for setting the monitoring interval
-    parser.add_argument('--interval', type=int, default=1,
-                        help='Interval in seconds for collecting GPU metrics (default is 1 second).')
+    parser.add_argument('--interval', type=int, default=5,
+                        help='Interval in seconds for collecting GPU metrics (default is 5 second).')
 
     # Argument for specifying the carbon region
     parser.add_argument(

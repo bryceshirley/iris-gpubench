@@ -24,7 +24,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'iris-gpubench=iris_gpubench.main:main',
+            'iris-gpubench=iris_gpubench.main:main',  # Ensures the script is accessible via `iris-gpubench` command
         ],
     },
     python_requires='==3.8.10',  # Ensure compatibility with Python 3.8.10
