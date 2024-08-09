@@ -1,0 +1,12 @@
+# Use the official Ubuntu base image
+FROM sciml_base:latest
+
+# Set the working directory
+WORKDIR /root
+
+# Install the benchmark
+RUN /bin/bash -c "source /root/anaconda3/bin/activate bench && \
+    sciml-bench install synthetic_regression"
+
+# Set the entrypoint to run the benchmark
+ENTRYPOINT ["/bin/bash", "-c", "source /root/anaconda3/bin/activate bench && sciml-bench run synthetic_regression --output_dir=/root/results/ -b hidden_size 9000"]

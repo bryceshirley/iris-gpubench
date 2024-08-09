@@ -22,7 +22,7 @@ import os
 import sys
 import time
 
-from .utils import setup_logging, format_metrics, image_exists, list_available_images
+from .utils import setup_logging, format_metrics
 from .carbon_metrics import get_carbon_region_names
 from .gpu_monitor import GPUMonitor
 from .gpu_victoria_exporter import VictoriaMetricsExporter
@@ -78,6 +78,8 @@ def parse_arguments():
     parser.add_argument('--benchmark_image', type=str, required=True,
                         help='Docker container image to run as a benchmark.')
 
+    #TODO: add parsing check for bench_image to make sure the image exists
+
     # Parse command-line arguments
     args = parser.parse_args()
 
@@ -94,18 +96,6 @@ def parse_arguments():
         error_message = (f"Invalid carbon region: {args.carbon_region}. Valid regions are: {', '.join(valid_regions)}")
         print(error_message)
         LOGGER.error(error_message)
-        sys.exit(1)  # Exit with error code 1
-
-    # Check if the benchmark image exists
-    if not image_exists(args.benchmark_image):
-        print(f"Image '{args.benchmark_image}' does not exist.")
-        LOGGER.error("Image '%s' does not exist.", args.benchmark_image)
-
-        # List available images excluding those with "base" in their name
-        available_images = list_available_images(exclude_base=True, exclude_none=True)
-        print("Available images (excluding 'base' images):")
-        for image in available_images:
-            print(f"  - {image}")
         sys.exit(1)  # Exit with error code 1
 
     return args
@@ -127,9 +117,7 @@ def main():
     try:
         # Run the Monitoring process
         LOGGER.info("Starting GPU monitoring...")
-        gpu_monitor.run(live_monitoring=args.live_monitor, plot=args.plot, 
-                        live_plot=args.live_plot, 
-                        benchmark_image=args.benchmark_image)
+        gpu_monitor.run(live_monitoring=args.live_monitor, plot=args.plot, live_plot=args.live_plot)
         LOGGER.info("GPU monitoring completed.")
 
         # Save Monitor Results

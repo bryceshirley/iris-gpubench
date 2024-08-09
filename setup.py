@@ -6,9 +6,6 @@ Dependencies are directly included in this file.
 
 Python Version:
 - This script and module were designed to work with Python 3.8.10.
-
-System Dependencies:
-- You may need to install system-level dependencies using: sudo apt-get install yq tmux
 """
 
 from setuptools import setup, find_packages
@@ -19,10 +16,11 @@ setup(
     packages=find_packages(),  # Automatically find packages in the current directory
     install_requires=[
         'pynvml==11.5.3',
-        'requests==2.31.0',
-        'pyyaml==6.0.1',
+        'requests==2.32.3',
+        'pyyaml==6.0.2',
         'tabulate==0.9.0',
-        'matplotlib==3.7.1',
+        'matplotlib==3.7.5',
+        'docker==7.1.0',
     ],
     entry_points={
         'console_scripts': [

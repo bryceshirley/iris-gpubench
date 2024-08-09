@@ -5,10 +5,10 @@ av_temp: 0.0
 av_util: 0.0
 end_carbon_forecast: 0.0
 end_datetime: ''
-max_power_limit: 250.0
-name: Tesla V100-PCIE-32GB
-start_carbon_forecast: 109.0
-start_datetime: '2024-08-07 19:06:49'
+max_power_limit: 140.0
+name: NVIDIA RTX A4000
+start_carbon_forecast: 38.0
+start_datetime: '2024-08-09 08:36:47'
 total_carbon: 0.0
-total_energy: 0.0002969448611111111
-total_mem: 32768.0
+total_energy: 1.2055e-05
+total_mem: 16376.0
