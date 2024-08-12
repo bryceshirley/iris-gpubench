@@ -17,7 +17,7 @@
 8. [Live Monitoring](#live-monitoring)
    - [Monitor GPU Metrics](#monitor-gpu-metrics)
    - [Save PNG Timeseries Live](#save-png-timeseries-live)
-9. [Please Note](#please-note)
+9. [Considerations](#considerations)
 10. [Work To Do](#work-to-do)
 
 ---
@@ -293,7 +293,7 @@ Gives you saves plot png during every reading so that the metrics can be viewed 
 
 ----------- 
 
-## Considerations:
+## Considerations
 * The Carbon Data is collected in real-time from the National Grid ESO Regional Carbon Intensity API:
   <https://api.carbonintensity.org.uk/regional>
 * The Carbon Forcast and Index Readings are updated every 30 minutes.
@@ -326,7 +326,7 @@ GPU and Carbon Performance Results
 
 -----------
 
-# Work To Do
+## Work To Do
 - Allow users to save container results
 - Fix victoria_metrics exporter (username and password needed) and Test with grafana (add grafana link to docs)
 - Improve live monitoring of container ie by threading
