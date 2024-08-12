@@ -1,0 +1,13 @@
+# Use the official Ubuntu base image
+FROM sciml_base:latest
+
+# Set the working directory
+WORKDIR /root
+
+# Install the benchmark
+RUN /bin/bash -c "source /root/anaconda3/bin/activate bench && \
+    sciml-bench install mnist_tf_keras && \
+    sciml-bench download mnist"
+
+# Set the entrypoint to run the benchmark
+ENTRYPOINT ["/bin/bash", "-c", "source /root/anaconda3/bin/activate bench && sciml_bench --output_dir=/root/results/ mnist_tf_keras"]

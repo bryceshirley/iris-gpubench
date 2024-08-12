@@ -1,0 +1,29 @@
+# Use the gpu_base image created earlier
+FROM gpu_base:latest
+
+# Set the working directory
+WORKDIR /root
+
+# Download and install Anaconda
+RUN wget https://repo.anaconda.com/archive/Anaconda3-2023.03-Linux-x86_64.sh && \
+    bash Anaconda3-2023.03-Linux-x86_64.sh -b && \
+    rm -rf Anaconda3-2023.03-Linux-x86_64.sh
+
+# Initialize Conda
+RUN /root/anaconda3/bin/conda init && \
+    /bin/bash -c "source /root/.bashrc" && \
+    /root/anaconda3/bin/conda create --name bench python=3.9 -y
+
+# Clone the SciML-Bench and Fix the Version Issue
+RUN /bin/bash -c "source /root/anaconda3/bin/activate bench && \
+    git clone https://github.com/bryceshirley/sciml-bench.git && \
+    cd sciml-bench && \
+    git switch Fixes-Bryce"
+    # cd sciml-bench/ && \
+    # echo \"__version__='1.2.0'\" > sciml_bench/__init__.py && \
+    # sed -i 's/version=version/version=\"1.2.0\"/' setup.py "
+
+# Install the Benchmark Suite
+RUN /bin/bash -c "source /root/anaconda3/bin/activate bench && \
+    cd sciml-bench/ && \
+    pip install ."

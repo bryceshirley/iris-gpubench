@@ -1,56 +1,140 @@
-GPU Energy and Carbon Performance Benchmarking
-==============================================
+- Allow users to save container results
+- Fix victoria_metrics exporter (username and password needed) and Test with grafana (add grafana link to docs)
+- Improve live monitoring of container ie by threading
 
------------
-## Table of Contents (Links need updating)
-* [The Command](https://github.com/bryceshirley/gpu_benchmark_metrics#the-command)
+# GPU Monitoring Tool Usage
 
-* [Results](https://github.com/bryceshirley/gpu_benchmark_metrics#results)
+## Overview
 
-* [Benchmark Results](https://github.com/bryceshirley/gpu_benchmark_metrics#results)
+This tool monitors GPU metrics using the `GPUMonitor` class and optionally exports the collected data to VictoriaMetrics. 
 
-* [Requirements](https://github.com/bryceshirley/gpu_benchmark_metrics#requirements)
+Here's the updated installation section including instructions for building Docker images:
 
-* [Work To Do](https://github.com/bryceshirley/gpu_benchmark_metrics#work-to-do)
+---
 
------------
+## Installation
 
-# The Command
-The command produces a summary of a benchmark or workloads GPU power and real-time carbon performance. It's currently compatible with sciml-benchmarks but can be generalized to any benchmark that utilizes NVIDIA GPUs:
+To set up the project, follow these steps:
+
+1. **Set Up Virtual Environment**:
+   Create and activate a virtual environment:
+   ```bash
+   python3 -m venv env
+   source env/bin/activate
+   ```
+
+2. **Install the Package**:
+   Install the package in editable mode:
+   ```bash
+   pip install wheel
+   pip install .
+   ```
+
+## Building Docker Images
+
+If you need to build Docker images for benchmarking, you can use the provided `build_images.sh` script. This script will build images defined in the `Benchmark_Docker` directory. Here’s how to use it:
+
+1. **Navigate to the Docker Directory**:
+   Go to the `Benchmark_Docker` directory:
+   ```bash
+   cd Benchmark_Docker
+   ```
+
+2. **Run the Build Script**:
+   Execute the build script to build all Docker images:
+   ```bash
+   ./build_images.sh
+   ```
+
+   This script will build Docker images from the Dockerfiles located in `Benchmark_Docker/Benchmark_Dockerfiles`. The available Dockerfiles and their purposes are:
+
+   - **Base Images**:
+     - `Dockerfile.gpu_base`: Base image for GPU-based benchmarks.
+   
+   - **Mantid Imaging Benchmarks**:
+     - `Dockerfile.mantid_base`: Base image for Mantid imaging benchmarks.
+     - `Dockerfile.mantid_run_1`: Dockerfile for Mantid benchmark run 1.
+     - `Dockerfile.mantid_run_8`: Dockerfile for Mantid benchmark run 8.
+   
+   - **SciML Benchmarks**:
+     - `Dockerfile.mnist_tf_keras`: Dockerfile for MNIST classification using TensorFlow/Keras.
+     - `Dockerfile.sciml_base`: Base image for SciML benchmarks.
+     - `Dockerfile.stemdl_classification_2gpu`: Dockerfile for STEMDL classification using 2 GPUs.
+     - `Dockerfile.synthetic_regression`: Dockerfile for synthetic regression benchmarks.
+
+This setup will prepare the environment and Docker images required for running your benchmarks effectively.
+
+---
+
+## Command-Line Arguments
+
+The following optional arguments are supported:
+
+- `--no_live_monitor`: Disable live monitoring of GPU metrics. Default is enabled.
+- `--interval <seconds>`: Set the interval for collecting GPU metrics. Default is `5` seconds.
+- `--carbon_region <region>`: Specify the carbon region for the National Grid ESO Regional Carbon Intensity API. Default is `"South England"`.
+- `--no_plot`: Disable plotting of GPU metrics. Default is enabled.
+- `--live_plot`: Enable live plotting of GPU metrics.
+- `--export_to_victoria`: Enable exporting of collected data to VictoriaMetrics.
+- `--benchmark_image <image>`: Docker container image to run as a benchmark (required).
+- `--monitor_logs`: Enable monitoring of container logs in addition to GPU metrics.
+
+## Example Commands
+
+1. **Basic Monitoring**:
+   ```bash
+   iris-gpubench --benchmark_image "synthetic_regression"
+   ```
+
+2. **Monitoring with Plotting**:
+   ```bash
+   iris-gpubench --benchmark_image "synthetic_regression" --plot
+   ```
+
+3. **Exporting Data to VictoriaMetrics**:
+   ```bash
+   iris-gpubench --benchmark_image "synthetic_regression" --export_to_victoria
+   ```
+
+4. **Full Command with All Options**:
+   ```bash
+   iris-gpubench --benchmark_image "synthetic_regression" --no_live_monitor --interval 10 --carbon_region "South England" --no_plot --live_plot --export_to_victoria --monitor_logs
+   ```
+
+## Help Option
+
+To display the help message with available options, run:
 
 ```bash
-./multi_gpu_monitor.sh <--run_options sciml_benchmark>
+iris-gpubench --help
 ```
 
-Or 
+---
 
-BASH CODE NEEDS UPDATING FOR THESE TAGS TO WORK (THEY EXIST VIA THE PYTHON AND ARE CORRECTLY ALL SET TO DEFAULTS)
-```bash
-./multi_gpu_monitor.sh <--run_options sciml_benchmark> [--interval INTERVAL] [--carbon_region REGION] [--live_plot]
+### Updated Help Option Output
+
+```plaintext
+usage: iris-gpubench [-h] [--no_live_monitor] [--interval INTERVAL] [--carbon_region CARBON_REGION] [--no_plot] [--live_plot] [--export_to_victoria] [--benchmark_image BENCHMARK_IMAGE] [--monitor_logs]
+
+Monitor GPU metrics and optionally export data to VictoriaMetrics.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --no_live_monitor     Disable live monitoring of GPU metrics (default is enabled).
+  --interval INTERVAL   Interval in seconds for collecting GPU metrics (default is 5 seconds).
+  --carbon_region CARBON_REGION
+                        Region shorthand for The National Grid ESO Regional Carbon Intensity API (default is "South England").
+  --no_plot             Disable plotting of GPU metrics (default is enabled).
+  --live_plot           Enable live plotting of GPU metrics.
+  --export_to_victoria  Enable exporting of collected data to VictoriaMetrics.
+  --benchmark_image BENCHMARK_IMAGE
+                        Docker container image to run as a benchmark.
+  --monitor_logs        Enable monitoring of container logs in addition to GPU metrics.
 ```
-Parameters:
 
-    --interval INTERVAL: Sets the interval (in seconds) for collecting GPU
-    metrics. Default is 1 second.
-
-    --carbon_region REGION: Specifies the region shorthand for the National
-    Grid ESO Regional Carbon Intensity API. Default is 'South England'.
-
-    --live_plot: Enables live plotting of GPU metrics via continuously save png file through run. Note: Live plotting is not
-    recommended as errors may arise if the code is interrupted during the plot saving
-    process. The plots will be saved at the end anyway. [Plot Results](https://github.com/bryceshirley/gpu_benchmark_metrics/edit/main/README.md#4-gpu-power-and-utilization-plots).
-
-Example:
-```bash
-./multi_gpu_monitor.sh <--run_options sciml_benchmark> --interval 30 --carbon_region "North Scotland" --plot_live
-```
-Sets the monitoring interval to 30 seconds, uses "North Scotland" as the carbon intensity region, and generates plots for metrics throughout.
-
-Note: If you need to terminate the tool for any reason (ie press CTRL+C) then you must kill the tmux session by running...
-
-```bash
-tmux kill-session
-```
+### Notes:
+- The `--benchmark_image` argument is required for specifying the Docker container image.
+- `--live_monitor` and `--plot` are enabled by default; use `--no_live_monitor` and `--no_plot` to disable them, respectively.
 
 -----------
 
@@ -65,60 +149,65 @@ Results are saved to gpu_benchmark_metrics/results (these include):
 ```bash
 Benchmark Score and GPU Energy Performance
 
-+-----------------------------------+----------+
-| Metric                            |    Value |
-+===================================+==========+
-| Benchmark Score (s)               | 44.2312  |
-+-----------------------------------+----------+
-| Total GPU Energy Consumed (kWh)   |  0.00206 |
-+-----------------------------------+----------+
-| Total GPU Carbon Emissions (gC02) |  0.426   |
-+-----------------------------------+----------+
++---------------------------------------+-----------+
+| Metric                                |     Value |
++=======================================+===========+
+| Elapsed Monitor Time of Container (s) | 245.627   |
++---------------------------------------+-----------+
+| Total GPU Energy Consumed (kWh)       |   0.00993 |
++---------------------------------------+-----------+
+| Total GPU Carbon Emissions (gCO2)     |   1.4196  |
++---------------------------------------+-----------+
 
-Additional Information
+Carbon Information
 
-+--------------------------------------------------+------------------------------------+
-| Metric                                           | Value                              |
-+==================================================+====================================+
-| Average GPU Util. (for >0.00% GPU Util.) (%)     | 56.44186                           |
-+--------------------------------------------------+------------------------------------+
-| Avg GPU Power (for >0.00% GPU Util.) (W)         | 78.89320 (Power Limit: 250)        |
-+--------------------------------------------------+------------------------------------+
-| Avg GPU Temperature (for >0.00% GPU Util.) (C)   | 38.62791                           |
-+--------------------------------------------------+------------------------------------+
-| Avg GPU Memory (for >0.00% GPU Util.) (MiB)      | 2032.53198 (Total Memory: 32768.0) |
-+--------------------------------------------------+------------------------------------+
-| Average Carbon Forcast from start/end (gCO2/kWh) | 207.0                              |
-+--------------------------------------------------+------------------------------------+
++------------------------------------+---------------------+
+| Metric                             | Value               |
++====================================+=====================+
+| Average Carbon Forecast (gCO2/kWh) | 143.0               |
++------------------------------------+---------------------+
+| Carbon Forecast Start Time         | 2024-08-12 17:35:12 |
++------------------------------------+---------------------+
+| Carbon Forecast End Time           | 2024-08-12 17:39:18 |
++------------------------------------+---------------------+
+
+GPU Information
+
++------------------------------------------------+------------------------------------+
+| Metric                                         | Value                              |
++================================================+====================================+
+| GPU Name                                       | Tesla V100-PCIE-32GB               |
++------------------------------------------------+------------------------------------+
+| Average GPU Util. (for >0.00% GPU Util.) (%)   | 92.90476                           |
++------------------------------------------------+------------------------------------+
+| Avg GPU Power (for >0.00% GPU Util.) (W)       | 167.42962 (Power Limit: 250)       |
++------------------------------------------------+------------------------------------+
+| Avg GPU Temperature (for >0.00% GPU Util.) (C) | 52.33333                           |
++------------------------------------------------+------------------------------------+
+| Avg GPU Memory (for >0.00% GPU Util.) (MiB)    | 6500.00595 (Total Memory: 32768.0) |
++------------------------------------------------+------------------------------------+
 ```
-## 2. GPU Metric Plots 
+## 2. GPU Metric png Plots (--plot)
 
 * metrics_plot.png: Time series plots for gpu utilization, power usage, temperature and Memory. See example below:
  
   <img src="docs_image.png" alt="GPU Metrics Output" width="500"/>
 
+## 2. GPU Metric Grafana Plots (--export_to_victoria) (NOT WORKING)
+
+INSERT GRAFANA LINK HERE
+
 ## 3. Result Metrics
 
 * metrics.yml: yml with the Benchmark Score and GPU Energy Performance results.
-
-## 4. Benchmark Specific
-
-* benchmark_specific/: directory containing all the results output by the sciml-bench benchmark.
   
 -----------
 
-# Live Monitoring (Long Term Plan - Integrate with Grafana via Prometheus - see Prometheus branch)
+# Live Monitoring
 
-
-## 1. The Output of the Benchmark and GPU Metrics Are Tracked Live By Copying over The Tmux Outputs. Example:
-
-This example uses the "stemdl_classification" benchmark with the "-b epochs 1" option for two epochs and "-b gpus 2" too utilize both gpus available (see sciml-bench docs for more options)
+## 1. Monitor GPU Metrics (--live_monitor)
 
 ```bash
-(bench) dnz75396@bs-scimlbench-a100:~/gpu_benchmark_metrics$ ./multi_gpu_monitor.sh '-b epochs 1 -b gpus 2 stemdl_classification'
-
-Live Monitor: GPU Metrics
-
 Current GPU Metrics as of 2024-08-01 23:32:47:
 +------------------------------------+-------------------+---------------------------+-------------------+------------------------------------+
 |   GPU Index (Tesla V100-PCIE-32GB) |   Utilization (%) |   Power (W) / Max 250.0 W |   Temperature (C) |   Memory (MiB) / Total 32768.0 MiB |
@@ -127,32 +216,15 @@ Current GPU Metrics as of 2024-08-01 23:32:47:
 +------------------------------------+-------------------+---------------------------+-------------------+------------------------------------+
 |                                  1 |                63 |                    87.318 |                40 |                            2075.62 |
 +------------------------------------+-------------------+---------------------------+-------------------+------------------------------------+
-
-
-
-Live Monitor: Benchmark Output
-
-2 | f1_score | MulticlassF1Score  | 0      | train
---------------------------------------------------------
-24.0 M    Trainable params
-0         Non-trainable params
-24.0 M    Total params
-95.925    Total estimated model params size (MB)
-Sanity Checking DataLoader 0: 100%|████████████████████████████████████████████████████████████████████████████████| 2/2 [00:01<00:00,  1.98it/s]
-/root/anaconda3/envs/bench/lib/python3.9/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:439: It is recommended to
-use `self.log('val_loss', ..., sync_dist=True)` when logging on epoch level in distributed setting to accumulate the metric across devices.
-Epoch 0:  15%|█████████████                                                                            | 77/525 [00:05<00:29, 15.21it/s, v_num=0]
-
 ```
 
-
-## 2. (Optional) Live Timeseries Using the --plot_live Option (TODO: WORKS FOR PYTHON BUT NEEDS ADDING TO BASH SCRIPT)
+## 2. Save png Timeseries Live (--plot_live)
   
 ```bash
-./multi_gpu_monitor.sh <sciml benchmark command> --plot_live
+gpu_monitor --plot_live
 ```
 
-Gives you saves plot png during every reading so that the metrics can be viewed live. They can be found there afterwards too. See [Plot Results](https://github.com/bryceshirley/gpu_benchmark_metrics/edit/main/README.md#4-gpu-power-and-utilization-plots).
+Gives you saves plot png during every reading so that the metrics can be viewed live.
 
 ----------- 
 
@@ -166,25 +238,6 @@ Gives you saves plot png during every reading so that the metrics can be viewed 
 * The "error in nvidia-smi's power draw is ± 5%" according to:
   <https://arxiv.org/html/2312.02741v2#:~:text=The%20error%20in%20nvidia%2Dsmi's,%C2%B1%2030W%20of%20over%2Funderestimation.>  
 
------------
-
-# Requirements (Needs updating)
-
-* **Python Script (gpu_monitor.py):**
-	* Python interpreter.
-	* Required Python modules: subprocess, csv, time, os, datetime, argparse, matplotlib, tabulate.
-	* Dependency on nvidia-smi for GPU metrics.
-* **Bash Script (monitor.sh):**
-	* Bash shell.
- 	* pip install jq
-	* External commands: tmux, conda (optional).
-	* Ensure correct paths for scripts (gpu_monitor.py) and temporary files.
-* **Dependencies:**
-	* Python dependencies (matplotlib, tabulate) must be installed.
-	* Availability of nvidia-smi for GPU metrics.
-* **Configuration:**
-	* Set environment variables (PATH, PYTHONPATH) appropriately.
-	* Verify paths and environment configurations to prevent command not found errors.
 
 -----------
 
@@ -195,4 +248,3 @@ Gives you saves plot png during every reading so that the metrics can be viewed 
 - using shell check from bash script (similar to pylint) on bash script
 - Add CI tests for python scripts
 - Make monitor.sh collect errors from sciml-bench command
-

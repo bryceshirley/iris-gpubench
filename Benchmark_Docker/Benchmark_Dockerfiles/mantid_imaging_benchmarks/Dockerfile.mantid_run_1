@@ -1,0 +1,8 @@
+# Use the official Ubuntu base image
+FROM mantid_base:latest
+
+# Set the working directory
+WORKDIR /root
+
+# Set the entrypoint to run the benchmark
+ENTRYPOINT ["/bin/bash", "-c", "cd /root/mantid_imaging_cloud_bench && ./run_1.sh"]
