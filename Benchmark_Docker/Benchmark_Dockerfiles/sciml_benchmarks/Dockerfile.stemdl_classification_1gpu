@@ -5,4 +5,4 @@ FROM stemdl_classification_base:latest
 WORKDIR /root
 
 # Set the entrypoint to run the benchmark
-ENTRYPOINT ["/bin/bash", "-c", "source /root/anaconda3/bin/activate bench && sciml_bench --output_dir=/root/results/ -b epochs 1 -gpus 2 stemdl_classification"]
+ENTRYPOINT ["/bin/bash", "-c", "source /root/anaconda3/bin/activate bench && sciml_bench --output_dir=/root/results/ -b epochs 1 -gpus 1 stemdl_classification"]
