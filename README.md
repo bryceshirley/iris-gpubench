@@ -106,24 +106,19 @@ The following optional arguments are supported:
 
 ## Example Commands
 
-1. **Basic Monitoring**:
+1. **Basic Monitoring with Completion Plot**:
    ```bash
    iris-gpubench --benchmark_image "synthetic_regression"
    ```
 
-2. **Monitoring with Plotting**:
-   ```bash
-   iris-gpubench --benchmark_image "synthetic_regression" --plot
-   ```
-
-3. **Exporting Data to VictoriaMetrics**:
+2. **Exporting Data to VictoriaMetrics**:
    ```bash
    iris-gpubench --benchmark_image "synthetic_regression" --export_to_victoria
    ```
 
-4. **Full Command with All Options**:
+3. **Full Command with All Options**:
    ```bash
-   iris-gpubench --benchmark_image "synthetic_regression" --no_live_monitor --interval 10 --carbon_region "South England" --no_plot --live_plot --export_to_victoria --monitor_logs
+   iris-gpubench --benchmark_image "synthetic_regression" --interval 10 --carbon_region "South England" --live_plot --export_to_victoria --monitor_logs
    ```
 
 ## Help Option
