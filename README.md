@@ -282,7 +282,7 @@ Gives you saves plot png during every reading so that the metrics can be viewed 
 
 ----------- 
 
-## Please Note:
+## Considerations:
 * The Carbon Data is collected in real-time from the National Grid ESO Regional Carbon Intensity API:
   <https://api.carbonintensity.org.uk/regional>
 * The Carbon Forcast and Index Readings are updated every 30 minutes.
@@ -291,12 +291,10 @@ Gives you saves plot png during every reading so that the metrics can be viewed 
 * The GPU power metrics and GPU utilization come from "nvidia-smi" results.
 * The "error in nvidia-smi's power draw is ± 5%" according to:
   <https://arxiv.org/html/2312.02741v2#:~:text=The%20error%20in%20nvidia%2Dsmi's,%C2%B1%2030W%20of%20over%2Funderestimation.>  
-
-
+* (Minimal) GPU Resource Usage by the Monitor: The monitoring tool consumes a small portion of GPU resources. For instance, a 5-minute test with a dummy container shows some GPU usage. CPU resources are also utilized, though profiling tests to determine exact CPU usage have not yet been conducted.
 -----------
 
 # Work To Do
-- Add Dummy Benchmark
 - Allow users to save container results
 - Fix victoria_metrics exporter (username and password needed) and Test with grafana (add grafana link to docs)
 - Improve live monitoring of container ie by threading
