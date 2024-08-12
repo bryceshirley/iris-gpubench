@@ -32,19 +32,13 @@ import pynvml
 import yaml
 from tabulate import tabulate
 
-from .utils import setup_logging
 from .carbon_metrics import get_carbon_forecast
 
-# Set up logging with specific configuration
-LOGGER = setup_logging()
-
-RESULTS_DIR = './results'
-os.makedirs(RESULTS_DIR, exist_ok=True)
-
+# Global Variables
+from .utils.globals import RESULTS_DIR, LOGGER, MONITOR_INTERVAL
 SECONDS_IN_HOUR = 3600  # Number of seconds in an hour
 METRICS_FILE_PATH = os.path.join(RESULTS_DIR, 'metrics.yml')
 METRIC_PLOT_PATH = os.path.join(RESULTS_DIR, 'metric_plot.png')
-TIMEOUT_SECONDS = 30
 
 class GPUMonitor:
     """
@@ -52,7 +46,7 @@ class GPUMonitor:
     National Grid ESO Regional Carbon Intensity API.
     """
 
-    def __init__(self, monitor_interval: int = 1, carbon_region_shorthand: str = "South England"):
+    def __init__(self, monitor_interval: int = MONITOR_INTERVAL, carbon_region_shorthand: str = "South England"):
         """
         Initializes the GPUMonitor class.
 
@@ -127,6 +121,7 @@ class GPUMonitor:
 
             # Initialize statistics
             self._stats = {
+                "elapsed_time": 0.0,
                 "av_temp": 0.0,
                 "av_util": 0.0,
                 "av_mem": 0.0,
@@ -148,7 +143,6 @@ class GPUMonitor:
         except pynvml.NVMLError as nvml_error:
             LOGGER.error("Failed to setup GPU stats: %s", nvml_error)
             raise
-
 
     def __update_gpu_metrics(self) -> None:
         """
@@ -197,8 +191,9 @@ class GPUMonitor:
 
             # Update total energy and append to time series if previous power data exists
             if self.previous_power:
+                LOGGER.info("Timestamp: %s", current_time)
                 self.__update_total_energy()
-                LOGGER.info("Updated GPU metrics: %s", self._time_series_data)
+                LOGGER.info("Updated GPU metrics: %s", self.current_gpu_metrics)
 
         except pynvml.NVMLError as nvml_error:
             LOGGER.error("NVML Error: %s", nvml_error)
@@ -240,7 +235,6 @@ class GPUMonitor:
         except Exception as ex:
             # Log unexpected errors during energy calculation
             LOGGER.error("Unexpected error in total energy calculation: %s", ex)
-
 
     def __completion_stats(self) -> None:
         """
@@ -299,7 +293,6 @@ class GPUMonitor:
         except Exception as ex:
             # Handle any unexpected errors
             LOGGER.error("Unexpected error in completion stats calculation: %s", ex)
-
 
     def save_stats_to_yaml(self, file_path: str = METRICS_FILE_PATH) -> None:
         """
@@ -455,7 +448,7 @@ class GPUMonitor:
             # Log any unexpected errors during plotting
             LOGGER.error("Unexpected error during plotting: %s", ex)
 
-    def _live_monitor(self) -> None:
+    def _live_monitor_metrics(self) -> str:
         """
         Clears the terminal and prints the current GPU metrics in a formatted table.
 
@@ -480,20 +473,15 @@ class GPUMonitor:
 
             # Format GPU metrics
             gpu_metrics_str = tabulate(self.current_gpu_metrics, headers=headers, tablefmt='grid')
-            
-            # Collect container logs
-            container_logs = self.container.logs(follow=False,tail).decode('utf-8')
 
             # Build the full message
             message = (
                 f"\nCurrent GPU Metrics as of {current_time}:\n"
-                f"{gpu_metrics_str}\n\n"
-                f"Container Logs as of {current_time}:\n"
-                f"\n{container_logs}"
+                f"{gpu_metrics_str}\n"
             )
 
             # Print the current GPU metrics in a grid format
-            print(message)
+            return message
 
         except OSError as os_error:
             # Log any OS-related errors during live monitoring
@@ -505,20 +493,65 @@ class GPUMonitor:
             # Log any unexpected errors
             LOGGER.error("Unexpected error in live monitoring: %s", ex)
 
-    def run(self, benchmark_image: str, live_monitoring: bool = False, plot: bool = False,
-            live_plot: bool = False) -> None:
+    def _live_monitor_benchmark(self) -> str:
+        """
+        Monitors and retrieves benchmark metrics and container logs in real-time.
+
+        This method collects live metrics from the benchmarking process, retrieves
+        logs from the container, and formats them into a complete message.
+
+        It captures any potential errors during processing and logs them accordingly.
+
+        Returns:
+            str: A formatted string containing the metrics message and container logs.
+
+        Raises:
+            ValueError: If there is a value error during live monitoring.
+            Exception: For any other unexpected errors during live monitoring.
+        """
+        try:
+            # Collect live metrics
+            metrics_message = self._live_monitor_metrics()
+
+            # Collect container logs
+            container_logs = self.container.logs(follow=False).decode('utf-8')
+
+            # Format the complete message with metrics and container logs
+            complete_message = (
+                f"{metrics_message}\n"
+                f"Container Logs:\n"
+                f"{container_logs}"
+            )
+
+            return complete_message
+
+        except ValueError as value_error:
+            # Log value errors that occur during processing
+            LOGGER.error("Value error in live monitoring: %s", value_error)
+            raise  # Re-raise the exception if you want it to propagate
+
+        except Exception as ex:
+            # Log any unexpected errors
+            LOGGER.error("Unexpected error in live monitoring: %s", ex)
+            raise  # Re-raise the exception if you want it to propagate
+
+    def run(self, benchmark_image: str, live_monitoring: bool = True, plot: bool = True,
+        live_plot: bool = False, monitor_logs: bool = False) -> None:
         """
         Runs the GPU monitoring and plotting process while executing a container.
 
         Args:
             benchmark_image (str): The Docker container image to run.
-            live_monitoring (bool): If True, enables live monitoring display.
-            plot (bool): If True, saves the metrics plot at the end.
-            live_plot (bool): If True, updates the plot in real-time.
+            live_monitoring (bool): If True, enables live monitoring display. Defaults to True.
+            plot (bool): If True, saves the metrics plot at the end. Defaults to True.
+            live_plot (bool): If True, updates the plot in real-time. Defaults to False.
+            monitor_logs (bool): If True, monitors both metrics and container logs. Defaults to False.
         """
         # Initialize GPU statistics
-        self.__setup_stats() 
+        self.__setup_stats()
 
+        # Start timing
+        start_time = datetime.now()
         try:
             # Run the container in the background
             self.container = self.client.containers.run(
@@ -549,52 +582,112 @@ class GPUMonitor:
 
                     # Display live monitoring output if enabled
                     if live_monitoring:
-                        self._live_monitor()
-
+                        if monitor_logs:
+                            # Monitor both metrics and container logs
+                            print(self._live_monitor_benchmark())
+                        else:
+                            # Monitor only metrics
+                            print(self._live_monitor_metrics())
+                            print(f"\n Benchmark Status: {self.container.status}")
+                        
                     # Wait for the specified interval before the next update
                     time.sleep(self.monitor_interval)
 
                 except (KeyboardInterrupt, SystemExit):
-                    # Break the loop if user interrupts or system exits
                     LOGGER.info("Monitoring interrupted by user.")
                     print(
-                        f"Monitoring interrupted by user.\n"
-                        f"Stopping gracefully, please wait..."
-                    )
+                        f"\nMonitoring interrupted by user."
+                        f"\nStopping gracefully, please wait..."
+                        )
                     break
                 except Exception as ex:
-                    # Log any unexpected errors that occur during the monitoring loop
                     LOGGER.error("Unexpected error during monitoring: %s", ex)
 
         except docker.errors.DockerException as docker_error:
-            # Handle Docker-specific errors, such as connection issues or container errors
             LOGGER.error("Docker error: %s", docker_error)
         except Exception as ex:
-            # Handle any unexpected errors that occur during container setup
             LOGGER.error("Unexpected error: %s", ex)
         finally:
-            # Remove the container
-            self.container.remove()
+            # End timing
+            end_time = datetime.now()
+            self._stats['elapsed_time'] = (end_time - start_time).total_seconds()
 
-            # Finalize statistics and perform cleanup
-            self.__completion_stats()
-            LOGGER.info("Monitoring stopped.")
-            print("\nMonitoring stopped.")
+            # Safe shutdown
+            self._shutdown(plot)
 
-            # Save the metrics plot if requested
-            if plot:
-                try:
-                    self.plot_metrics()
-                except (FileNotFoundError, IOError) as plot_error:
-                    # Log any errors during plotting
-                    LOGGER.error("Error during plotting: %s", plot_error)
+    def _shutdown(self, plot: bool) -> None:
+        """
+        Perform a safe and complete shutdown of the monitoring process.
 
-            # Ensure NVML resources are released on exit
+        This method is responsible for finalizing the monitoring process by:
+        - Finalizing and cleaning up statistics.
+        - Saving the metrics plot if applicable.
+        - Handling the removal of the Docker container if it exists.
+        - Shutting down NVML (NVIDIA Management Library) resources.
+
+        It logs detailed information about each step and handles potential errors
+        that might occur during container management and NVML shutdown.
+
+        Exceptions:
+            - docker.errors.NotFound: If the container is not found during cleanup.
+            - docker.errors.APIError: For errors related to Docker API operations such as stopping, removing, or force-removing containers.
+            - pynvml.NVMLError: For errors related to NVML operations.
+            - Exception: For any other unexpected errors during the shutdown process.
+        """
+        self.__completion_stats()  # Finalize and clean up statistics
+        LOGGER.info("Monitoring stopped.")
+
+        # Save the metrics plot if requested
+        if plot:
+            try:
+                self.plot_metrics()
+                LOGGER.info("Metrics plot saved.")
+            except (FileNotFoundError, IOError) as plot_error:
+                LOGGER.error("Error during plotting: %s", plot_error)
+
+        # Handle container removal
+        if self.container:
+            LOGGER.info("Container exists. Attempting to remove.")
+            try:
+                # Check the container status
+                self.container.reload()  # Refresh the container state
+                
+                if self.container.status == 'running':
+                    LOGGER.info("Container is running. Attempting to stop.")
+                    try:
+                        self.container.stop()
+                        LOGGER.info("Container stopped successfully.")
+                        self.container.remove(force=True)
+                        LOGGER.info("Container force removed successfully.")
+                    except docker.errors.APIError as stop_error:
+                        LOGGER.error("Docker API error during container stop: %s", stop_error)
+                        # Attempt to force remove if stopping fails
+                        LOGGER.info("Attempting to force remove container.")
+                else:
+                    LOGGER.info("Container is not running. Proceeding to remove.")
+                    try:
+                        self.container.remove()
+                        LOGGER.info("Container removed successfully.")
+                    except docker.errors.APIError as remove_error:
+                        LOGGER.error("Docker API error during container removal: %s", remove_error)
+                        
+            except docker.errors.NotFound as not_found_error:
+                # Container was not found, log this but do not let it stop execution
+                LOGGER.warning("Container not found during cleanup: %s", not_found_error)
+            except docker.errors.APIError as api_error:
+                # Handle other Docker API errors
+                LOGGER.error("Docker API error during container management: %s", api_error)
+
+        # Handle NVML shutdown
+        try:
+            LOGGER.info("Attempting to shutdown NVML.")
             pynvml.nvmlShutdown()
-            LOGGER.info("NVML shutdown")
+            LOGGER.info("NVML shutdown successfully.")
+        except pynvml.NVMLError as nvml_error:
+            # Handle NVML-specific errors
+            LOGGER.error("NVML error during shutdown: %s", nvml_error)
+        except Exception as ex:
+            # Handle any unexpected exceptions
+            LOGGER.error("Unexpected error during NVML shutdown: %s", ex)
 
-            # Stop and wait for the container to finish if it is still running
-            if self.container.status == 'running':
-                self.container.stop()  # Stop the container
-                self.container.wait()  # Wait for the container to finish
-                LOGGER.info("Container stopped.")
+        

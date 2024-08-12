@@ -1,6 +1,4 @@
 """
-main.py
-
 This script is the entry point for monitoring GPU metrics using the GPUMonitor class.
 It parses command-line arguments, validates them, and initializes the GPU monitoring process.
 Additionally, it handles exporting the collected data to VictoriaMetrics if specified.
@@ -20,19 +18,14 @@ Usage:
 import argparse
 import os
 import sys
-import time
+from datetime import datetime
 
-from .utils import setup_logging, format_metrics, image_exists, list_available_images
 from .carbon_metrics import get_carbon_region_names
 from .gpu_monitor import GPUMonitor
 from .gpu_victoria_exporter import VictoriaMetricsExporter
-
-# Ensure the results directory exists
-RESULTS_DIR = './results'
-os.makedirs(RESULTS_DIR, exist_ok=True)
-
-# Set up logging with specific configuration
-LOGGER = setup_logging(results_dir=RESULTS_DIR)
+from .utils.globals import RESULTS_DIR, LOGGER, MONITOR_INTERVAL
+from .utils.metric_utils import format_metrics
+from .utils.docker_utils import image_exists, list_available_images
 
 def parse_arguments():
     """
@@ -46,13 +39,13 @@ def parse_arguments():
         description='Monitor GPU metrics and optionally export data to VictoriaMetrics.'
     )
 
-    # Argument for enabling live monitoring
-    parser.add_argument('--live_monitor', action='store_true',
-                        help='Enable live monitoring of GPU metrics.')
+    # Argument for enabling or disabling live monitoring
+    parser.add_argument('--no_live_monitor', action='store_true',
+                        help='Disable live monitoring of GPU metrics (default is enabled).')
 
     # Argument for setting the monitoring interval
-    parser.add_argument('--interval', type=int, default=5,
-                        help='Interval in seconds for collecting GPU metrics (default is 5 second).')
+    parser.add_argument('--interval', type=int, default=MONITOR_INTERVAL,
+                        help='Interval in seconds for collecting GPU metrics (default is 5 seconds).')
 
     # Argument for specifying the carbon region
     parser.add_argument(
@@ -62,9 +55,9 @@ def parse_arguments():
         help='Region shorthand for The National Grid ESO Regional Carbon Intensity API (default is "South England").'
     )
 
-    # Argument for enabling plotting
-    parser.add_argument('--plot', action='store_true',
-                        help='Enable plotting of GPU metrics.')
+    # Argument for enabling or disabling plotting
+    parser.add_argument('--no_plot', action='store_true',
+                        help='Disable plotting of GPU metrics (default is enabled).')
 
     # Argument for enabling live plotting
     parser.add_argument('--live_plot', action='store_true',
@@ -77,6 +70,10 @@ def parse_arguments():
     # Argument for specifying the Docker container image for benchmarking
     parser.add_argument('--benchmark_image', type=str, required=True,
                         help='Docker container image to run as a benchmark.')
+
+    # Argument for monitoring both metrics and container logs
+    parser.add_argument('--monitor_logs', action='store_true',
+                        help='Enable monitoring of container logs in addition to GPU metrics.')
 
     # Parse command-line arguments
     args = parser.parse_args()
@@ -127,9 +124,13 @@ def main():
     try:
         # Run the Monitoring process
         LOGGER.info("Starting GPU monitoring...")
-        gpu_monitor.run(live_monitoring=args.live_monitor, plot=args.plot, 
-                        live_plot=args.live_plot, 
-                        benchmark_image=args.benchmark_image)
+        gpu_monitor.run(
+            live_monitoring=not args.no_live_monitor,
+            plot=not args.no_plot,
+            live_plot=args.live_plot,
+            benchmark_image=args.benchmark_image,
+            monitor_logs=args.monitor_logs
+        )
         LOGGER.info("GPU monitoring completed.")
 
         # Save Monitor Results

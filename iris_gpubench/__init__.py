@@ -18,12 +18,16 @@ Package Metadata:
 - __author__: The author of the package.
 """
 
-# Import specific classes or functions to simplify access
-from .main import *
-from .utils import *
-from .gpu_monitor import *
-from .carbon_metrics import *
-from .gpu_victoria_exporter import *
+from iris_gpubench.main import *
+from iris_gpubench.gpu_monitor import *
+from iris_gpubench.carbon_metrics import *
+from iris_gpubench.gpu_victoria_exporter import *
+
+# Import utilities from the utils sub-package
+from .utils.logging_utils import *
+from .utils.globals import *
+from .utils.metric_utils import *
+from .utils.docker_utils import *
 
 # Define package-level variables
 __version__ = '0.1.0-dev1'

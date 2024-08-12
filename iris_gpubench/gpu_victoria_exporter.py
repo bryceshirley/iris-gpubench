@@ -41,24 +41,23 @@ Example:
     # Send data to VictoriaMetrics
     exporter.send_to_victoria()
 """
-
 import os
 from typing import Dict, List
 
 import requests
 
-from .utils import setup_logging
-
-# Set up logging with specific configuration
-LOGGER = setup_logging()
-
-# Default URL for VictoriaMetrics API and CSV format specification
+# GLOBAL VARIABLES: Default URL for VictoriaMetrics API and CSV format specification
+from .utils.globals import LOGGER, TIMEOUT_SECONDS, RESULTS_DIR
 VICTORIA_METRICS_URL = "https://172.16.101.182:8247/api/v1/import/csv"
-CSV_HEADER = "1:time:rfc3339,2:label:gpu_idx,3:metric:util,4:metric:power,5:metric:temp,6:metric:mem"
-TIMEOUT_SECONDS = 30
+CSV_HEADER = (
+    "1:time:rfc3339,"
+    "2:label:gpu_idx,"
+    "3:metric:util,"
+    "4:metric:power,"
+    "5:metric:temp,"
+    "6:metric:mem"
+)
 
-RESULTS_DIR = './results'
-os.makedirs(RESULTS_DIR, exist_ok=True)
 
 class VictoriaMetricsExporter:
     """
@@ -177,7 +176,11 @@ class VictoriaMetricsExporter:
                 LOGGER.info("Data successfully sent to VictoriaMetrics.")
             else:
                 # Log the error if the request was not successful
-                LOGGER.error("Failed to send data to VictoriaMetrics. Status code: %d, Response: %s", response.status_code, response.text)
+                LOGGER.error(
+                    "Failed to send data to VictoriaMetrics. Status code: %d, Response: %s",
+                    response.status_code,
+                    response.text
+                )
         except requests.RequestException as error_message:
             # Log any request exceptions that occur
             LOGGER.error("An error occurred while sending data to VictoriaMetrics: %s",

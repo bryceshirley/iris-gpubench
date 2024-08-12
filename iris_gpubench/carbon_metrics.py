@@ -26,15 +26,11 @@ from typing import List, Optional
 import requests
 from requests.exceptions import HTTPError, Timeout, ConnectionError as RequestsConnectionError
 
-from .utils import setup_logging
-
-# Set up logging with specific configuration
-LOGGER = setup_logging()
+from .utils.globals import TIMEOUT_SECONDS, LOGGER
 
 # Constants
 CARBON_INTENSITY_URL = "https://api.carbonintensity.org.uk/regional"
 DEFAULT_REGION = "South England"
-TIMEOUT_SECONDS = 30
 
 def get_carbon_region_names() -> List[str]:
     """
