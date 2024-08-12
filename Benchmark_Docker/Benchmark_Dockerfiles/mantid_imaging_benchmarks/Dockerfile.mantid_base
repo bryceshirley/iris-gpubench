@@ -6,7 +6,5 @@ WORKDIR /root
 
 # Clone the SciML-Bench and Fix the Version Issue
 RUN /bin/bash -c "git clone https://github.com/samtygier-stfc/mantid_imaging_cloud_bench.git && \
-    cd mantid_imaging_cloud_bench"
-
-# Setup the benchmark suite
-RUN /bin/bash -c "./setup.sh"
+    cd mantid_imaging_cloud_bench && \
+    ./setup.sh"

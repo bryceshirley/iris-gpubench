@@ -49,7 +49,7 @@ echo "Building Mantid Imaging Benchmark: mantid_run_1 image..."
 docker build -t mantid_run_8 -f Benchmark_Dockerfiles/mantid_imaging_benchmarks/Dockerfile.mantid_run_1 .
 
 ## ~~~~~~~~~ Building Dummy Container Images ~~~~~~~~~
-echo "Building Dummy Container image..."
-docker build -t dummy_container -f Benchmark_Dockerfiles/dummy/Dockerfile.dummy_container .
+echo "Building Dummy image..."
+docker build -t dummy -f Benchmark_Dockerfiles/dummy/Dockerfile.dummy .
 
 echo -e "Build process completed.\n"

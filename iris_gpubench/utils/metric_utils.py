@@ -22,6 +22,7 @@ from tabulate import tabulate
 from .globals import RESULTS_DIR, LOGGER
 
 def format_metrics(results_dir: str = RESULTS_DIR,
+                   image_name: str = "",
                    metrics_file_path: str = 'metrics.yml',
                    formatted_metrics_path: str = 'formatted_metrics.txt') -> None:
     """
@@ -77,7 +78,7 @@ def format_metrics(results_dir: str = RESULTS_DIR,
 
         # Create output list with formatted tables
         output = [
-            "Benchmark Score and GPU Energy Performance",
+            f"GPU and Carbon Performance for the image: {image_name}",
             "",
             tabulate(main_data, headers=["Metric", "Value"], tablefmt="grid"),
             "",

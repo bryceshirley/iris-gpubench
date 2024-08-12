@@ -165,7 +165,8 @@ def main():
     # Output Formatted Results
     LOGGER.info("Formatting metrics...")
     os.system('clear')
-    format_metrics(results_dir=RESULTS_DIR)
+    format_metrics(results_dir=RESULTS_DIR,
+                   image_name=str(args.benchmark_image))
     LOGGER.info("Metrics formatting completed.")
 
 if __name__ == "__main__":

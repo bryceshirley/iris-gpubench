@@ -211,7 +211,7 @@ GPU Information
 
 * metrics_plot.png: Time series plots for gpu utilization, power usage, temperature and Memory. See example below:
  
-  <img src="docs_image.png" alt="GPU Metrics Output" width="500"/>
+  <img src="docs_image_multigpu.png" alt="GPU Metrics Output" width="500"/>
 
 ## 2. GPU Metric Grafana Plots (--export_to_victoria) (NOT WORKING)
 
@@ -291,7 +291,26 @@ Gives you saves plot png during every reading so that the metrics can be viewed 
 * The GPU power metrics and GPU utilization come from "nvidia-smi" results.
 * The "error in nvidia-smi's power draw is ± 5%" according to:
   <https://arxiv.org/html/2312.02741v2#:~:text=The%20error%20in%20nvidia%2Dsmi's,%C2%B1%2030W%20of%20over%2Funderestimation.>  
-* (Minimal) GPU Resource Usage by the Monitor: The monitoring tool consumes a small portion of GPU resources. For instance, a 5-minute test with a dummy container shows some GPU usage. CPU resources are also utilized, though profiling tests to determine exact CPU usage have not yet been conducted.
+* (Minimal) GPU Resource Usage by the Monitor: The monitoring tool consumes a small portion of GPU resources. For instance, a ~5-minute test with a dummy container shows some GPU usage. CPU resources are also utilized, though profiling tests to determine exact CPU usage have not yet been conducted.
+
+```bash
+iris-gpubench --benchmark_image "dummy" --live_plot --monitor_logs --interval 10 --carbon_region "South England"
+
+GPU Energy Performance
+
++---------------------------------------+-----------+
+| Metric                                |     Value |
++=======================================+===========+
+| Elapsed Monitor Time of Container (s) | 320.177   |
++---------------------------------------+-----------+
+| Total GPU Energy Consumed (kWh)       |   0.00183 |
++---------------------------------------+-----------+
+| Total GPU Carbon Emissions (gCO2)     |   0.36118 |
++---------------------------------------+-----------+
+```
+
+  <img src="docs_image_dummy.png" alt="GPU Metrics Output" width="500"/>
+
 -----------
 
 # Work To Do
