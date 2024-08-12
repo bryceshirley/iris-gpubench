@@ -83,7 +83,6 @@ If you need to build Docker images for benchmarking, you can use the provided `b
      - `Dockerfile.stemdl_classification_2gpu`: Dockerfile for STEMDL classification using 2 GPUs (There must be 2 available).
      - `Dockerfile.synthetic_regression`: Dockerfile for synthetic regression benchmarks.
     
-
    - **Dummy Benchmark Container**:
      - `Dockerfile.dummy_benchmark`: Designed for testing purposes, this Dockerfile sets up a container that runs for 5 minutes before terminating. It is primarily used to profile the GPU resource usage of this monitoring tool. Ideally, the monitor should operate in isolation from the benchmarks to avoid interference. However, currently, the monitor runs in the background on the same VM as the benchmark containers, which poses scalability limitations. To address this in the future, Docker Compose could be used to manage multiple containers simultaneously, but this would require an SSH-based solution to monitor them from an external VM.
 
@@ -167,7 +166,19 @@ By default Results are saved to iris-gpubench/results.
 * formatted_metrics.txt : Formatted version of metrics.yml, see example below.
 
 ```bash
-Benchmark Score and GPU Energy Performance
+GPU and Carbon Performance Results
+
++---------------------------------------+------------------------+
+| Metric                                | Value                  |
++=======================================+========================+
+| Benchmark Image Name                  | synthetic_regression   |
++---------------------------------------+------------------------+
+| Elapsed Monitor Time of Container (s) | 245.627                |
++---------------------------------------+------------------------+
+| Total GPU Energy Consumed (kWh)       | 0.00993                |
++---------------------------------------+------------------------+
+| Total GPU Carbon Emissions (gCO2)     | 1.4196                 |
++---------------------------------------+------------------------+
 
 +---------------------------------------+-----------+
 | Metric                                |     Value |
@@ -296,17 +307,19 @@ Gives you saves plot png during every reading so that the metrics can be viewed 
 ```bash
 iris-gpubench --benchmark_image "dummy" --live_plot --monitor_logs --interval 10 --carbon_region "South England"
 
-GPU Energy Performance
+GPU and Carbon Performance Results
 
-+---------------------------------------+-----------+
-| Metric                                |     Value |
-+=======================================+===========+
-| Elapsed Monitor Time of Container (s) | 320.177   |
-+---------------------------------------+-----------+
-| Total GPU Energy Consumed (kWh)       |   0.00183 |
-+---------------------------------------+-----------+
-| Total GPU Carbon Emissions (gCO2)     |   0.36118 |
-+---------------------------------------+-----------+
++---------------------------------------+---------+
+| Metric                                | Value   |
++=======================================+=========+
+| Benchmark Image Name                  | dummy   |
++---------------------------------------+---------+
+| Elapsed Monitor Time of Container (s) | 320.177 |
++---------------------------------------+---------+
+| Total GPU Energy Consumed (kWh)       | 0.00183 |
++---------------------------------------+---------+
+| Total GPU Carbon Emissions (gCO2)     | 0.36118 |
++---------------------------------------+---------+
 ```
 
   <img src="docs_image_dummy.png" alt="GPU Metrics Output" width="500"/>

@@ -549,6 +549,7 @@ class GPUMonitor:
         """
         # Initialize GPU statistics
         self.__setup_stats()
+        self._stats["image_name"] = benchmark_image
 
         # Start timing
         start_time = datetime.now()

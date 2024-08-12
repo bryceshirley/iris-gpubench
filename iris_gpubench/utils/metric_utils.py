@@ -51,6 +51,7 @@ def format_metrics(results_dir: str = RESULTS_DIR,
 
         # Prepare data for tabulate
         main_data = [
+            ["Benchmark Image Name", f"{data.get('image_name')}"],
             ["Elapsed Monitor Time of Container (s)", f"{data.get('elapsed_time'):.5f}"],
             ["Total GPU Energy Consumed (kWh)", f"{data.get('total_energy'):.5f}"],
             ["Total GPU Carbon Emissions (gCO2)", f"{data.get('total_carbon'):.5f}"],
@@ -78,7 +79,7 @@ def format_metrics(results_dir: str = RESULTS_DIR,
 
         # Create output list with formatted tables
         output = [
-            f"GPU and Carbon Performance for the image: {image_name}",
+            "GPU and Carbon Performance Results",
             "",
             tabulate(main_data, headers=["Metric", "Value"], tablefmt="grid"),
             "",
