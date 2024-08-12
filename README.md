@@ -238,7 +238,13 @@ Current GPU Metrics as of 2024-08-01 23:32:47:
 +------------------------------------+-------------------+---------------------------+-------------------+------------------------------------+
 ```
 
-## 2. Save png Timeseries Live
+## 2. Monitor Benchmark Container logs
+  
+```bash
+gpu_monitor --monitor_logs
+```
+
+## 3. Save png Timeseries Live
   
 ```bash
 gpu_monitor --plot_live
