@@ -1,4 +1,26 @@
-- Add Contents
+---
+
+# GPU Monitoring Tool Usage
+
+## Table of Contents
+1. [Overview](#overview)
+2. [Installation](#installation)
+3. [Building Docker Images](#building-docker-images)
+4. [Command-Line Arguments](#command-line-arguments)
+5. [Example Commands](#example-commands)
+6. [Help Option](#help-option)
+7. [Results](#results)
+   - [Formatted Results](#formatted-results)
+   - [GPU Metric PNG Plots](#gpu-metric-png-plots)
+   - [GPU Metric Grafana Plots (--export_to_victoria) (NOT WORKING)](#gpu-metric-grafana-plots--export_to_victoria-not-working)
+   - [Result Metrics](#result-metrics)
+8. [Live Monitoring](#live-monitoring)
+   - [Monitor GPU Metrics](#monitor-gpu-metrics)
+   - [Save PNG Timeseries Live](#save-png-timeseries-live)
+9. [Please Note](#please-note)
+10. [Work To Do](#work-to-do)
+
+---
 
 # GPU Monitoring Tool Usage
 
@@ -190,7 +212,7 @@ GPU Information
 | Avg GPU Memory (for >0.00% GPU Util.) (MiB)    | 6500.00595 (Total Memory: 32768.0) |
 +------------------------------------------------+------------------------------------+
 ```
-## 2. GPU Metric png Plots (--plot)
+## 2. GPU Metric png Plots
 
 * metrics_plot.png: Time series plots for gpu utilization, power usage, temperature and Memory. See example below:
  
@@ -208,7 +230,7 @@ INSERT GRAFANA LINK HERE
 
 # Live Monitoring
 
-## 1. Monitor GPU Metrics (--live_monitor)
+## 1. Monitor GPU Metrics
 
 ```bash
 Current GPU Metrics as of 2024-08-01 23:32:47:
@@ -221,7 +243,7 @@ Current GPU Metrics as of 2024-08-01 23:32:47:
 +------------------------------------+-------------------+---------------------------+-------------------+------------------------------------+
 ```
 
-## 2. Save png Timeseries Live (--plot_live)
+## 2. Save png Timeseries Live
   
 ```bash
 gpu_monitor --plot_live
