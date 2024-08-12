@@ -160,7 +160,7 @@ optional arguments:
 
 # Results 
 
-Results are saved to gpu_benchmark_metrics/results (these include):
+By default Results are saved to iris-gpubench/results.
 
 ## 1. Formatted Results
 
