@@ -1,7 +1,6 @@
-- FIX THE SAVING BUG for save plots/ metrics/ figs into the correct directory
-- FIX THE CARBON METRIC BUG for end carbon
+- Allow users to save container results
 - Fix victoria_metrics exporter (username and password needed) and Test with grafana (add grafana link to docs)
-- Edit Formatted Results so that the time is the total time it took for the benchmark container to run.
+- Improve live monitoring of container ie by threading
 
 # GPU Monitoring Tool Usage
 
@@ -150,43 +149,43 @@ Results are saved to gpu_benchmark_metrics/results (these include):
 ```bash
 Benchmark Score and GPU Energy Performance
 
-+---------------------------------------+---------+
-| Metric                                |   Value |
-+=======================================+=========+
-| Elapsed Monitor Time of Container (s) | 4.29929 |
-+---------------------------------------+---------+
-| Total GPU Energy Consumed (kWh)       | 0       |
-+---------------------------------------+---------+
-| Total GPU Carbon Emissions (gCO2)     | 0       |
-+---------------------------------------+---------+
++---------------------------------------+-----------+
+| Metric                                |     Value |
++=======================================+===========+
+| Elapsed Monitor Time of Container (s) | 245.627   |
++---------------------------------------+-----------+
+| Total GPU Energy Consumed (kWh)       |   0.00993 |
++---------------------------------------+-----------+
+| Total GPU Carbon Emissions (gCO2)     |   1.4196  |
++---------------------------------------+-----------+
 
 Carbon Information
 
 +------------------------------------+---------------------+
 | Metric                             | Value               |
 +====================================+=====================+
-| Average Carbon Forecast (gCO2/kWh) | 131.0               |
+| Average Carbon Forecast (gCO2/kWh) | 143.0               |
 +------------------------------------+---------------------+
-| Carbon Forecast Start Time         | 2024-08-12 17:25:18 |
+| Carbon Forecast Start Time         | 2024-08-12 17:35:12 |
 +------------------------------------+---------------------+
-| Carbon Forecast End Time           | 2024-08-12 17:25:22 |
+| Carbon Forecast End Time           | 2024-08-12 17:39:18 |
 +------------------------------------+---------------------+
 
 GPU Information
 
-+------------------------------------------------+---------------------------------+
-| Metric                                         | Value                           |
-+================================================+=================================+
-| GPU Name                                       | Tesla V100-PCIE-32GB            |
-+------------------------------------------------+---------------------------------+
-| Average GPU Util. (for >0.00% GPU Util.) (%)   | 0.00000                         |
-+------------------------------------------------+---------------------------------+
-| Avg GPU Power (for >0.00% GPU Util.) (W)       | 0.00000 (Power Limit: 250)      |
-+------------------------------------------------+---------------------------------+
-| Avg GPU Temperature (for >0.00% GPU Util.) (C) | 0.00000                         |
-+------------------------------------------------+---------------------------------+
-| Avg GPU Memory (for >0.00% GPU Util.) (MiB)    | 0.00000 (Total Memory: 32768.0) |
-+------------------------------------------------+---------------------------------+
++------------------------------------------------+------------------------------------+
+| Metric                                         | Value                              |
++================================================+====================================+
+| GPU Name                                       | Tesla V100-PCIE-32GB               |
++------------------------------------------------+------------------------------------+
+| Average GPU Util. (for >0.00% GPU Util.) (%)   | 92.90476                           |
++------------------------------------------------+------------------------------------+
+| Avg GPU Power (for >0.00% GPU Util.) (W)       | 167.42962 (Power Limit: 250)       |
++------------------------------------------------+------------------------------------+
+| Avg GPU Temperature (for >0.00% GPU Util.) (C) | 52.33333                           |
++------------------------------------------------+------------------------------------+
+| Avg GPU Memory (for >0.00% GPU Util.) (MiB)    | 6500.00595 (Total Memory: 32768.0) |
++------------------------------------------------+------------------------------------+
 ```
 ## 2. GPU Metric png Plots (--plot)
 
