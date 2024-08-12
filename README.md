@@ -84,7 +84,7 @@ If you need to build Docker images for benchmarking, you can use the provided `b
      - `Dockerfile.synthetic_regression`: Dockerfile for synthetic regression benchmarks.
     
    - **Dummy Benchmark Container**:
-     - `Dockerfile.dummy_benchmark`: Designed for testing purposes, this Dockerfile sets up a container that runs for 5 minutes before terminating. It is primarily used to profile the GPU resource usage of this monitoring tool. Ideally, the monitor should operate in isolation from the benchmarks to avoid interference. However, currently, the monitor runs in the background on the same VM as the benchmark containers, which poses scalability limitations. To address this in the future, Docker Compose could be used to manage multiple containers simultaneously, but this would require an SSH-based solution to monitor them from an external VM.
+     - `Dockerfile.dummy`: Designed for testing purposes, this Dockerfile sets up a container that runs for 5 minutes before terminating. It is primarily used to profile the GPU resource usage of this monitoring tool. Ideally, the monitor should operate in isolation from the benchmarks to avoid interference. However, currently, the monitor runs in the background on the same VM as the benchmark containers, which poses scalability limitations. To address this in the future, Docker Compose could be used to manage multiple containers simultaneously, but this would require an SSH-based solution to monitor them from an external VM.
 
 This setup will prepare the environment and Docker images required for running your benchmarks effectively.
 
