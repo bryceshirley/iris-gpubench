@@ -72,7 +72,7 @@ def parse_arguments():
                         help='Docker container image to run as a benchmark.')
 
     # Argument for monitoring both metrics and container logs
-    parser.add_argument('--monitor_logs', action='store_true',
+    parser.add_argument('--monitor_benchmark_logs', action='store_true',
                         help='Enable monitoring of container logs in addition to GPU metrics.')
 
     # Parse command-line arguments
@@ -94,8 +94,8 @@ def parse_arguments():
         sys.exit(1)  # Exit with error code 1
 
     # Check if the benchmark image exists
-    if not image_exists(args.benchmark_image):
-        print(f"Image '{args.benchmark_image}' does not exist.")
+    if not image_exists(args.benchmark_image) or args.benchmark_image=="":
+        print(f"Image '{args.benchmark_image}' is not valid.")
         LOGGER.error("Image '%s' does not exist.", args.benchmark_image)
 
         # List available images excluding those with "base" in their name

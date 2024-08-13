@@ -514,15 +514,23 @@ class GPUMonitor:
             metrics_message = self._live_monitor_metrics()
 
             # Collect container logs
-            container_logs = self.container.logs(follow=False).decode('utf-8')
+            container_log = self.container.logs(follow=False).decode('utf-8')
 
-            # Format the complete message with metrics and container logs
-            complete_message = (
-                f"{metrics_message}\n"
-                f"Container Logs:\n"
-                f"{container_logs}"
-            )
+            # Initialize the complete message with metrics and container logs header
+            complete_message = f"{metrics_message}\nContainer Logs:\n"
 
+            # Process the logs
+            container_log = container_log.replace('\\r', '\r')  # Replace literal '\\r' with actual '\r'
+            lines = container_log.split('\n')  # Split the entire log into lines
+
+            # Process each line to handle log loading bars
+            for line in lines:
+                if '\r' in line:
+                    # Handle the last segment after '\r'
+                    line = line.split('\r')[-1]
+                # Append the processed line to the complete message
+                complete_message += f"\n {line.strip()}"
+            
             return complete_message
 
         except ValueError as value_error:
