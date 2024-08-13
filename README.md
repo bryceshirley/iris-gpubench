@@ -266,7 +266,7 @@ Gives you saves plot png during every reading so that the metrics can be viewed 
 
 ## Considerations On Accuracy
 ### Carbon Metrics Accuracy Limitations
-* The Carbon Data is collected in real-time from the [National Grid ESO Regional Carbon Intensity API.](https://api.carbonintensity.org.uk/regional)
+* The Carbon Data is collected in real-time from the [National Grid ESO Regional Carbon Intensity API.](https://api.carbonintensity.org.uk)
 * The Carbon Forecast Readings are updated every 30 minutes. The monitor records the index values at the start and end of each interval and calculates an average. Therefore, the accuracy may be limited for containers that run longer than 30 minutes, as the index can fluctuate significantly over time.
 * The Carbon Forecast can vary based on factors such as weather, time of day/year, and energy demand, resulting in fluctuations in total carbon emissions from one run to the next. Therefore, it serves as a real-time estimate. For a broader perspective, you can multiply the total energy by the average Carbon Emission Rate in the UK, which was [162 gCO2/kWh in 2023.](https://www.carbonbrief.org/analysis-uk-electricity-from-fossil-fuels-drops-to-lowest-level-since-1957/#:~:text=Low%2Dcarbon%20sources%20made%20up,fully%20decarbonised%20grid%20by%202035.)
 
