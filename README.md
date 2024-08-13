@@ -322,7 +322,7 @@ GPU and Carbon Performance Results
 +---------------------------------------+---------+
 ```
 
-  <img src="docs_image_dummy.png" alt="GPU Metrics Output" width="500"/>
+  <img src="docs/docs_image_dummy.png" alt="GPU Metrics Output" width="500"/>
 
 -----------
 
