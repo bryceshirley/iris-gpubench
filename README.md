@@ -222,7 +222,7 @@ GPU Information
 
 * metrics_plot.png: Time series plots for gpu utilization, power usage, temperature and Memory. See example below:
  
-  <img src="docs_image_multigpu.png" alt="GPU Metrics Output" width="500"/>
+  <img src="docs/docs_image_multigpu.png" alt="GPU Metrics Output" width="500"/>
 
 ## 2. GPU Metric Grafana Plots (--export_to_victoria) (NOT WORKING)
 
