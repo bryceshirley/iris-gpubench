@@ -1,18 +1,14 @@
 #!/bin/bash
 
-# Define the Docker image and container names
+# Define Docker image and container names
 IMAGE_NAME="mkdocs_docs"
 CONTAINER_NAME="mkdocs_container"
 
-# Check if the Docker image exists
-if ! docker images -q $IMAGE_NAME > /dev/null; then
-    echo "Building Docker image $IMAGE_NAME..."
-    docker build -f Dockerfile.build_docs -t $IMAGE_NAME .
-else
-    echo "Docker image $IMAGE_NAME already exists."
-fi
+# Check if the Docker image exists locally
+echo "Building Docker image $IMAGE_NAME..."
+docker build -f Dockerfile.build_docs -t $IMAGE_NAME .
 
-# Check if the container is running or exists
+# Run or restart the Docker container
 CONTAINER_ID=$(docker ps -a -q -f name=$CONTAINER_NAME)
 
 if [ -n "$CONTAINER_ID" ]; then
@@ -25,6 +21,10 @@ if [ -n "$CONTAINER_ID" ]; then
 else
     echo "Starting new container $CONTAINER_NAME..."
     docker run -d -p 8000:8000 --name $CONTAINER_NAME $IMAGE_NAME
+    if [ $? -ne 0 ]; then
+        echo "Error starting Docker container $CONTAINER_NAME. Exiting."
+        exit 1
+    fi
 fi
 
 # Output the website URL

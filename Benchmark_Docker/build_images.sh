@@ -52,8 +52,4 @@ docker build -t mantid_run_8 -f Benchmark_Dockerfiles/mantid_imaging_benchmarks/
 echo "Building Dummy image..."
 docker build -t dummy -f Benchmark_Dockerfiles/dummy/Dockerfile.dummy .
 
-## ~~~~~~~~~ Building Docs Container Images ~~~~~~~~~
-echo "Building Docs image..."
-docker build -t mkdocs_docs -f Dockerfile.build_docs -t Benchmark_Dockerfiles/mkdocs-docs .
-
 echo -e "Build process completed.\n"
