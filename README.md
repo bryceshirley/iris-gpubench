@@ -2,27 +2,18 @@
 
 # GPU Monitoring And Carbon Calculation Tool For Containerized Benchmarks
 
-## Table of Contents
-1. [Overview](#overview)
-2. [Installation](#installation)
-3. [Building Docker Images](#building-docker-images)
-4. [Command-Line Arguments](#command-line-arguments)
-5. [Example Commands](#example-commands)
-6. [Help Option](#help-option)
-7. [Results](#results)
-   - [Formatted Results](#formatted-results)
-   - [GPU Metric PNG Plots](#gpu-metric-png-plots)
-   - [GPU Metric Grafana Plots (--export_to_victoria) (NOT WORKING)](#gpu-metric-grafana-plots--export_to_victoria-not-working)
-   - [Result Metrics](#result-metrics)
-8. [Live Monitoring](#live-monitoring)
-   - [Monitor GPU Metrics](#monitor-gpu-metrics)
-   - [Save PNG Timeseries Live](#save-png-timeseries-live)
-9. [Considerations](#considerations)
-10. [Work To Do](#work-to-do)
+## Contents
+1. [Installation](#installation)
+2. [Building Docker Images](#building-docker-images)
+3. [Command-Line Arguments](#command-line-arguments)
+4. [Example Commands](#example-commands)
+5. [Help Option](#help-option)
+6. [Results](#results)
+7. [Live Monitoring](#live-monitoring)
+8. [Considerations On Accuracy](#considerations-on-accuracy)
+9. [Work To Do](#work-to-do)
 
 ---
-
-# GPU Monitoring Tool Usage
 
 ## Overview
 
@@ -101,7 +92,7 @@ The following optional arguments are supported:
 - `--live_plot`: Enable live plotting of GPU metrics.
 - `--export_to_victoria`: Enable exporting of collected data to VictoriaMetrics.
 - `--benchmark_image <image>`: Docker container image to run as a benchmark (required).
-- `--monitor_logs`: Enable monitoring of container logs in addition to GPU metrics.
+- `--monitor_benchmark_logs`: Enable monitoring of container logs in addition to GPU metrics.
 
 ## Example Commands
 
@@ -117,7 +108,7 @@ The following optional arguments are supported:
 
 3. **Full Command with All Options**:
    ```bash
-   iris-gpubench --benchmark_image "synthetic_regression" --interval 10 --carbon_region "South England" --live_plot --export_to_victoria --monitor_logs
+   iris-gpubench --benchmark_image "synthetic_regression" --interval 10 --carbon_region "South England" --live_plot --export_to_victoria --monitor_benchmark_logs
    ```
 
 ## Help Option
@@ -128,32 +119,11 @@ To display the help message with available options, run:
 iris-gpubench --help
 ```
 
----
-
-### Updated Help Option Output
-
-```plaintext
-usage: iris-gpubench [-h] [--no_live_monitor] [--interval INTERVAL] [--carbon_region CARBON_REGION] [--no_plot] [--live_plot] [--export_to_victoria] [--benchmark_image BENCHMARK_IMAGE] [--monitor_logs]
-
-Monitor GPU metrics and optionally export data to VictoriaMetrics.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --no_live_monitor     Disable live monitoring of GPU metrics (default is enabled).
-  --interval INTERVAL   Interval in seconds for collecting GPU metrics (default is 5 seconds).
-  --carbon_region CARBON_REGION
-                        Region shorthand for The National Grid ESO Regional Carbon Intensity API (default is "South England").
-  --no_plot             Disable plotting of GPU metrics (default is enabled).
-  --live_plot           Enable live plotting of GPU metrics.
-  --export_to_victoria  Enable exporting of collected data to VictoriaMetrics.
-  --benchmark_image BENCHMARK_IMAGE
-                        Docker container image to run as a benchmark.
-  --monitor_logs        Enable monitoring of container logs in addition to GPU metrics.
-```
-
 ### Notes:
 - The `--benchmark_image` argument is required for specifying the Docker container image.
-- `--live_monitor` and `--plot` are enabled by default; use `--no_live_monitor` and `--no_plot` to disable them, respectively.
+- live gpu metrics monitoring and saving a final plot are enabled by default; use `--no_live_monitor` and `--no_plot` to disable them, respectively.
+- To view the available carbon regions, use `--carbon_region ""` to get a list of all regions.
+- To list available Docker images, use `--benchmark_image ""` for a list of images.
 
 -----------
 
@@ -222,7 +192,7 @@ GPU Information
 
 * metrics_plot.png: Time series plots for gpu utilization, power usage, temperature and Memory. See example below:
  
-  <img src="docs_image_multigpu.png" alt="GPU Metrics Output" width="500"/>
+  <img src="docs/docs_image_multigpu.png" alt="GPU Metrics Output" width="500"/>
 
 ## 2. GPU Metric Grafana Plots (--export_to_victoria) (NOT WORKING)
 
@@ -252,7 +222,7 @@ Current GPU Metrics as of 2024-08-01 23:32:47:
 ## 2. Monitor Benchmark Container logs
   
 ```bash
-gpu_monitor --benchmark_image "synthetic_regression" --monitor_logs
+gpu_monitor --benchmark_image "synthetic_regression" --monitor_benchmark_logs
 
 Container Logs:
 <BEGIN> Running benchmark synthetic_regression in training mode
@@ -282,7 +252,8 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 /root/anaconda3/envs/bench/lib/python3.9/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:424: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=11` in the `DataLoader` to improve performance.
 Epoch 0:   4%|▍         | 350/8000 [00:09<03:23, 37.56it/s, v_num=0]
 ```
-(Long container logs containing "\r" to clear the line for progress bars are not a very efficiently processed, as it captures a snapshot of the entire container log at that moment.)
+(Long container logs containing "\r" to clear the line for progress bars are not a very efficiently processed, as it captures a snapshot of the entire container log at that moment.
+Potiential solution: use asynico package to capture and process the logs whilst the monitor is paused between intervals)
 ## 3. Save png Timeseries Live
   
 ```bash
@@ -293,20 +264,21 @@ Gives you saves plot png during every reading so that the metrics can be viewed 
 
 ----------- 
 
-## Considerations
-* The Carbon Data is collected in real-time from the National Grid ESO Regional Carbon Intensity API:
-  <https://api.carbonintensity.org.uk/regional>
-* The Carbon Forcast and Index Readings are updated every 30 minutes.
-* Set your region in gpu_monitor.py: CARBON_INSTENSITY_REGION_SHORTHAND="South England"
+## Considerations On Accuracy
+### Carbon Metrics Accuracy Limitations
+* The Carbon Data is collected in real-time from the [National Grid ESO Regional Carbon Intensity API.](https://api.carbonintensity.org.uk)
+* The Carbon Forecast Readings are updated every 30 minutes. The monitor records the index values at the start and end of each interval and calculates an average. Therefore, the accuracy may be limited for containers that run longer than 30 minutes, as the index can fluctuate significantly over time.
+* The Carbon Forecast can vary based on factors such as weather, time of day/year, and energy demand, resulting in fluctuations in total carbon emissions from one run to the next. Therefore, it serves as a real-time estimate. For a broader perspective, you can multiply the total energy by the average Carbon Emission Rate in the UK, which was [162 gCO2/kWh in 2023.](https://www.carbonbrief.org/analysis-uk-electricity-from-fossil-fuels-drops-to-lowest-level-since-1957/#:~:text=Low%2Dcarbon%20sources%20made%20up,fully%20decarbonised%20grid%20by%202035.)
 
-* The GPU power metrics and GPU utilization come from "nvidia-smi" results.
-* The "error in nvidia-smi's power draw is ± 5%" according to:
-  <https://arxiv.org/html/2312.02741v2#:~:text=The%20error%20in%20nvidia%2Dsmi's,%C2%B1%2030W%20of%20over%2Funderestimation.>  
-* (Minimal) GPU Resource Usage by the Monitor: The monitoring tool consumes a small portion of GPU resources. For instance, a ~5-minute test with a dummy container shows some GPU usage. CPU resources are also utilized, though profiling tests to determine exact CPU usage have not yet been conducted.
+### GPU Metrics Accuracy Limitions
+* The GPU metrics come from pynvml which is a python interface for NVML and "nvidia-smi" results.
+* The ["error in nvidia-smi's power draw is ± 5%".](https://arxiv.org/html/2312.02741v2#:~:text=The%20error%20in%20nvidia%2Dsmi's,%C2%B1%2030W%20of%20over%2Funderestimation.>)
+* Total energy is calculated by integrating power readings over time using the trapezoidal integration method. The accuracy of this calculation depends on the monitoring interval: a smaller interval results in more accurate energy estimates.
+
+### Profiling the Monitors Impact on GPU Resources
+* (Minimal) GPU Resource Usage by the Monitor: The monitoring tool consumes a small portion of GPU resources. For instance, a ~5-minute test with a dummy container shows negligible GPU usage, see below. CPU resources are also utilized, though profiling tests to determine exact CPU usage have not yet been conducted.
 
 ```bash
-iris-gpubench --benchmark_image "dummy" --live_plot --monitor_logs --interval 10 --carbon_region "South England"
-
 GPU and Carbon Performance Results
 
 +---------------------------------------+---------+
@@ -322,7 +294,9 @@ GPU and Carbon Performance Results
 +---------------------------------------+---------+
 ```
 
-  <img src="docs_image_dummy.png" alt="GPU Metrics Output" width="500"/>
+  <img src="docs/docs_image_dummy.png" alt="GPU Metrics Output" width="500"/>
+
+* These are idle usage levels, so monitoring the GPUs has a negligible impact on GPU resources.
 
 -----------
 
