@@ -3,26 +3,17 @@
 # GPU Monitoring And Carbon Calculation Tool For Containerized Benchmarks
 
 ## Table of Contents
-1. [Overview](#overview)
-2. [Installation](#installation)
-3. [Building Docker Images](#building-docker-images)
-4. [Command-Line Arguments](#command-line-arguments)
-5. [Example Commands](#example-commands)
-6. [Help Option](#help-option)
-7. [Results](#results)
-   - [Formatted Results](#formatted-results)
-   - [GPU Metric PNG Plots](#gpu-metric-png-plots)
-   - [GPU Metric Grafana Plots (--export_to_victoria) (NOT WORKING)](#gpu-metric-grafana-plots--export_to_victoria-not-working)
-   - [Result Metrics](#result-metrics)
-8. [Live Monitoring](#live-monitoring)
-   - [Monitor GPU Metrics](#monitor-gpu-metrics)
-   - [Save PNG Timeseries Live](#save-png-timeseries-live)
-9. [Considerations](#considerations)
-10. [Work To Do](#work-to-do)
+1. [Installation](#installation)
+2. [Building Docker Images](#building-docker-images)
+3. [Command-Line Arguments](#command-line-arguments)
+4. [Example Commands](#example-commands)
+5. [Help Option](#help-option)
+6. [Results](#results)
+7. [Live Monitoring](#live-monitoring)
+8. [Considerations](#considerations)
+9. [Work To Do](#work-to-do)
 
 ---
-
-# GPU Monitoring Tool Usage
 
 ## Overview
 
