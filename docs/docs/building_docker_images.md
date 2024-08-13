@@ -2,13 +2,13 @@ If you need to build Docker images for benchmarking, you can use the provided `b
 
 1. **Navigate to the Docker Directory**:
    Go to the `Benchmark_Docker` directory:
-   ```bash
+   ```
    cd Benchmark_Docker
    ```
 
 2. **Run the Build Script**:
    Execute the build script to build all Docker images:
-   ```bash
+   ```
    ./build_images.sh
    ```
 

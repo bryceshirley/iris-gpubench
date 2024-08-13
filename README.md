@@ -9,7 +9,8 @@
 To start the Docs container in the background, use the following command:
 
 ```sh
-./docs/build_and_run.sh
+cd docs
+./build_and_run.sh
 ```
 
 Once running, you can access the documentation at: [http://localhost:8000/](http://localhost:8000/)
@@ -19,7 +20,8 @@ Once running, you can access the documentation at: [http://localhost:8000/](http
 To stop and remove the Docs container, execute:
 
 ```sh
-./docs/stop_and_remove.sh
+cd docs
+./stop_and_remove.sh
 ```
 
 ---

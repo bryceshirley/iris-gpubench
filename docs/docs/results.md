@@ -6,7 +6,7 @@ By default Results are saved to iris-gpubench/results.
 
 * formatted_metrics.txt : Formatted version of metrics.yml, see example below.
 
-```bash
+```
 GPU and Carbon Performance Results
 
 +---------------------------------------+------------------------+

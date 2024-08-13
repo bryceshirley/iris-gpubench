@@ -11,7 +11,7 @@
 ### Profiling the Monitors Impact on GPU Resources
 * (Minimal) GPU Resource Usage by the Monitor: The monitoring tool consumes a small portion of GPU resources. For instance, a ~5-minute test with a dummy container shows negligible GPU usage, see below. CPU resources are also utilized, though profiling tests to determine exact CPU usage have not yet been conducted.
 
-```bash
+```
 GPU and Carbon Performance Results
 
 +---------------------------------------+---------+

@@ -13,7 +13,7 @@ The following optional arguments are supported:
 
 To display the help message with available options, run:
 
-```bash
+```
 iris-gpubench --help
 ```
 
