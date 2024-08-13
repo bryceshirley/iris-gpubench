@@ -24,7 +24,7 @@ cd docs
 
 Once running, you can access the documentation at: [http://localhost:8000/](http://localhost:8000/)
 
-# Stop and Remove the Docs Docker Container
+#### Stop and Remove the Docs Docker Container
 
 To stop and remove the Docs container, execute:
 
