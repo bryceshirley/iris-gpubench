@@ -1,0 +1,26 @@
+# Use an official Python runtime as a parent image
+FROM ubuntu:20.04
+
+# Install Python and pip
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip && \
+    apt-get clean
+
+# Set environment variables to avoid Python buffering and ensure outputs are immediately available
+ENV PYTHONUNBUFFERED=1
+
+# Set the working directory in the container
+WORKDIR /docs
+
+# Copy the current directory contents into the container at /docs
+COPY ../docs /docs
+
+# Install MkDocs and MkDocs Material
+RUN pip install mkdocs mkdocs-material
+
+# Build the MkDocs site
+RUN mkdocs build
+
+# Command to serve the documentation
+CMD ["mkdocs", "serve", "--dev-addr", "0.0.0.0:8000"]
+

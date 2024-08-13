@@ -72,6 +72,8 @@ def list_available_images(exclude_none: bool = False, exclude_base: bool = False
         # Extract image tags
         image_tags = [tag for img in images for tag in img.tags]
 
+        image_tags = [img for img in image_tags if 'docs' not in img.lower()]
+
         # Filter out images with 'base' in their name if specified
         if exclude_base:
             image_tags = [img for img in image_tags if 'base' not in img.lower()]

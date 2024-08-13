@@ -18,7 +18,6 @@ Usage:
 import argparse
 import os
 import sys
-from datetime import datetime
 
 from .carbon_metrics import get_carbon_region_names
 from .gpu_monitor import GPUMonitor
