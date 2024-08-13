@@ -13,9 +13,9 @@ Ideal for evaluating GPU application performance, measuring environmental impact
 
 ## Documentation
 
-#### Build and Run the Docs Docker Container
+#### Build and Run a Docs Webpage
 
-To start the Docs container in the background, use the following command:
+To start the Docs docker container in the background, use the following command:
 
 ```sh
 cd docs
