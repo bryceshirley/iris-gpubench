@@ -2,7 +2,7 @@
 
 # GPU Monitoring And Carbon Calculation Tool For Containerized Benchmarks
 
-## Table of Contents
+## Contents
 1. [Installation](#installation)
 2. [Building Docker Images](#building-docker-images)
 3. [Command-Line Arguments](#command-line-arguments)
