@@ -2,7 +2,7 @@ site_name: GPU Monitoring And Carbon Calculation Tool For Containerized Benchmar
 theme:
   name: 'material'
 nav:
-  - home: overview.md
+  - Home: overview.md
   - Index: index.md
   - Installation: installation.md
   - Building Docker Images: building_docker_images.md
