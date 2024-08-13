@@ -11,7 +11,7 @@ Ideal for evaluating GPU application performance, measuring environmental impact
 
 ---
 
-## Build Documentation
+## Documentation
 
 #### Build and Run the Docs Docker Container
 
@@ -31,3 +31,7 @@ To stop and remove the Docs container, execute:
 ```sh
 ./stop_and_remove.sh
 ```
+
+#### View Markdown Documentation
+
+Access the documentation in Markdown format located in the docs/docs directory. Navigate through the documentation using the index.md file.
