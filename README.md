@@ -1,6 +1,6 @@
 ---
 
-# GPU Monitoring And Carbon Calculation Tool For Containerized Benchmarks
+# IRIS GPU BENCH: GPU Monitoring And Carbon Calculation Tool For Containerized Benchmarks
 
 ## Brief Overview
 The GPU Monitoring and Carbon Calculation Tool tracks GPU performance and carbon emissions during benchmarks.
