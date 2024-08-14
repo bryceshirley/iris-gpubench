@@ -1,5 +1,5 @@
 /results/
 /env/
 /iris_gpubench.egg-info/
-/build/
+/iris_gpubench/__pycache__/
 
