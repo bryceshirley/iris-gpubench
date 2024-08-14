@@ -6,7 +6,7 @@ To start the Docs container in the background, use the following command:
 
 ```sh
 cd iris-gpubench/docs
-./build_and_run.sh
+./build.sh
 ```
 
 Once running, you can access the documentation at: [http://localhost:8000/](http://localhost:8000/)

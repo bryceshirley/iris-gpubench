@@ -8,7 +8,7 @@ nav:
   - Building Benchmark Docker Images: building_docker_images.md
   - Command-Line Arguments: command_line_arguments.md
   - Example Commands: example_commands.md
-  - Results: results.md
+  - Results: collecting_results.md
   - Live Monitoring: live_monitoring.md
   - Considerations On Accuracy: considerations_on_accuracy.md
   - Build Docs: build_docs.md

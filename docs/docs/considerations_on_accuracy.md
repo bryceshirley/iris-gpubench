@@ -27,7 +27,7 @@ GPU and Carbon Performance Results
 +---------------------------------------+---------+
 ```
 
-  ![GPU Metrics Output](ocs_image_dummy.png)
+  ![GPU Metrics Output](docs_image_dummy.png)
 
 * These are idle usage levels, so monitoring the GPUs has a negligible impact on GPU resources.
 
