@@ -9,4 +9,4 @@ RUN /bin/bash -c "source /root/anaconda3/bin/activate bench && \
     sciml-bench install synthetic_regression"
 
 # Set the entrypoint to run the benchmark
-ENTRYPOINT ["/bin/bash", "-c", "source /root/anaconda3/bin/activate bench && sciml-bench run synthetic_regression --output_dir=/root/results/ -b hidden_size 9000"]
+ENTRYPOINT ["/bin/bash", "-c", "source /root/anaconda3/bin/activate bench && sciml-bench run synthetic_regression --output_dir=/root/results/ -b hidden_size 9000 -b epochs 10"]

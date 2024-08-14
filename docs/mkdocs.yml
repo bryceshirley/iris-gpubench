@@ -6,10 +6,10 @@ nav:
   - Overview: overview.md
   - Installation: installation.md
   - Building Benchmark Docker Images: building_docker_images.md
-  - Command-Line Arguments: command_line_arguments.md
+  - Command-Line Interface: command_line_interface.md
   - Example Commands: example_commands.md
-  - Results: collecting_results.md
+  - Collecting Results: collecting_results.md
   - Live Monitoring: live_monitoring.md
   - Considerations On Accuracy: considerations_on_accuracy.md
-  - Build Docs: build_docs.md
+  - Build Documentation: build_docs.md
   - Work To Do: work_to_do.md

@@ -2,7 +2,7 @@
 1. [Overview](overview.md)
 2. [Installation](installation.md)
 3. [Building Docker Images](building_docker_images.md)
-4. [Command-Line Arguments](command_line_arguments.md)
+4. [Command-Line Interface](command_line_interface.md)
 5. [Example Commands](example_commands.md)
 6. [Collecting Results](collecting_results.md)
 7. [Live Monitoring](live_monitoring.md)
