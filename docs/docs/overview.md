@@ -23,3 +23,5 @@ The GPU Monitoring and Carbon Calculation Tool for Containerized Benchmarks is d
 - **Environmental Impact Assessment**: Provides a means to quantify the carbon emissions associated with GPU usage, which is important for organizations focused on sustainability and reducing their carbon footprint.
 
 - **Performance Optimization**: By analyzing the collected GPU metrics, users can identify bottlenecks and optimize their applications to run more efficiently on GPUs.
+
+[Previous Page](index.md) | [Next Page](installation.md)

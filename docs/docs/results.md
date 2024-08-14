@@ -1,4 +1,4 @@
-# Results 
+# Collecting Results 
 
 By default Results are saved to iris-gpubench/results.
 
@@ -6,7 +6,7 @@ By default Results are saved to iris-gpubench/results.
 
 * formatted_metrics.txt : Formatted version of metrics.yml, see example below.
 
-```
+```sh
 GPU and Carbon Performance Results
 
 +---------------------------------------+------------------------+
@@ -75,3 +75,5 @@ INSERT GRAFANA LINK HERE
 ## 3. Result Metrics
 
 * metrics.yml: yml with the Benchmark Score and GPU Energy Performance results.
+
+[Previous Page](example_commands.md) | [Next Page](live_monitoring.md)

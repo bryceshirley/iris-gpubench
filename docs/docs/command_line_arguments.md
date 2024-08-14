@@ -13,7 +13,7 @@ The following optional arguments are supported:
 
 To display the help message with available options, run:
 
-```
+```sh
 iris-gpubench --help
 ```
 
@@ -22,3 +22,5 @@ iris-gpubench --help
 - live gpu metrics monitoring and saving a final plot are enabled by default; use `--no_live_monitor` and `--no_plot` to disable them, respectively.
 - To view the available carbon regions, use `--carbon_region ""` to get a list of all regions.
 - To list available Docker images, use `--benchmark_image ""` for a list of images.
+
+[Previous Page](buildind_docker_images.md) | [Next Page](example_commands.md)

@@ -2,7 +2,7 @@
 
 ## 1. Monitor GPU Metrics
 
-```
+```sh
 Current GPU Metrics as of 2024-08-01 23:32:47:
 +------------------------------------+-------------------+---------------------------+-------------------+------------------------------------+
 |   GPU Index (Tesla V100-PCIE-32GB) |   Utilization (%) |   Power (W) / Max 250.0 W |   Temperature (C) |   Memory (MiB) / Total 32768.0 MiB |
@@ -15,7 +15,7 @@ Current GPU Metrics as of 2024-08-01 23:32:47:
 
 ## 2. Monitor Benchmark Container logs
   
-```
+```sh
 gpu_monitor --benchmark_image "synthetic_regression" --monitor_benchmark_logs
 
 Container Logs:
@@ -51,8 +51,10 @@ Epoch 0:   4%|▍         | 350/8000 [00:09<03:23, 37.56it/s, v_num=0]
 Potiential solution: use asynico package to capture and process the logs whilst the monitor is paused between intervals)
 ## 3. Save png Timeseries Live
   
-```
+```sh
 gpu_monitor --benchmark_image "synthetic_regression" --plot_live
 ```
 
 Gives you saves plot png during every reading so that the metrics can be viewed live.
+
+[Previous Page](collecting_results.md) | [Next Page](considerations_on_accuracy.md)
