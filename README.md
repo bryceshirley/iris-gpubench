@@ -19,7 +19,7 @@ To start the Docs docker container in the background, use the following command:
 
 ```sh
 cd docs
-./build_and_run.sh
+./build.sh
 ```
 
 Once running, you can access the documentation at: [http://localhost:8000/](http://localhost:8000/)
