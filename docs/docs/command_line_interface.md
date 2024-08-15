@@ -1,5 +1,5 @@
 ```sh
-iris-gpubench [-h] [--interval INTERVAL] [--carbon_region CARBON_REGION] [--live_plot] [--export_to_victoria] [--benchmark_image BENCHMARK_IMAGE] [--monitor_benchmark_logs]
+iris-gpubench [--interval INTERVAL] [--carbon_region CARBON_REGION] [--live_plot] [--export_to_victoria] [--benchmark_image BENCHMARK_IMAGE] [--monitor_benchmark_logs]
 ```
 
 The following optional arguments are supported:
@@ -29,4 +29,8 @@ iris-gpubench --help
 
 For example, commands please see the next page.
 
+<<<<<<< HEAD
 [Previous Page](building_docker_images.md) | [Next Page](example_commands.md)
+=======
+[Previous Page](buildind_docker_images.md) | [Next Page](example_commands.md)
+>>>>>>> 33a6dab38b006cea0efdb6d9f9ac432e6158285d

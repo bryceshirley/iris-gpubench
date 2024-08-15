@@ -1,4 +1,4 @@
-site_name: GPU Monitoring And Carbon Calculation Tool For Containerized Benchmarks
+site_name: IRIS GPU Bench: GPU Monitoring And Carbon Calculation Tool For Containerized Benchmarks
 theme:
   name: 'material'
 nav:
