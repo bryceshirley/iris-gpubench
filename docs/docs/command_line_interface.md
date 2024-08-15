@@ -29,4 +29,4 @@ iris-gpubench --help
 
 For example, commands please see the next page.
 
-[Previous Page](buildind_docker_images.md) | [Next Page](example_commands.md)
+[Previous Page](building_docker_images.md) | [Next Page](example_commands.md)

@@ -54,6 +54,7 @@ class GPUMonitor:
             monitor_interval (int): Interval in seconds for collecting GPU metrics.
             carbon_region_shorthand (str): Region shorthand for carbon intensity API.
         """
+        # Select Monitor Interval and Carbon Region 
         self.monitor_interval = monitor_interval
         self.carbon_region_shorthand = carbon_region_shorthand
 
@@ -95,6 +96,9 @@ class GPUMonitor:
 
         # Initialize Docker client
         self.client = docker.from_env()
+
+        # Initialise parameter for Benchmark Container
+        self.container = None
 
     def __setup_stats(self) -> None:
         """
@@ -520,7 +524,7 @@ class GPUMonitor:
             complete_message = f"{metrics_message}\nContainer Logs:\n"
 
             # Process the logs
-            container_log = container_log.replace('\\r', '\r')  # Replace literal '\\r' with actual '\r'
+            container_log = container_log.replace('\\r', '\r')
             lines = container_log.split('\n')  # Split the entire log into lines
 
             # Process each line to handle log loading bars
@@ -530,7 +534,7 @@ class GPUMonitor:
                     line = line.split('\r')[-1]
                 # Append the processed line to the complete message
                 complete_message += f"\n {line.strip()}"
-            
+
             return complete_message
 
         except ValueError as value_error:
@@ -550,10 +554,12 @@ class GPUMonitor:
 
         Args:
             benchmark_image (str): The Docker container image to run.
-            live_monitoring (bool): If True, enables live monitoring display. Defaults to True.
+            live_monitoring (bool): If True, enables live monitoring display.
+            Defaults to True.
             plot (bool): If True, saves the metrics plot at the end. Defaults to True.
             live_plot (bool): If True, updates the plot in real-time. Defaults to False.
-            monitor_logs (bool): If True, monitors both metrics and container logs. Defaults to False.
+            monitor_logs (bool): If True, monitors both metrics and container logs.
+            Defaults to False.
         """
         # Initialize GPU statistics
         self.__setup_stats()
@@ -566,9 +572,11 @@ class GPUMonitor:
             self.container = self.client.containers.run(
                 benchmark_image,
                 detach=True,
-                device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])]
+                device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])],
+                #memswap_limit="-1",
+                #ipc_mode="host", # Needed to solve shared memory leaking issue for mantid_imaging
             )
-            
+
             # Reload to update status from created to running
             self.container.reload()
 
@@ -598,20 +606,25 @@ class GPUMonitor:
                             # Monitor only metrics
                             print(self._live_monitor_metrics())
                             print(f"\n Benchmark Status: {self.container.status}")
-                        
+
                     # Wait for the specified interval before the next update
                     time.sleep(self.monitor_interval)
 
                 except (KeyboardInterrupt, SystemExit):
                     LOGGER.info("Monitoring interrupted by user.")
                     print(
-                        f"\nMonitoring interrupted by user."
-                        f"\nStopping gracefully, please wait..."
-                        )
+                        "\nMonitoring interrupted by user."
+                        "\nStopping gracefully, please wait..."
+                    )
                     break
                 except Exception as ex:
                     LOGGER.error("Unexpected error during monitoring: %s", ex)
-
+        except (KeyboardInterrupt, SystemExit):
+            LOGGER.info("Monitoring interrupted by user.")
+            print(
+                "\nMonitoring interrupted by user."
+                "\nStopping gracefully, please wait..."
+            )
         except docker.errors.DockerException as docker_error:
             LOGGER.error("Docker error: %s", docker_error)
         except Exception as ex:
@@ -639,7 +652,8 @@ class GPUMonitor:
 
         Exceptions:
             - docker.errors.NotFound: If the container is not found during cleanup.
-            - docker.errors.APIError: For errors related to Docker API operations such as stopping, removing, or force-removing containers.
+            - docker.errors.APIError: For errors related to Docker API operations
+            such as stopping, removing, or force-removing containers.
             - pynvml.NVMLError: For errors related to NVML operations.
             - Exception: For any other unexpected errors during the shutdown process.
         """
@@ -660,7 +674,7 @@ class GPUMonitor:
             try:
                 # Check the container status
                 self.container.reload()  # Refresh the container state
-                
+
                 if self.container.status == 'running':
                     LOGGER.info("Container is running. Attempting to stop.")
                     try:
@@ -679,7 +693,7 @@ class GPUMonitor:
                         LOGGER.info("Container removed successfully.")
                     except docker.errors.APIError as remove_error:
                         LOGGER.error("Docker API error during container removal: %s", remove_error)
-                        
+
             except docker.errors.NotFound as not_found_error:
                 # Container was not found, log this but do not let it stop execution
                 LOGGER.warning("Container not found during cleanup: %s", not_found_error)
@@ -698,5 +712,3 @@ class GPUMonitor:
         except Exception as ex:
             # Handle any unexpected exceptions
             LOGGER.error("Unexpected error during NVML shutdown: %s", ex)
-
-        

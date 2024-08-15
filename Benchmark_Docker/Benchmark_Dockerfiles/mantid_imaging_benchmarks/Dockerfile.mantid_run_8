@@ -5,4 +5,4 @@ FROM mantid_base:latest
 WORKDIR /root
 
 # Set the entrypoint to run the benchmark
-ENTRYPOINT ["/bin/bash", "-c", "cd /root/mantid_imaging_cloud_bench && conda activate mantidimaging && ./run_8.sh"]
+CMD ["/bin/bash", "-c", "cd /root/mantid_imaging_cloud_bench && ./run_8.sh"]

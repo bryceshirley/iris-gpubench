@@ -22,7 +22,6 @@ from tabulate import tabulate
 from .globals import RESULTS_DIR, LOGGER
 
 def format_metrics(results_dir: str = RESULTS_DIR,
-                   image_name: str = "",
                    metrics_file_path: str = 'metrics.yml',
                    formatted_metrics_path: str = 'formatted_metrics.txt') -> None:
     """

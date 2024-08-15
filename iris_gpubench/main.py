@@ -128,7 +128,7 @@ def main():
             plot=not args.no_plot,
             live_plot=args.live_plot,
             benchmark_image=args.benchmark_image,
-            monitor_logs=args.monitor_logs
+            monitor_logs=args.monitor_benchmark_logs
         )
         LOGGER.info("GPU monitoring completed.")
 
@@ -163,9 +163,8 @@ def main():
 
     # Output Formatted Results
     LOGGER.info("Formatting metrics...")
-    os.system('clear')
-    format_metrics(results_dir=RESULTS_DIR,
-                   image_name=str(args.benchmark_image))
+    #os.system('clear')
+    format_metrics(results_dir=RESULTS_DIR)
     LOGGER.info("Metrics formatting completed.")
 
 if __name__ == "__main__":
