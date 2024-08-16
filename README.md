@@ -1,37 +1,25 @@
+# IRIS GPU Bench
+## A GPU Monitoring and Carbon Calculation Tool for Benchmarks
 ---
 
-# IRIS GPU BENCH: GPU Monitoring And Carbon Calculation Tool For Containerized Benchmarks
+### Documentation
 
-## Brief Overview
-The GPU Monitoring and Carbon Calculation Tool tracks GPU performance and carbon emissions during benchmarks.
-
-The tool monitors GPU metrics in real-time, estimates carbon emissions using the National Grid ESO API, and optionally exports data to VictoriaMetrics. It integrates with Docker for containerized environments and offers a customizable command-line interface for monitoring and live plotting. Real-time logging is also supported.
-
-Ideal for evaluating GPU application performance, measuring environmental impact, and optimizing GPU performance.
+**Explore the IRIS GPU Bench documentation:**  
+[![GitHub Pages](https://img.shields.io/badge/Docs-GitHub%20Pages-blue)](https://bryceshirley.github.io/iris-gpubench/)
 
 ---
 
-## Documentation
+### Brief Overview
 
-#### Build and Run a Docs Webpage
+The **IRIS GPU Bench** tool tracks GPU performance and carbon emissions during benchmarks. It provides:
 
-To start the Docs docker container in the background, use the following command:
+- **Real-time GPU Metrics**: Monitors GPU performance in real-time.
+- **Carbon Emission Estimates**: Estimates emissions using the National Grid ESO API.
+- **Data Export**: Optionally exports data to VictoriaMetrics.
+- **Docker Integration**: Works seamlessly within containerized environments.
+- **Flexible Command-Line Interface**: Offers a customizable monitoring process with a variety of command-line arguments.
+- **Real-time Logging**: Supports live prints of Docker container logs.
 
-```sh
-cd docs
-./build.sh
-```
+This tool is ideal for evaluating GPU application performance, measuring environmental impact, and optimizing GPU performance.
 
-Once running, you can access the documentation at: [http://localhost:8000/](http://localhost:8000/)
-
-#### Stop and Remove the Docs Docker Container
-
-To stop and remove the Docs container, execute:
-
-```sh
-./stop_and_remove.sh
-```
-
-#### View Markdown Documentation
-
-Access the documentation in Markdown format located in the docs/docs directory. Navigate through the documentation using the index.md file.
+---

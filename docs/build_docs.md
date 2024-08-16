@@ -19,4 +19,6 @@ To stop and remove the Docs container, execute:
 ./stop_and_remove.sh
 ```
 
+---
+
 [Previous Page](considerations_on_accuracy.md) | [Next Page](work_to_do.md)

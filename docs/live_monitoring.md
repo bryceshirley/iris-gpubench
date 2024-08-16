@@ -1,6 +1,7 @@
 # Live Monitoring
 
-## 1. Monitor GPU Metrics
+## Monitor GPU Metrics
+A default option that can be switched off.
 
 ```sh
 Current GPU Metrics as of 2024-08-01 23:32:47:
@@ -13,7 +14,7 @@ Current GPU Metrics as of 2024-08-01 23:32:47:
 +------------------------------------+-------------------+---------------------------+-------------------+------------------------------------+
 ```
 
-## 2. Monitor Benchmark Container logs
+## Monitor Benchmark Container Logs
   
 ```sh
 gpu_monitor --benchmark_image "synthetic_regression" --monitor_benchmark_logs
@@ -49,12 +50,16 @@ Epoch 0:   4%|▍         | 350/8000 [00:09<03:23, 37.56it/s, v_num=0]
 
 (Long container logs containing "\r" to clear the line for progress bars are not a very efficiently processed, as it captures a snapshot of the entire container log at that moment.
 Potiential solution: use asynico package to capture and process the logs whilst the monitor is paused between intervals)
-## 3. Save png Timeseries Live
+## (Save png) Timeseries Plot Live
   
 ```sh
-gpu_monitor --benchmark_image "synthetic_regression" --plot_live
+gpu_monitor --benchmark_image "stemdl_classification_2gpu" --plot_live
 ```
 
+![GPU Metrics Output](docs_image_multigpu.png)
+
 Gives you saves plot png during every reading so that the metrics can be viewed live.
+
+---
 
 [Previous Page](collecting_results.md) | [Next Page](considerations_on_accuracy.md)

@@ -6,27 +6,27 @@ Start with an Ubuntu VM equipped with Nvidia GPUs and ensure the following depen
 
 Follow these steps to set up the project:
 
- 1.**Clone the Repository**  
+### 1.**Clone the Repository**  
    Start by cloning the project repository:
 ```sh
 git clone https://github.com/bryceshirley/iris-gpubench.git
 cd iris-gpubench
 ```
 
- 2.**Set Up a Virtual Environment**  
+### 2.**Set Up a Virtual Environment**  
    Next, create and activate a virtual environment:
 ```sh
 python3 -m venv env
 source env/bin/activate
 ```
 
- 3.**Install Dependencies and iris-gpubench Package**  
-   a. Finally, install the package along with necessary dependencies:
+### 3.**Install Dependencies and iris-gpubench Package**  
+####   a. Finally, install the package along with necessary dependencies:
 ```sh
 pip install wheel
 pip install .
 ```
-   b. **(For Developers)**
+####   b. **(For Developers)**
 ```sh
 pip install wheel
 pip install -e .
@@ -35,6 +35,8 @@ pip install -e .
    allows immediate reflection of any changes you make to the source code
    without needing to reinstall the package.
 
- 4.**Next Build Docker Images for the Benchmarks**
+### 4.**Next Build Docker Images for the Benchmarks**
+
+---
 
 [Previous Page](overview.md) | [Next Page](building_docker_images.md)

@@ -24,4 +24,6 @@ The GPU Monitoring and Carbon Calculation Tool for Containerized Benchmarks is d
 
 - **Performance Optimization**: By analyzing the collected GPU metrics, users can identify bottlenecks and optimize their applications to run more efficiently on GPUs.
 
+---
+
 [Previous Page](index.md) | [Next Page](installation.md)

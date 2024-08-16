@@ -13,4 +13,6 @@ iris-gpubench --benchmark_image "synthetic_regression" --export_to_victoria
 iris-gpubench --benchmark_image "synthetic_regression" --interval 10 --carbon_region "South England" --live_plot --export_to_victoria --monitor_benchmark_logs
 ```
 
+---
+
 [Previous Page](command_line_interface.md) | [Next Page](collecting_results.md)

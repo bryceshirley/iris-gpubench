@@ -9,7 +9,7 @@
 * Total energy is calculated by integrating power readings over time using the trapezoidal integration method. The accuracy of this calculation depends on the monitoring interval: a smaller interval results in more accurate energy estimates.
 
 ### Profiling the Monitors Impact on GPU Resources
-* (Minimal) GPU Resource Usage by the Monitor: The monitoring tool consumes a small portion of GPU resources. For instance, a ~5-minute test with a dummy container shows negligible GPU usage, see below. CPU resources are also utilized, though profiling tests to determine exact CPU usage have not yet been conducted.
+* (Minimal) GPU Resource Usage by the Monitor: The monitoring tool consumes a small portion of GPU resources. For instance, a ~5-minute test done on a VM with a V100 GPU and the [dummy benchmark container](building_docker_images.md#dummy-benchmark-container) shows negligible GPU usage, see below. CPU resources are also utilized, though profiling tests to determine exact CPU usage have not yet been conducted.
 
 ```sh
 GPU and Carbon Performance Results
@@ -30,5 +30,7 @@ GPU and Carbon Performance Results
   ![GPU Metrics Output](docs_image_dummy.png)
 
 * These are idle usage levels, so monitoring the GPUs has a negligible impact on GPU resources.
+
+---
 
 [Previous Page](live_monitoring.md) | [Next Page](build_docs.md)
