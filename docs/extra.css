@@ -1,9 +1,0 @@
-/* Ensure the TOC stays on the side */
-.md-sidebar {
-    position: fixed; /* Fix the sidebar to the left side */
-    width: 250px; /* Set the width of the sidebar */
-}
-
-.md-sidebar .md-nav {
-    position: static; /* Ensure the sidebar navigation stays in place */
-}
