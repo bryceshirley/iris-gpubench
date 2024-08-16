@@ -22,10 +22,7 @@ Describes how to enable and use the live monitoring feature to track GPU metrics
  8. **[Considerations On Accuracy](considerations_on_accuracy.md)**  
 Discusses limitations and accuracy considerations regarding the measurement of GPU metrics and carbon emissions.
 
- 9. **[Build Documentation](build_docs.md)**  
-Instructions on how to build and generate documentation for the project using MkDocs or other tools.
-
- 10. **[Work To Do](work_to_do.md)**  
+ 9. **[Work To Do](work_to_do.md)**  
 Outlines the future improvements and tasks that are planned or currently being worked on for the tool.
 
 ---
