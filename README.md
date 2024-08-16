@@ -13,11 +13,5 @@ Ideal for evaluating GPU application performance, measuring environmental impact
 
 ## Documentation
 
-### View Docs:
-
 [![GitHub Pages](https://img.shields.io/badge/Docs-GitHub%20Pages-blue)](https://bryceshirley.github.io/iris-gpubench/)
 
-
-#### View Markdown Documentation
-
-Access the documentation in Markdown format located in the docs/docs directory. Navigate through the documentation using the index.md file.
