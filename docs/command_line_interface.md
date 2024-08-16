@@ -1,5 +1,5 @@
 ```sh
-iris-gpubench [--interval INTERVAL] [--carbon_region CARBON_REGION] [--live_plot] [--export_to_victoria] [--benchmark_image BENCHMARK_IMAGE] [--monitor_benchmark_logs]
+iris-gpubench [--benchmark_image BENCHMARK_IMAGE] [--interval INTERVAL] [--carbon_region CARBON_REGION] [--live_plot] [--export_to_victoria] [--monitor_benchmark_logs]
 ```
 
 The following optional arguments are supported:
