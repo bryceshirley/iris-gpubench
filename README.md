@@ -13,24 +13,10 @@ Ideal for evaluating GPU application performance, measuring environmental impact
 
 ## Documentation
 
-#### Build and Run a Docs Webpage
+### View Docs:
 
-To start the Docs docker container in the background, use the following command:
+[![GitHub Pages](https://img.shields.io/badge/Docs-GitHub%20Pages-blue)](https://bryceshirley.github.io/iris-gpubench/)
 
-```sh
-cd docs
-./build.sh
-```
-
-Once running, you can access the documentation at: [http://localhost:8000/](http://localhost:8000/)
-
-#### Stop and Remove the Docs Docker Container
-
-To stop and remove the Docs container, execute:
-
-```sh
-./stop_and_remove.sh
-```
 
 #### View Markdown Documentation
 
