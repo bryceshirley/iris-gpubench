@@ -8,7 +8,7 @@ By default, results are saved to a `results` folder within the current directory
 - **GPU Metrics Timeseries Plot png**: `metrics_plot.png`
 - **Results YAML**: `metrics.yml`
 
-If the --export-to-victoria tag is used, a Grafana dashboard will also be created. This dashboard can be used to visualize and analyze GPU metrics and performance data in a more interactive and detailed manner.
+NOT YET WORKING: If the --export-to-victoria tag is used, the timeseries data will be sent to a Grafana dashboard. This dashboard can be used to visualize and analyze GPU metrics and performance data in a more interactive and detailed way.
 
 
 ## Formatted Results
