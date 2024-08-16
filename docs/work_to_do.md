@@ -2,7 +2,7 @@
 - Fix victoria_metrics exporter (username and password needed) and Test with grafana (add grafana link to docs)
 - Write CI tests and add them to github actions
 - Allow users to save container results
-- Profiling has been done for iris_gpubench of GPU resource but CPU resources are also utilized, though profiling tests to determine exact CPU usage by the monitor system have not yet been conducted (if they are high this is a limitation of the monitor system).
+- Profiling has been done for iris_gpubench of GPU resource but CPU resources are also utilized, though profiling tests to determine exact CPU usage by the monitor system have not yet been conducted (if they are high this is a limitation of the monitor system and optimization will be needed. Given the monitor pauses between intervals there is opportunity to use pythons asynco).
 - using shell check from bash script (similar to pylint) on bash script
 - Add Highly Optimized NVIDIA HPL Benchmarks: [NVIDIA HPC Benchmarks](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/hpc-benchmarks) see [NVIDIA HPL Benchmark docs](https://docs.nvidia.com/nvidia-hpc-benchmarks/HPL_benchmark.html)
 - Investigate how the sciml-bench outputs the types of cores in use (ie Tensor cores) and include this in the collected metrics.
