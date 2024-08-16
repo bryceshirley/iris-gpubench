@@ -1,0 +1,50 @@
+site_name: IRIS GPU Bench - GPU Monitoring And Carbon Calculation Tool For Containerized Benchmarks
+theme:
+  name: 'material'
+  features:
+    - navigation.tabs
+    - navigation.sections
+   # - toc.integrate
+    - navigation.top
+    - navigation.trail
+    - navigation.expand
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  language: en
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline 
+        name: Switch to dark mode
+      primary: teal
+      accent: purple 
+    - scheme: slate 
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode    
+      primary: teal
+      accent: lime
+
+plugins:
+  - search
+
+nav:
+  - Index: index.md
+  - Overview: overview.md
+  - Installation: installation.md
+  - Building Benchmark Docker Images: building_docker_images.md
+  - Command-Line Interface: command_line_interface.md
+  - Example Commands: example_commands.md
+  - Collecting Results: collecting_results.md
+  - Live Monitoring: live_monitoring.md
+  - Considerations On Accuracy: considerations_on_accuracy.md
+  - Build Documentation: build_docs.md
+  - Work To Do: work_to_do.md
+
+
+extra_css:
+  - 'docs/extra.css'

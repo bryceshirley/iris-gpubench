@@ -1,0 +1,25 @@
+# Use an official Python runtime as a parent image
+FROM python:3.11-slim
+
+# Set environment variables to avoid Python buffering and ensure outputs are immediately available
+ENV PYTHONUNBUFFERED=1
+
+# Set the working directory in the container
+WORKDIR /docs
+
+# RUN apt-get update && \
+#     apt-get install -y mkdocs && \
+#     apt-get clean
+
+# Copy the current directory contents into the container at /docs
+COPY . /docs
+
+# Install MkDocs and MkDocs Material
+RUN pip install mkdocs mkdocs-material
+
+# Build the MkDocs site
+RUN mkdocs build
+
+# Command to serve the documentation
+CMD ["mkdocs", "serve", "--dev-addr", "0.0.0.0:8000"]
+
