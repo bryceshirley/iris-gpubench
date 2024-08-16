@@ -1,5 +1,3 @@
-Here's a revised version of your README, formatted for clarity and improved readability:
-
 ---
 
 # IRIS GPU Bench
