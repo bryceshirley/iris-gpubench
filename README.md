@@ -1,7 +1,4 @@
 # IRIS GPU Bench
-
-## A GPU Monitoring and Carbon Calculation Tool for Containerized Benchmarks
-
 ---
 
 ### Documentation
@@ -11,6 +8,7 @@
 
 ---
 
+## A GPU Monitoring and Carbon Calculation Tool for Benchmarks
 ### Brief Overview
 
 The **IRIS GPU Bench** tool tracks GPU performance and carbon emissions during benchmarks. It provides:
