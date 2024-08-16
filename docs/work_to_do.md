@@ -4,7 +4,12 @@
 - using shell check from bash script (similar to pylint) on bash script
 - Add CI tests for python scripts
 - Add [NVIDIA HPC Benchmarks](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/hpc-benchmarks) see [NVIDIA HPL Benchmark docs](https://docs.nvidia.com/nvidia-hpc-benchmarks/HPL_benchmark.html)
-
+- Investigate how the sciml-bench synthetic-regression benchmark outputs the types of cores in use and include this in the collected metrics for example:
+```sh
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+```
 ---
 
 [Previous Page](considerations_on_accuracy.md)
