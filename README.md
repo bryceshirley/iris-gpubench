@@ -1,7 +1,7 @@
 # IRIS GPU Bench
 ## A GPU Monitoring and Carbon Calculation Tool for Benchmarks
 ---
-(The add-tmux-option branch needs to be pull into this one)
+(The add-tmux-option branch needs to be pull into main)
 ### Documentation
 
 **Explore the IRIS GPU Bench documentation:**  
