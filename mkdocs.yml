@@ -33,17 +33,17 @@ plugins:
   - search
 
 nav:
-  - Index: index.md
-  - Overview: overview.md
-  - Installation: installation.md
-  - Building Benchmark Docker Images: building_docker_images.md
-  - Command-Line Interface: command_line_interface.md
-  - Example Commands: example_commands.md
-  - Collecting Results: collecting_results.md
-  - Live Monitoring: live_monitoring.md
-  - Considerations On Accuracy: considerations_on_accuracy.md
-  - Build Documentation: build_docs.md
-  - Work To Do: work_to_do.md
+  - Index: docs/index.md
+  - Overview: docs/overview.md
+  - Installation: docs/installation.md
+  - Building Benchmark Docker Images: docs/building_docker_images.md
+  - Command-Line Interface: docs/command_line_interface.md
+  - Example Commands: docs/example_commands.md
+  - Collecting Results: docs/collecting_results.md
+  - Live Monitoring: docs/live_monitoring.md
+  - Considerations On Accuracy: docs/considerations_on_accuracy.md
+  - Build Documentation: docs/build_docs.md
+  - Work To Do: docs/work_to_do.md
 
 
 extra_css:
