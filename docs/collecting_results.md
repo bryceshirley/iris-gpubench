@@ -14,7 +14,7 @@ NOT YET WORKING: If the --export-to-victoria tag is used, the timeseries data wi
 ## Formatted Results
 
 - **File:** `formatted_metrics.txt`  
-- **Description:** A human-readable version of the `metrics.yml` file. Provides a tabular summary of GPU and carbon performance metrics, including benchmark image name, elapsed monitor time, energy consumption, carbon emissions, and detailed GPU performance data.  
+- **Description:** A human-readable version of the `metrics.yml` file. Provides a tabular summary of GPU and carbon performance metrics, including benchmark image name, elapsed monitor time, energy consumption, carbon emissions, and detailed GPU performance data. The top row of the first table could also say "Benchmark Command Run", if container option isn't used.
 - **Example:**  
 ```sh
 GPU and Carbon Performance Results

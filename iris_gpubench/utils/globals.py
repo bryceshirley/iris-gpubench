@@ -14,7 +14,7 @@ import os
 from .logging_utils import setup_logging
 
 # Path to the directory where results will be stored
-RESULTS_DIR = './results'
+RESULTS_DIR = './iris-gpubench-results'
 # Ensure the results directory exists
 os.makedirs(RESULTS_DIR, exist_ok=True)
 

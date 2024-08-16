@@ -67,22 +67,35 @@ def parse_arguments():
                         help='Enable exporting of collected data to VictoriaMetrics.')
 
     # Argument for specifying the Docker container image for benchmarking
-    parser.add_argument('--benchmark_image', type=str, required=True,
+    parser.add_argument('--benchmark_image', type=str,
                         help='Docker container image to run as a benchmark.')
 
-    # Argument for monitoring both metrics and container logs
-    parser.add_argument('--monitor_benchmark_logs', action='store_true',
-                        help='Enable monitoring of container logs in addition to GPU metrics.')
+    # Argument for specifying the command to run the benchmark in a tmux session
+    parser.add_argument('--benchmark_command', type=str,
+                        help='Command to run as a benchmark in a tmux session.')
+
+    # Argument for monitoring both metrics and container or tmux logs
+    parser.add_argument('--monitor_logs', action='store_true',
+                        help='Enable monitoring of container or tmux logs in addition to GPU metrics.')
 
     # Parse command-line arguments
     args = parser.parse_args()
+
+    # Validate that either benchmark_image or benchmark_command is provided, but not both
+    if not args.benchmark_image and not args.benchmark_command:
+        LOGGER.error("Neither '--benchmark_image' nor '--benchmark_command' provided. One must be specified.")
+        parser.error("You must specify either '--benchmark_image' or '--benchmark_command'.")
+
+    if args.benchmark_image and args.benchmark_command:
+        LOGGER.error("Both '--benchmark_image' and '--benchmark_command' provided. Only one must be specified.")
+        parser.error("You must specify either '--benchmark_image' or '--benchmark_command', not both.")
 
     # Validate the interval argument
     if args.interval <= 0:
         error_message = f"Monitoring interval must be a positive integer. Provided value: {args.interval}"
         print(error_message)
         LOGGER.error(error_message)
-        sys.exit(1)  # Exit with error code 1
+        sys.exit(1)
 
     # Validate the carbon region argument
     valid_regions = get_carbon_region_names()
@@ -90,10 +103,10 @@ def parse_arguments():
         error_message = (f"Invalid carbon region: {args.carbon_region}. Valid regions are: {', '.join(valid_regions)}")
         print(error_message)
         LOGGER.error(error_message)
-        sys.exit(1)  # Exit with error code 1
+        sys.exit(1)
 
-    # Check if the benchmark image exists
-    if not image_exists(args.benchmark_image) or args.benchmark_image=="":
+    # Validate the Docker image if specified
+    if args.benchmark_image and not image_exists(args.benchmark_image):
         print(f"Image '{args.benchmark_image}' is not valid.")
         LOGGER.error("Image '%s' does not exist.", args.benchmark_image)
 
@@ -102,13 +115,13 @@ def parse_arguments():
         print("Available images (excluding 'base' images):")
         for image in available_images:
             print(f"  - {image}")
-        sys.exit(1)  # Exit with error code 1
+        sys.exit(1)
 
     return args
 
 def main():
     """
-    Main function for running the GPU monitoring process.
+    Main function for Iris-gpubench for running the GPU monitoring process.
 
     Parses command-line arguments, validates them, initializes the GPUMonitor,
     and handles data exporting to VictoriaMetrics if specified.
@@ -121,18 +134,19 @@ def main():
                              carbon_region_shorthand=args.carbon_region)
 
     try:
-        # Run the Monitoring process
+        # Run the monitoring process
         LOGGER.info("Starting GPU monitoring...")
         gpu_monitor.run(
+            benchmark_command=args.benchmark_command,
+            benchmark_image=args.benchmark_image,
             live_monitoring=not args.no_live_monitor,
             plot=not args.no_plot,
             live_plot=args.live_plot,
-            benchmark_image=args.benchmark_image,
-            monitor_logs=args.monitor_benchmark_logs
+            monitor_logs=args.monitor_logs
         )
         LOGGER.info("GPU monitoring completed.")
 
-        # Save Monitor Results
+        # Save monitoring results
         LOGGER.info("Saving monitoring results...")
         gpu_monitor.save_stats_to_yaml()
         LOGGER.info("Saving monitoring completed.")
@@ -161,9 +175,8 @@ def main():
         print(f"OS error occurred: {os_error}")
         sys.exit(1)
 
-    # Output Formatted Results
+    # Output formatted results
     LOGGER.info("Formatting metrics...")
-    #os.system('clear')
     format_metrics(results_dir=RESULTS_DIR)
     LOGGER.info("Metrics formatting completed.")
 

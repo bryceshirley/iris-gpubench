@@ -1,10 +1,18 @@
 To set up the project, follow these steps:
 
-## Installation Instructions
+## Pre-Installation Instructions
 
-Start with an Ubuntu VM equipped with Nvidia GPUs and ensure the following dependencies are pre-installed: Docker, Nvidia Docker (for GPU support), Python with Virtual Environment and Nvidia drivers. If these are not installed, you can run ./setup_vm.sh from the cloned Git repository to set them up automatically. (Note: Git is required to clone the repository—see step 1).
+**If you are using Docker Images for Benchmarks:**
 
-Follow these steps to set up the project:
+Start with an Ubuntu VM that has Nvidia GPUs. Ensure the following dependencies are pre-installed: Docker, Nvidia Docker (for GPU support), Python with Virtual Environment, and the Nvidia drivers. If these dependencies are not installed, you can easily set them up by running `./setup_vm_docker.sh` from the cloned Git repository. *(Note: Git is required to clone the repository—refer to step 1 for instructions).*
+
+**If you plan to run Benchmarks directly on your machine (for benchmarks that aren't suitable for Docker or if you need quick results):**
+
+Begin with an Ubuntu VM with Nvidia GPUs, ensuring that Tmux, Python with Virtual Environment, and the Nvidia drivers are pre-installed. If these dependencies are missing, you can automatically set them up by executing `./setup_vm_tmux.sh` from the cloned Git repository. *(Note: Git is required to clone the repository—see step 1 for details).*
+
+## Pre-Installation Instructions
+
+Follow these steps to set up iris-gpubench:
 
 ### 1.**Clone the Repository**  
    Start by cloning the project repository:
