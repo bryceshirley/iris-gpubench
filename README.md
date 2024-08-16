@@ -1,19 +1,30 @@
+Here's a revised version of your README, formatted for clarity and improved readability:
+
 ---
 
 # IRIS GPU Bench
 
-## A GPU Monitoring And Carbon Calculation Tool For Containerized Benchmarks
+## A GPU Monitoring and Carbon Calculation Tool for Containerized Benchmarks
 
-## Brief Overview
-The GPU Monitoring and Carbon Calculation Tool tracks GPU performance and carbon emissions during benchmarks.
+### Brief Overview
 
-The tool monitors GPU metrics in real-time, estimates carbon emissions using the National Grid ESO API, and optionally exports data to VictoriaMetrics. It integrates with Docker for containerized environments and offers a customizable command-line interface for monitoring and live plotting. Real-time logging is also supported.
+The **IRIS GPU Bench** tool tracks GPU performance and carbon emissions during benchmarks. It provides:
 
-Ideal for evaluating GPU application performance, measuring environmental impact, and optimizing GPU performance.
+- **Real-time GPU Metrics**: Monitors GPU performance in real-time.
+- **Carbon Emission Estimates**: Estimates emissions using the National Grid ESO API.
+- **Data Export**: Optionally exports data to VictoriaMetrics.
+- **Docker Integration**: Works seamlessly within containerized environments.
+- **Flexible Command-Line Interface:**: Offers a customizable monitoring process with a variety of command-line arguments.
+- **Real-time Logging**: Supports live prints of Docker Container logs.
+
+This tool is ideal for evaluating GPU application performance, measuring environmental impact, and optimizing GPU performance.
 
 ---
 
-## Documentation
+### Documentation
 
-IRIS GPU Bench: [![GitHub Pages](https://img.shields.io/badge/Docs-GitHub%20Pages-blue)](https://bryceshirley.github.io/iris-gpubench/)
+**Explore the IRIS GPU Bench documentation:**  
+[![GitHub Pages](https://img.shields.io/badge/Docs-GitHub%20Pages-blue)](https://bryceshirley.github.io/iris-gpubench/)
+
+---
 
