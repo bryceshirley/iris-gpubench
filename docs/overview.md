@@ -8,7 +8,7 @@ The GPU Monitoring and Carbon Calculation Tool monitors GPU performance and esti
   
 - **Carbon Emissions Calculation**: Estimates emissions using the National Grid ESO Regional Carbon Intensity API based on GPU energy consumption.
 
-- (NEEDS FIXING)**Export to VictoriaMetrics**: Optionally exports data to Grafana for long-term storage and analysis.
+- **Export to VictoriaMetrics**: Optionally exports data to Grafana for long-term storage and analysis.
 
 - **Flexible Benchmarking**:  
   - **Docker**: Run benchmarks in a consistent, isolated environment.
