@@ -21,7 +21,7 @@ The **IRIS GPU Bench** tool tracks GPU performance and carbon emissions during b
 
 - **Real-time GPU Metrics**: Monitors GPU performance in real-time.
 - **Carbon Emission Estimates**: Estimates emissions using the National Grid ESO API.
-- **Data Export**: Optionally exports data to VictoriaMetrics.
+- **Data Export**: Optionally exports data to Grafana via VictoriaMetrics.
 - **Flexible Benchmarking**:  
   - **Docker**: Run benchmarks in isolated containers for consistency.  
   - **Tmux**: Execute benchmarks directly on the host and keep them running in the background during monitoring.
