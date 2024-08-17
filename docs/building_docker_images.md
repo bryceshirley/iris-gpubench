@@ -23,11 +23,13 @@ Here’s the section with appropriate headings added:
 - **`Dockerfile.mantid_base`**: Base image for Mantid imaging benchmarks.
 
 #### Mantid Imaging Benchmarks
+More details about can be found on the [Mantid Imaging Benchmarks Repo](https://github.com/samtygier-stfc/mantid_imaging_cloud_bench).
+
 - **`Dockerfile.mantid_run_1`**: Dockerfile for Mantid benchmark run 1GB.
 - **`Dockerfile.mantid_run_8`**: Dockerfile for Mantid benchmark run 8GB.
 
 #### SciML Benchmarks
-The Dockerfiles for SciML benchmarks are run on a [fork of the sciml-bench repo](https://github.com/bryceshirley/sciml-bench):
+The Dockerfiles for SciML benchmarks from a [fork of the sciml-bench repo](https://github.com/bryceshirley/sciml-bench)
 
 - **`Dockerfile.mnist_tf_keras`**: Dockerfile for MNIST classification Benchmark using TensorFlow/Keras.
 - **`Dockerfile.stemdl_classification_2gpu`**: Dockerfile for STEMDL classification using 1 GPU.
