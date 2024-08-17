@@ -1,5 +1,8 @@
-![STFC Logo](docs/stfc_logo.png)
-![IRIS Logo](docs/iris_logo.png)
+<p align="center">
+  <img src="docs/stfc_logo.png" alt="STFC Logo" height="100">
+  <img src="docs/iris_logo.png" alt="IRIS Logo" height="100">
+</p>
+
 
 # IRIS GPU Bench
 ## A GPU Monitoring and Carbon Calculation Tool for Benchmarks
