@@ -1,7 +1,9 @@
 ## Priority Order
 - Fix victoria_metrics exporter (username and password needed) and Test with grafana (add grafana link to docs)
-- Allow users to save there own container and Tmux session results from their benchmarks.
+- Allow users to save there own container results from their benchmarks running with docker.
 - Update Readme with an explanation of the repos organisation and folder structure.
+- Fix bug when collecting from Tmux logs.
+- Save container logs and Tmux logs into a results file.
 - Write CI tests and add them to github actions
 - Profiling has been done for iris_gpubench of GPU resource but CPU resources are also utilized, though profiling tests to determine exact CPU usage by the monitor system have not yet been conducted (if they are high this is a limitation of the monitor system and optimization will be needed. Given the monitor pauses between intervals there is opportunity to use pythons asynco).
 - using shell check from bash script (similar to pylint) on bash script
