@@ -9,7 +9,7 @@
 
    - **For Direct Machine Benchmarks**: Install Tmux, git, Python with Virtual Environment, and Nvidia drivers.
 
-### 4. **Automated Setup (requires git to clone repo)**:
+### 3. **Automated Setup (requires git to clone repo)**:
 
    - **Docker Benchmarks**: Execute `./setup_vm_docker.sh` from the cloned Git repository.
 
