@@ -10,11 +10,14 @@ The GPU Monitoring and Carbon Calculation Tool for Containerized Benchmarks is d
 
 - **Export to VictoriaMetrics**: Collected data can be optionally exported to VictoriaMetrics, allowing for long-term storage and analysis of GPU performance metrics. This is useful for tracking performance trends over time and integrating with other monitoring systems.
 
-- **Docker Integration**: The tool is designed to work seamlessly with containerized environments. It includes scripts for building Docker images tailored to specific benchmarking tasks, ensuring that the monitoring tool can be easily integrated into existing workflows.
+- **Flexible Benchmarking Options**:  
+  - **Docker Integration**: Run benchmarks using Docker container images for a consistent, isolated environment. Ideal for containerized workloads or when you need reproducibility and isolation from the host system.  
+  - **Tmux for Direct Execution**: For non-containerized benchmarks or quicker setups, run benchmark commands directly on the host system (uses `tmux` to run it in the background).
 
 - **Flexible Command-Line Interface**: Users can customize the monitoring process with a variety of command-line arguments. These options allow for control over monitoring intervals, region-specific carbon calculations, live plotting of metrics, and more.
 
-- **Live Monitoring and Logging**: The tool supports live monitoring of GPU metrics during benchmark execution, with the ability to log and display container logs in real-time. This feature is crucial for debugging and optimizing benchmark runs.
+- **Live Monitoring and Logging**: The tool supports live monitoring of GPU metrics and can capture logs from both Docker containers and Tmux sessions. This feature is crucial for real-time performance assessment and debugging.
+
 
 ## Use Cases
 
