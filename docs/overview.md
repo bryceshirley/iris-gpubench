@@ -1,31 +1,32 @@
 # Overview
 
-The GPU Monitoring and Carbon Calculation Tool for Containerized Benchmarks is designed to monitor GPU performance and calculate associated carbon emissions during benchmarking tasks involving GPU operations.
+The GPU Monitoring and Carbon Calculation Tool monitors GPU performance and estimates carbon emissions during benchmarks.
 
 ## Key Features
 
-- **Comprehensive GPU Monitoring**: Utilizing the `GPUMonitor` class, the tool captures real-time GPU metrics such as utilization, power draw, temperature, and memory usage. These metrics are essential for evaluating the efficiency and performance of GPU-based applications.
+- **GPU Monitoring**: Tracks real-time metrics such as utilization, power, temperature, and memory usage.
+  
+- **Carbon Emissions Calculation**: Estimates emissions using the National Grid ESO Regional Carbon Intensity API based on GPU energy consumption.
 
-- **Carbon Emissions Calculation**: The tool integrates with the National Grid ESO Regional Carbon Intensity API to estimate carbon emissions based on the energy consumed by the GPU during benchmarks. This feature is particularly useful for understanding the environmental impact of high-performance computing tasks.
+- (NEEDS FIXING)**Export to VictoriaMetrics**: Optionally exports data to Grafana for long-term storage and analysis.
 
-- **Export to VictoriaMetrics**: Collected data can be optionally exported to VictoriaMetrics, allowing for long-term storage and analysis of GPU performance metrics. This is useful for tracking performance trends over time and integrating with other monitoring systems.
+- **Flexible Benchmarking**:  
+  - **Docker**: Run benchmarks in a consistent, isolated environment.
+  - **Tmux**: Execute benchmarks directly on the host system for quick setups.
 
-- **Flexible Benchmarking Options**:  
-  - **Docker Integration**: Run benchmarks using Docker container images for a consistent, isolated environment. Ideal for containerized workloads or when you need reproducibility and isolation from the host system.  
-  - **Tmux for Direct Execution**: For non-containerized benchmarks or quicker setups, run benchmark commands directly on the host system (uses `tmux` to run it in the background).
+- **Command-Line Interface**: Customizable options for intervals, carbon calculations, live plotting, and more.
 
-- **Flexible Command-Line Interface**: Users can customize the monitoring process with a variety of command-line arguments. These options allow for control over monitoring intervals, region-specific carbon calculations, live plotting of metrics, and more.
-
-- **Live Monitoring and Logging**: The tool supports live monitoring of GPU metrics and can capture logs from both Docker containers and Tmux sessions. This feature is crucial for real-time performance assessment and debugging.
-
+- **Live Monitoring and Logging**: Supports real-time GPU monitoring and logging from Docker containers and Tmux sessions.
 
 ## Use Cases
 
-- **Benchmarking GPU-Intensive Applications**: Ideal for researchers, developers, and engineers who need to assess the performance of GPU-accelerated applications under various conditions.
+- **Informed Purchasing**: Evaluate and compare performance across different hardware configurations before making purchasing decisions.
 
-- **Environmental Impact Assessment**: Provides a means to quantify the carbon emissions associated with GPU usage, which is important for organizations focused on sustainability and reducing their carbon footprint.
-
-- **Performance Optimization**: By analyzing the collected GPU metrics, users can identify bottlenecks and optimize their applications to run more efficiently on GPUs.
+- **Benchmarking**: Assess GPU-accelerated applications' performance.
+  
+- **Environmental Impact**: Quantify carbon emissions from GPU usage.
+  
+- **Performance Optimization**: Identify and resolve performance bottlenecks.
 
 ---
 
