@@ -1,15 +1,15 @@
 ## Pre-Installation Instructions
 
-1. **Set Up Ubuntu VM**: 
+### 1. **Set Up Ubuntu VM**: 
 - Start with an Ubuntu VM equipped with Nvidia GPUs.
 
-2. **Install Dependencies**:
+### 2. **Install Dependencies**:
 
    - **For Docker Benchmarks**: Install Docker, Nvidia Docker (for GPU support), git, Python with Virtual Environment, and Nvidia drivers.
 
    - **For Direct Machine Benchmarks**: Install Tmux, git, Python with Virtual Environment, and Nvidia drivers.
 
-4. **Automated Setup (requires git to clone repo)**:
+### 4. **Automated Setup (requires git to clone repo)**:
 
    - **Docker Benchmarks**: Execute `./setup_vm_docker.sh` from the cloned Git repository.
 
