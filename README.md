@@ -28,6 +28,6 @@ The **IRIS GPU Bench** tool tracks GPU performance and carbon emissions during b
 - **Flexible Command-Line Interface**: Offers a customizable monitoring process with a variety of command-line arguments.
 - **Real-time Logging**: Supports live prints of Docker container or Tmux logs.
 
-This tool is ideal for evaluating GPU application performance, measuring environmental impact, and optimizing GPU performance.
+This tool is ideal for evaluating GPU application performance, measuring environmental impact, optimizing GPU performance, and informing purchasing decisions by testing applications on different hardware configurations.
 
 ---
