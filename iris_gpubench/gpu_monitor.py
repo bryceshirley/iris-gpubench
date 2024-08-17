@@ -27,7 +27,6 @@ from typing import Optional, Dict, List
 import matplotlib.backends.backend_agg as agg
 from matplotlib import figure
 from matplotlib import ticker
-import docker
 import pynvml
 import yaml
 from tabulate import tabulate
@@ -40,13 +39,32 @@ SECONDS_IN_HOUR = 3600  # Number of seconds in an hour
 METRICS_FILE_PATH = os.path.join(RESULTS_DIR, 'metrics.yml')
 METRIC_PLOT_PATH = os.path.join(RESULTS_DIR, 'metric_plot.png')
 
+# Attempt to import docker and subprocess
+try:
+    import docker
+    DOCKER_AVAILABLE = True
+    LOGGER.info("Docker module available.")
+except ImportError:
+    DOCKER_AVAILABLE = False
+    LOGGER.warning("Docker module not available. Docker functionality will be disabled.")
+
+try:
+    import subprocess
+    SUBPROCESS_AVAILABLE = True
+    LOGGER.info("Subprocess module available.")
+except ImportError:
+    SUBPROCESS_AVAILABLE = False
+    LOGGER.warning("Subprocess module not available. Tmux functionality will be disabled.")
+
+
 class GPUMonitor:
     """
     Manages NVIDIA GPU metrics using NVML and collects carbon metrics from the
     National Grid ESO Regional Carbon Intensity API.
     """
 
-    def __init__(self, monitor_interval: int = MONITOR_INTERVAL, carbon_region_shorthand: str = "South England"):
+    def __init__(self, monitor_interval: int = MONITOR_INTERVAL,
+                 carbon_region_shorthand: str = "South England"):
         """
         Initializes the GPUMonitor class.
 
@@ -54,9 +72,11 @@ class GPUMonitor:
             monitor_interval (int): Interval in seconds for collecting GPU metrics.
             carbon_region_shorthand (str): Region shorthand for carbon intensity API.
         """
-        # Select Monitor Interval and Carbon Region 
-        self.monitor_interval = monitor_interval
-        self.carbon_region_shorthand = carbon_region_shorthand
+        # General configuration
+        self.config = {
+            'monitor_interval': monitor_interval,
+            'carbon_region_shorthand': carbon_region_shorthand
+        }
 
         # Initialize time series data for GPU metrics
         self._time_series_data: Dict[str, List] = {
@@ -91,11 +111,8 @@ class GPUMonitor:
             LOGGER.error("Failed to initialize NVML: %s", nvml_error)
             raise
 
-        # Number of GPUs
-        self.device_count = pynvml.nvmlDeviceGetCount()
-
-        # Initialize Docker client
-        self.client = docker.from_env()
+        # Initialize Docker client if Docker is available
+        self.client = docker.from_env() if DOCKER_AVAILABLE else None
 
         # Initialise parameter for Benchmark Container
         self.container = None
@@ -121,7 +138,10 @@ class GPUMonitor:
             )  # Convert bytes to MiB
 
             # Get initial carbon forecast
-            carbon_forecast = get_carbon_forecast(self.carbon_region_shorthand)
+            carbon_forecast = get_carbon_forecast(self.config['carbon_region_shorthand'])
+
+            # Number of GPUs
+            device_count = pynvml.nvmlDeviceGetCount()
 
             # Initialize statistics
             self._stats = {
@@ -140,6 +160,7 @@ class GPUMonitor:
                 "total_carbon": 0.0,
                 "total_energy": 0.0,
                 "total_mem": total_memory,
+                "device_count": device_count,
             }
 
             LOGGER.info("Statistics initialized: %s", self._stats)
@@ -171,7 +192,7 @@ class GPUMonitor:
             }
 
             # Collect metrics for each GPU
-            for i in range(self.device_count):
+            for i in range(self._stats['device_count']):
                 handle = pynvml.nvmlDeviceGetHandleByIndex(i)
 
                 # Retrieve metrics for the current GPU
@@ -213,11 +234,11 @@ class GPUMonitor:
             current_power = self.current_gpu_metrics['power']
 
             # Ensure power readings match the number of devices
-            if len(self.previous_power) != self.device_count or len(current_power) != self.device_count:
+            if len(self.previous_power) != self._stats['device_count'] or len(current_power) != self._stats['device_count']:
                 raise ValueError("Length of previous_power or current_power does not match the number of devices.")
 
             # Convert monitoring interval from seconds to hours
-            collection_interval_h = self.monitor_interval / SECONDS_IN_HOUR
+            collection_interval_h = self.config['monitor_interval'] / SECONDS_IN_HOUR
 
             # Calculate energy consumption in Wh using the trapezoidal rule
             energy_wh = sum(((prev + curr) / 2) * collection_interval_h for prev, curr in zip(self.previous_power, current_power))
@@ -252,7 +273,7 @@ class GPUMonitor:
             self._stats["end_datetime"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
             # Get the carbon forecast at the end time
-            self._stats["end_carbon_forecast"] = get_carbon_forecast(self.carbon_region_shorthand)
+            self._stats["end_carbon_forecast"] = get_carbon_forecast(self.config['carbon_region_shorthand'])
 
             # Calculate the average carbon forecast over the duration
             self._stats["av_carbon_forecast"] = (self._stats["start_carbon_forecast"] + self._stats["end_carbon_forecast"]) / 2
@@ -386,19 +407,19 @@ class GPUMonitor:
             # Prepare data for plotting for each metric and GPU
             power_data = [
                 [p[i] for p in self._time_series_data["power"]]
-                for i in range(self.device_count)
+                for i in range(self._stats['device_count'])
             ]
             util_data = [
                 [u[i] for u in self._time_series_data["util"]]
-                for i in range(self.device_count)
+                for i in range(self._stats['device_count'])
             ]
             temp_data = [
                 [t[i] for t in self._time_series_data["temp"]]
-                for i in range(self.device_count)
+                for i in range(self._stats['device_count'])
             ]
             mem_data = [
                 [m[i] for m in self._time_series_data["mem"]]
-                for i in range(self.device_count)
+                for i in range(self._stats['device_count'])
             ]
 
             # Create a new figure with a 2x2 grid of subplots
@@ -497,7 +518,7 @@ class GPUMonitor:
             # Log any unexpected errors
             LOGGER.error("Unexpected error in live monitoring: %s", ex)
 
-    def _live_monitor_benchmark(self) -> str:
+    def _live_monitor_container(self) -> str:
         """
         Monitors and retrieves benchmark metrics and container logs in real-time.
 
@@ -546,9 +567,53 @@ class GPUMonitor:
             # Log any unexpected errors
             LOGGER.error("Unexpected error in live monitoring: %s", ex)
             raise  # Re-raise the exception if you want it to propagate
+    
+    def _live_monitor_tmux(self, session_name: str) -> str:
+        """
+        Monitors and retrieves benchmark metrics and tmux logs in real-time.
 
-    def run(self, benchmark_image: str, live_monitoring: bool = True, plot: bool = True,
-        live_plot: bool = False, monitor_logs: bool = False) -> None:
+        This method collects live metrics from the benchmarking process, retrieves
+        logs from the tmux, and formats them into a complete message.
+
+        It captures any potential errors during processing and logs them accordingly.
+
+        Returns:
+            str: A formatted string containing the metrics message and tmux logs.
+
+        Raises:
+            ValueError: If there is a value error during live monitoring.
+            Exception: For any other unexpected errors during live monitoring.
+        """
+        try:
+            # Collect live metrics
+            metrics_message = self._live_monitor_metrics()
+
+            # Capture and display logs from tmux
+            logs_command = ["tmux", "capture-pane", "-t", session_name, "-p"]
+            try:
+                logs = subprocess.check_output(logs_command).decode()
+                LOGGER.info("Captured logs from tmux session.")
+            except subprocess.CalledProcessError as e:
+                LOGGER.error("Failed to capture logs from tmux session: %s", e)
+            
+            # Return complete message with metrics and Tmux logs header
+            return f"{metrics_message}\nTmux Logs:\n\n{logs}"
+
+        except ValueError as value_error:
+            # Log value errors that occur during processing
+            LOGGER.error("Value error in live monitoring: %s", value_error)
+            raise  # Re-raise the exception if you want it to propagate
+
+        except Exception as ex:
+            # Log any unexpected errors
+            LOGGER.error("Unexpected error in live monitoring: %s", ex)
+            raise  # Re-raise the exception if you want it to propagate
+
+    def _run_benchmark_in_docker(self, benchmark_image: str,
+                                 live_monitoring: bool = True,
+                                 plot: bool = True,
+                                 live_plot: bool = False,
+                                 monitor_logs: bool = False) -> None:
         """
         Runs the GPU monitoring and plotting process while executing a container.
 
@@ -561,9 +626,14 @@ class GPUMonitor:
             monitor_logs (bool): If True, monitors both metrics and container logs.
             Defaults to False.
         """
+        # Check if docker is available
+        if not DOCKER_AVAILABLE:
+            LOGGER.error("Docker functionality is not available. Please install Docker.")
+            raise RuntimeError("The 'docker' module is required but not available. Please install it.")
+        
         # Initialize GPU statistics
         self.__setup_stats()
-        self._stats["image_name"] = benchmark_image
+        self._stats["benchmark_image"] = benchmark_image
 
         # Start timing
         start_time = datetime.now()
@@ -573,8 +643,6 @@ class GPUMonitor:
                 benchmark_image,
                 detach=True,
                 device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])],
-                #memswap_limit="-1",
-                #ipc_mode="host", # Needed to solve shared memory leaking issue for mantid_imaging
             )
 
             # Reload to update status from created to running
@@ -601,14 +669,14 @@ class GPUMonitor:
                     if live_monitoring:
                         if monitor_logs:
                             # Monitor both metrics and container logs
-                            print(self._live_monitor_benchmark())
+                            print(self._live_monitor_container())
                         else:
                             # Monitor only metrics
                             print(self._live_monitor_metrics())
                             print(f"\n Benchmark Status: {self.container.status}")
 
                     # Wait for the specified interval before the next update
-                    time.sleep(self.monitor_interval)
+                    time.sleep(self.config['monitor_interval'])
 
                 except (KeyboardInterrupt, SystemExit):
                     LOGGER.info("Monitoring interrupted by user.")
@@ -636,6 +704,134 @@ class GPUMonitor:
 
             # Safe shutdown
             self._shutdown(plot)
+
+            # Clean up Docker container
+            if self.container:
+                try:
+                    self.container.remove(force=True)
+                    LOGGER.info("Docker container removed.")
+                except docker.errors.APIError as docker_error:
+                    LOGGER.error("Failed to remove Docker container: %s", docker_error)
+
+    def _run_benchmark_in_tmux(self, benchmark_command: str, 
+                               live_monitoring: bool = True, plot: bool = True,
+                               live_plot: bool = False, monitor_logs: bool = False) -> None:
+        """
+        Executes a benchmark command in a tmux session.
+
+        Args:
+            benchmark_command (str): The command to run in the tmux session.
+            live_monitoring (bool): If True, enables live monitoring display. Defaults to True.
+            plot (bool): If True, saves the metrics plot at the end. Defaults to True.
+            live_plot (bool): If True, updates the plot in real-time. Defaults to False.
+            monitor_logs (bool): If True, monitors both metrics and session logs. Defaults to False.
+        """
+        # Check if tmux is available
+        if not SUBPROCESS_AVAILABLE:
+            raise RuntimeError("The 'subprocess' module is required but not available. Please install it.")
+        
+        # Initialize GPU statistics
+        self.__setup_stats()
+        self._stats["benchmark_command"] = benchmark_command
+        LOGGER.info("Initialized benchmark runner for tmux session.")
+
+        # Start timing
+        start_time = datetime.now()
+
+        try:
+            # Create a new tmux session and Run Benchmark Command
+            session_name = "benchmark_session"
+            tmux_command = [
+                "tmux", "new-session", "-d", "-s", session_name,
+                "bash -c 'cd \"$(pwd)\" && " + benchmark_command + "'"
+            ]
+            LOGGER.info("Starting tmux session with command: %s", benchmark_command)
+            try:
+                subprocess.run(tmux_command, check=True)
+                LOGGER.info("Tmux session started successfully.")
+            except subprocess.CalledProcessError as e:
+                LOGGER.error("Failed to start tmux session: %s", e)
+                raise RuntimeError(f"Failed to start tmux session: {e}") from e
+
+
+            while True:
+                try:
+                    # Update the current GPU metrics
+                    self.__update_gpu_metrics()
+
+                    # Plot metrics if live plotting is enabled
+                    if live_plot:
+                        try:
+                            self.plot_metrics()
+                            LOGGER.info("Live plot updated.")
+                        except (FileNotFoundError, IOError) as plot_error:
+                            LOGGER.error("Error during plotting: %s", plot_error)
+                            continue
+
+                    # Display live monitoring output if enabled
+                    if live_monitoring:
+                        if monitor_logs:
+                            # Monitor both metrics and container logs
+                            try:
+                                print(self._live_monitor_tmux(session_name=session_name))
+                            except subprocess.CalledProcessError:
+                                LOGGER.info("Tmux session has ended.")
+                                break
+                        else:
+                            print(self._live_monitor_metrics())
+                            print("\nBenchmark Status: Running")
+                            LOGGER.info("Live monitoring metrics displayed.")
+
+                     # Check if the tmux session is still running
+                    status_command = ["tmux", "has-session", "-t", session_name]
+                    try:
+                        subprocess.run(status_command, check=True)
+                    except subprocess.CalledProcessError:
+                        LOGGER.info("Tmux session has ended.")
+                        break
+                    # Check if tmux session is still running via logs
+                    logs_command = ["tmux", "capture-pane", "-t", session_name, "-p"]
+                    try:
+                        subprocess.check_output(logs_command)
+                        LOGGER.info("Captured logs from tmux session - still running.")
+                    except subprocess.CalledProcessError as e:
+                        LOGGER.error("Failed to capture logs from tmux session: %s", e)
+                        LOGGER.info("Tmux session has ended.")
+                        break
+                    
+                    # Wait for the specified interval before the next update
+                    time.sleep(self.config['monitor_interval'])
+
+                except (KeyboardInterrupt, SystemExit):
+                    LOGGER.info("Monitoring interrupted by user.")
+                    print("\nMonitoring interrupted by user.\nStopping gracefully, please wait...")
+                    break
+                except subprocess.CalledProcessError:
+                        LOGGER.info("Tmux session has ended.")
+                        break
+                except Exception as ex:
+                    LOGGER.error("Unexpected error during monitoring: %s", ex)
+        except (KeyboardInterrupt, SystemExit):
+            LOGGER.info("Monitoring interrupted by user.")
+            print("\nMonitoring interrupted by user.\nStopping gracefully, please wait...")
+        except subprocess.CalledProcessError as subprocess_error:
+            LOGGER.error("Subprocess error: %s", subprocess_error)
+        except Exception as ex:
+            LOGGER.error("Unexpected error: %s", ex)
+        finally:
+            # End timing
+            end_time = datetime.now()
+            self._stats['elapsed_time'] = (end_time - start_time).total_seconds()
+
+            # Safe shutdown
+            self._shutdown(plot)
+
+            # Clean up tmux session
+            try:
+                subprocess.run(["tmux", "kill-session", "-t", session_name], check=True)
+                LOGGER.info("Tmux session '%s' terminated.", session_name)
+            except subprocess.CalledProcessError as e:
+                LOGGER.error("Failed to clean up tmux session '%s': %s", session_name, e)
 
     def _shutdown(self, plot: bool) -> None:
         """
@@ -668,39 +864,6 @@ class GPUMonitor:
             except (FileNotFoundError, IOError) as plot_error:
                 LOGGER.error("Error during plotting: %s", plot_error)
 
-        # Handle container removal
-        if self.container:
-            LOGGER.info("Container exists. Attempting to remove.")
-            try:
-                # Check the container status
-                self.container.reload()  # Refresh the container state
-
-                if self.container.status == 'running':
-                    LOGGER.info("Container is running. Attempting to stop.")
-                    try:
-                        self.container.stop()
-                        LOGGER.info("Container stopped successfully.")
-                        self.container.remove(force=True)
-                        LOGGER.info("Container force removed successfully.")
-                    except docker.errors.APIError as stop_error:
-                        LOGGER.error("Docker API error during container stop: %s", stop_error)
-                        # Attempt to force remove if stopping fails
-                        LOGGER.info("Attempting to force remove container.")
-                else:
-                    LOGGER.info("Container is not running. Proceeding to remove.")
-                    try:
-                        self.container.remove()
-                        LOGGER.info("Container removed successfully.")
-                    except docker.errors.APIError as remove_error:
-                        LOGGER.error("Docker API error during container removal: %s", remove_error)
-
-            except docker.errors.NotFound as not_found_error:
-                # Container was not found, log this but do not let it stop execution
-                LOGGER.warning("Container not found during cleanup: %s", not_found_error)
-            except docker.errors.APIError as api_error:
-                # Handle other Docker API errors
-                LOGGER.error("Docker API error during container management: %s", api_error)
-
         # Handle NVML shutdown
         try:
             LOGGER.info("Attempting to shutdown NVML.")
@@ -712,3 +875,59 @@ class GPUMonitor:
         except Exception as ex:
             # Handle any unexpected exceptions
             LOGGER.error("Unexpected error during NVML shutdown: %s", ex)
+
+    def run(self, benchmark_command: str = None, benchmark_image: str = None,
+            live_monitoring: bool = True,
+            plot: bool = True, live_plot: bool = False,
+            monitor_logs: bool = False) -> None:
+        """
+        Runs the benchmark process either in a tmux session or Docker container based on provided arguments.
+
+        This method determines whether to execute the benchmark using a tmux session or a Docker container,
+        depending on the provided input. It will raise an error if both or neither `benchmark_command` and 
+        `benchmark_image` are provided.
+
+        Args:
+            benchmark_command (str): The shell command to run in a tmux session.
+            benchmark_image (str): The Docker container image to run.
+            live_monitoring (bool): If True, enables live monitoring display during execution. Defaults to True.
+            plot (bool): If True, saves the metrics plot at the end of execution. Defaults to True.
+            live_plot (bool): If True, updates the metrics plot in real-time while the benchmark is running. Defaults to False.
+            monitor_logs (bool): If True, monitors both GPU metrics and logs from the tmux session or Docker container. Defaults to False.
+        """
+        
+        # Ensure that either a benchmark command or a Docker image is specified, but not both
+        if benchmark_command and benchmark_image:
+            # Log the error of conflicting input arguments
+            LOGGER.error("Both 'benchmark_command' and 'benchmark_image' provided. Please use only one.")
+            
+            # Raise an error indicating that only one method of benchmark execution can be chosen
+            raise ValueError("You must specify either 'benchmark_command' or 'benchmark_image', not both.")
+        
+        # Run the benchmark in a tmux session if a command is provided
+        if benchmark_command:
+            # Check if tmux is available
+            if not SUBPROCESS_AVAILABLE:
+                raise RuntimeError("The 'subprocess' module is required but not available. Please install it.")
+        
+            # Call the private method to handle tmux session execution
+            self._run_benchmark_in_tmux(benchmark_command, live_monitoring, plot, live_plot, monitor_logs)
+        
+        # Run the benchmark in a Docker container if a Docker image is provided
+        elif benchmark_image:
+            # Check if Docker is available
+            if not DOCKER_AVAILABLE:
+                LOGGER.error("Docker functionality is not available. Please install Docker.")
+                
+                # Raise a runtime error indicating that Docker is required but not available
+                raise RuntimeError("Docker functionality is not available. Please install Docker.")
+            
+            # Call the private method to handle Docker container execution
+            self._run_benchmark_in_docker(benchmark_image, live_monitoring, plot, live_plot, monitor_logs)
+        
+        # If neither a benchmark command nor a Docker image is provided, raise an error
+        else:
+            LOGGER.error("Neither 'benchmark_command' nor 'benchmark_image' provided.")
+            
+            # Raise an error indicating that one of the two options must be provided to run the benchmark
+            raise ValueError("You must specify either 'benchmark_command' or 'benchmark_image'.")

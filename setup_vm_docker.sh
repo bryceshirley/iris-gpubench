@@ -63,14 +63,6 @@ sudo apt-get install -y git
 sudo apt-get install -y wget python3-pip
 sudo apt-get install -y python3-venv
 
-# #### INSTALL IrisBench ###
-# git clone https://github.com/bryceshirley/iris_meerkat.git
-# cd iris-gpubench
-# python3 -m venv env
-# source env/bin/activate
-# pip install wheel
-# pip install .
-
 ##### INSTALL NVIDIA DRIVERS #####
 
 echo -e "/n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/nINSTALL NVIDIA DRIVERS/n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/n"
