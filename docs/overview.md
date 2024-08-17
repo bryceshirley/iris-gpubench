@@ -1,8 +1,3 @@
-<p align="center">
-  <img src="stfc_logo.png" alt="STFC Logo" height="100">
-  <img src="iris_logo.png" alt="IRIS Logo" height="100">
-</p>
-
 # Overview
 
 The GPU Monitoring and Carbon Calculation Tool for Containerized Benchmarks is designed to monitor GPU performance and calculate associated carbon emissions during benchmarking tasks involving GPU operations.
