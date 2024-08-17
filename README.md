@@ -1,3 +1,6 @@
+![STFC Logo](docs/stfc_logo.png)
+![IRIS Logo](docs/iris_logo.png)
+
 # IRIS GPU Bench
 ## A GPU Monitoring and Carbon Calculation Tool for Benchmarks
 ---
