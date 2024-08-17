@@ -43,8 +43,6 @@ pip install -e .
    allows immediate reflection of any changes you make to the source code
    without needing to reinstall the package.
 
-### 4.**Next Build Docker Images for the Benchmarks**
-
 ---
 
 [Previous Page](overview.md) | [Next Page](building_docker_images.md)
