@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="docs/stfc_logo.png" alt="STFC Logo" height="100">
+  <img src="docs/iris_logo.png" alt="IRIS Logo" height="100">
+</p>
+
 # Overview
 
 The GPU Monitoring and Carbon Calculation Tool monitors GPU performance and estimates carbon emissions during benchmarks.
