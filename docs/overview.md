@@ -5,7 +5,7 @@
 
 # Overview
 
-The GPU Monitoring and Carbon Calculation Tool monitors GPU performance and estimates carbon emissions during benchmarks.
+The GPU Monitoring and Carbon Calculation Tool `iris-gpubench` monitors GPU performance and estimates carbon emissions during benchmarks.
 
 ## Key Features
 
