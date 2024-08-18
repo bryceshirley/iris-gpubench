@@ -32,6 +32,12 @@ theme:
 plugins:
   - search
 
+markdown_extensions:
+  - markdown.extensions.extra  # Enables full Markdown and HTML support
+  - markdown.extensions.codehilite
+  - markdown.extensions.toc:
+      permalink: True
+
 nav:
   - Index: index.md
   - Overview: overview.md
