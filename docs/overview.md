@@ -1,6 +1,5 @@
 <p align="center">
   <img src="stfc_logo.png" alt="STFC Logo" height="100">
-  <img src="iris_logo.png" alt="IRIS Logo" height="100">
 </p>
 
 # Overview
