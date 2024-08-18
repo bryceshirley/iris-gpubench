@@ -62,7 +62,7 @@ def format_metrics(results_dir: str = RESULTS_DIR,
         if 'benchmark_command' in data:
             main_data.extend([
                 ["Benchmark Command Run", f"{data.get('benchmark_command')}"],
-                ["Elapsed Monitor Time of Command (s)", f"{data.get('elapsed_time'):.5f}"]
+                ["Elapsed Monitor Time of Command (s)", f"{data.get('elapsed_time'):.5f}"],
             ])
 
         # Add other data
