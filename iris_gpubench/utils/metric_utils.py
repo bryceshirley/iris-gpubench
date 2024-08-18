@@ -53,15 +53,20 @@ def format_metrics(results_dir: str = RESULTS_DIR,
 
         # Add benchmark image name if it exists
         if 'benchmark_image' in data:
-            main_data.append(["Benchmark Image Name", f"{data.get('benchmark_image')}"])
+            main_data.extend([
+                ["Benchmark Image Name", f"{data.get('benchmark_image')}"],
+                ["Elapsed Monitor Time of Container (s)", f"{data.get('elapsed_time'):.5f}"],
+            ])
 
         # Add benchmark command run if it exists
         if 'benchmark_command' in data:
-            main_data.append(["Benchmark Command Run", f"{data.get('benchmark_command')}"])
+            main_data.extend([
+                ["Benchmark Command Run", f"{data.get('benchmark_command')}"],
+                ["Elapsed Monitor Time of Command (s)", f"{data.get('elapsed_time'):.5f}"]
+            ])
 
         # Add other data
         main_data.extend([
-            ["Elapsed Monitor Time of Container (s)", f"{data.get('elapsed_time'):.5f}"],
             ["Total GPU Energy Consumed (kWh)", f"{data.get('total_energy'):.5f}"],
             ["Total GPU Carbon Emissions (gCO2)", f"{data.get('total_carbon'):.5f}"],
         ])
