@@ -12,7 +12,7 @@ The repository includes various Docker images for benchmarking. Below is a list 
 - **`stemdl_classification_1gpu`**: Dockerfile for STEMDL classification using a single GPU.
 - **`stemdl_classification_2gpu`**: Dockerfile for STEMDL classification using two GPUs (ensure two GPUs are available).
 - **`synthetic_regression`**: Dockerfile for synthetic regression benchmarks with parameters `-b hidden_size 9000 -b epochs 10`.
-  - For more information, check the [SCIML Bench Repository](https://github.com/stfc-sciml/sciml-bench). These dockerfiles clown a a [fork version](https://github.com/bryceshirley/sciml-bench) of the sciml-bench repo.
+  - For more information, check the [SCIML Bench Repository](https://github.com/stfc-sciml/sciml-bench). These dockerfiles clown a a [forked version](https://github.com/bryceshirley/sciml-bench) of the sciml-bench repo.
 
 ### Dummy Benchmark Container
 - **`dummy`**: A Dockerfile for a container used to profile GPU resource usage. This container runs for 5 minutes and helps assess the impact of the monitoring tool. For more details on profiling tests, see [Profiling the Monitor's Impact on GPU Resources](considerations_on_accuracy.md#profiling-the-monitors-impact-on-gpu-resources).
