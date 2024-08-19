@@ -19,8 +19,8 @@
 # ==============================================================================
 
 # Directory containing Dockerfiles
-BASE_IMAGES_DIR="dockerfiles/base_images"
-APP_IMAGES_DIR="dockerfiles/app_images"
+BASE_IMAGES_DIR="base_images/"
+APP_IMAGES_DIR="app_images/"
 
 # Build base images first
 echo "Building base images..."
