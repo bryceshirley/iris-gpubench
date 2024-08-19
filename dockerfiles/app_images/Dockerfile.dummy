@@ -1,5 +1,5 @@
 # Use the official Ubuntu base image
-FROM gpu_base:latest
+FROM ubuntu:20.04
 
 # Set the working directory
 WORKDIR /root
