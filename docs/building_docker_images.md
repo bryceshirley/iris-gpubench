@@ -9,8 +9,6 @@ cd Benchmark_Docker
 
 This script will build Docker images from the Dockerfiles located in `Benchmark_Docker/Benchmark_Dockerfiles`. Feel Free to add your own here too. 
 
-Here’s the section with appropriate headings added:
-
 ### Available Dockerfiles and Their Purposes
 
 #### Base Images
