@@ -1,7 +1,3 @@
-If you need to build Docker images for benchmarking, you can use the provided `build_images.sh` script. This script will build images defined in the `Benchmark_Docker` directory. Here’s how to use it:
-
-Got it! Here is the combined section into a single step:
-
 ### Script to Build The Docker Images (Currently under development to integrate CI so may not work)
 
 To build Docker images for benchmarking, navigate to the `Benchmark_Docker` directory and execute the build script:
@@ -12,8 +8,6 @@ cd Benchmark_Docker
 ```
 
 This script will build Docker images from the Dockerfiles located in `Benchmark_Docker/Benchmark_Dockerfiles`. Feel Free to add your own here too. 
-
-Here’s the section with appropriate headings added:
 
 ### Available Dockerfiles and Their Purposes
 
