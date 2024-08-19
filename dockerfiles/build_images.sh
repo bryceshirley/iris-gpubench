@@ -29,7 +29,7 @@ for DOCKERFILE in ${BASE_IMAGES_DIR}/Dockerfile.*; do
   IMAGE_NAME=$(basename $DOCKERFILE | sed 's/Dockerfile\.//')
 
   # Construct the full image tag for base images
-  IMAGE_TAG="${IMAGE_NAME}_base:latest"
+  IMAGE_TAG="${IMAGE_NAME}:latest"
 
   echo "Building base image: ${IMAGE_TAG}..."
   docker build -f $DOCKERFILE -t ${IMAGE_TAG} .
@@ -42,7 +42,7 @@ for DOCKERFILE in ${APP_IMAGES_DIR}/Dockerfile.*; do
   IMAGE_NAME=$(basename $DOCKERFILE | sed 's/Dockerfile\.//')
 
   # Construct the full image tag for app images
-  IMAGE_TAG="${IMAGE_NAME}_app:latest"
+  IMAGE_TAG="${IMAGE_NAME}:latest"
 
   echo "Building app image: ${IMAGE_TAG}..."
   docker build -f $DOCKERFILE -t ${IMAGE_TAG} .
