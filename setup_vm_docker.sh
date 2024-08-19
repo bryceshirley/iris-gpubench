@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# =============================================================================
+# setup_vm_docker.sh
+# =============================================================================
+# This script sets up a virtual machine for running benchmarks with Docker and 
+# IrisBench on Ubuntu. It is intended for use on an Ubuntu VM equipped with 
+# Nvidia GPUs.
+# 
+# Usage:
+# 1. Ensure your VM is running Ubuntu with Nvidia GPUs.
+# 2. Execute this script to set up Docker, NVIDIA Docker, and install necessary 
+#    software for IrisBench and Docker benchmarks.
+# =============================================================================
+
 
 ##### INSTALL OFFICAL DOCKER #####
 

@@ -1,6 +1,15 @@
 #!/bin/bash
 
-#### INSTALL IrisBench ###
+# =============================================================================
+# setup_vm_tmux.sh
+# =============================================================================
+# This script sets up a virtual machine for running benchmarks and iris-gpubench
+# with Tmux on Ubuntu. The Ubuntu VM should be equipped with Nvidia GPUs.
+# It installs essential software packages for iris-gpubench including Git, Python, 
+# Tmux, and NVIDIA drivers.
+# =============================================================================
+
+#### INSTALL Git, python3-pip and Venv ###
 
 echo -e "/n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/nInstall git, python3-pip, and Venv/n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/n"
 
