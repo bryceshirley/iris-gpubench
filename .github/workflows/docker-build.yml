@@ -1,0 +1,87 @@
+name: Build and Push Docker Images to GHCR
+
+on:
+  push:
+    branches:
+      - main  # Change to your default branch if different
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write  # Required to push images to GHCR
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push gpu_base image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/gpu_base:latest -f Benchmark_Dockerfiles/Dockerfile.gpu_base .
+        docker push ghcr.io/${{ github.repository_owner }}/gpu_base:latest
+
+    - name: Build and push sciml_base image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/sciml_base:latest -f Benchmark_Dockerfiles/sciml_benchmarks/Dockerfile.sciml_base .
+        docker push ghcr.io/${{ github.repository_owner }}/sciml_base:latest
+
+    - name: Build and push mantid_base image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/mantid_base:latest -f Benchmark_Dockerfiles/mantid_imaging_benchmarks/Dockerfile.mantid_base .
+        docker push ghcr.io/${{ github.repository_owner }}/mantid_base:latest
+
+    - name: Build and push stemdl_classification_base image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/stemdl_classification_base:latest -f Benchmark_Dockerfiles/sciml_benchmarks/Dockerfile.stemdl_classification_base .
+        docker push ghcr.io/${{ github.repository_owner }}/stemdl_classification_base:latest
+
+    # Repeat the pattern for other images:
+    - name: Build and push synthetic_regression image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/synthetic_regression:latest -f Benchmark_Dockerfiles/sciml_benchmarks/Dockerfile.synthetic_regression .
+        docker push ghcr.io/${{ github.repository_owner }}/synthetic_regression:latest
+
+    - name: Build and push stemdl_classification_1gpu image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/stemdl_classification_1gpu:latest -f Benchmark_Dockerfiles/sciml_benchmarks/Dockerfile.stemdl_classification_1gpu .
+        docker push ghcr.io/${{ github.repository_owner }}/stemdl_classification_1gpu:latest
+
+    - name: Build and push stemdl_classification_2gpu image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/stemdl_classification_2gpu:latest -f Benchmark_Dockerfiles/sciml_benchmarks/Dockerfile.stemdl_classification_2gpu .
+        docker push ghcr.io/${{ github.repository_owner }}/stemdl_classification_2gpu:latest
+
+    - name: Build and push mnist_tf_keras image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/mnist_tf_keras:latest -f Benchmark_Dockerfiles/sciml_benchmarks/Dockerfile.mnist_tf_keras .
+        docker push ghcr.io/${{ github.repository_owner }}/mnist_tf_keras:latest
+
+    - name: Build and push mantid_run_8 image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/mantid_run_8:latest -f Benchmark_Dockerfiles/mantid_imaging_benchmarks/Dockerfile.mantid_run_8 .
+        docker push ghcr.io/${{ github.repository_owner }}/mantid_run_8:latest
+
+    - name: Build and push mantid_run_1 image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/mantid_run_1:latest -f Benchmark_Dockerfiles/mantid_imaging_benchmarks/Dockerfile.mantid_run_1 .
+        docker push ghcr.io/${{ github.repository_owner }}/mantid_run_1:latest
+
+    - name: Build and push dummy image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/dummy:latest -f Benchmark_Dockerfiles/dummy/Dockerfile.dummy .
+        docker push ghcr.io/${{ github.repository_owner }}/dummy:latest
