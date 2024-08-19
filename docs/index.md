@@ -4,8 +4,8 @@ Provides a general introduction to the GPU Monitoring and Carbon Calculation Too
  2. **[Installation](installation.md)**  
 Step-by-step instructions for setting up the tool, including setting up the virtual environment and installing dependencies.
 
- 3. **[Building Docker Images](building_docker_images.md)**  
-Instructions for building Docker images for benchmarking, including how to add your own custom benchmarks.
+ 3. **[Benchmark Docker Images](building_docker_images.md)**  
+Instructions for managing and building Docker images for benchmarking, including how to add custom benchmarks, understand the directory structure, and pull images from the GitHub Container Registry.
 
  4. **[Command-Line Interface](command_line_interface.md)**  
 Explains the available command-line arguments and options for controlling the tool’s behavior and features.

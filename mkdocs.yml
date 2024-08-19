@@ -43,7 +43,7 @@ nav:
   - Index: index.md
   - Overview: overview.md
   - Installation: installation.md
-  - Building Benchmark Docker Images: building_docker_images.md
+  - Benchmark Docker Images: building_docker_images.md
   - Command-Line Interface: command_line_interface.md
   - Example Commands: example_commands.md
   - Collecting Results: collecting_results.md
