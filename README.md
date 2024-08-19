@@ -31,3 +31,5 @@ The **IRIS GPU Bench** tool tracks GPU performance and carbon emissions during b
 This tool is ideal for evaluating GPU application performance, measuring environmental impact, optimizing GPU performance, and informing purchasing decisions by testing applications on different hardware configurations.
 
 ---
+
+![Build Status](https://github.com/bryceshirley/iris-gpubench/actions/workflows/docker-build.yml/badge.svg)
