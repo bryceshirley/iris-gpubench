@@ -24,7 +24,7 @@ jobs:
         with:
           registry: harbor.stfc.ac.uk
           username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_TOKEN }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
 
       - name: Build Base Images
         run: |
@@ -58,7 +58,7 @@ jobs:
         with:
           registry: harbor.stfc.ac.uk
           username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_TOKEN }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
 
       - name: Build Application Images
         run: |
