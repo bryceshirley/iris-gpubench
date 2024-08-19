@@ -5,11 +5,11 @@ on:
     branches:
       - main
     paths:
-      - 'Benchmark_Dockerfiles/**'
+      - 'dockerfiles/**'
   workflow_dispatch:
 
 jobs:
-  build:
+  build-base-images:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,25 +26,61 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Scan Dockerfiles and Build
+      - name: Build Base Images
         run: |
-          # Create a list of Dockerfiles
-          DOCKERFILES=$(find Benchmark_Dockerfiles -name 'Dockerfile*')
-
-          for DOCKERFILE in $DOCKERFILES; do
-            # Extract the Dockerfile extension and derive the image name
+          # Build base images
+          BASE_DOCKERFILES=$(find dockerfiles/base_images -name 'Dockerfile*')
+          
+          for DOCKERFILE in $BASE_DOCKERFILES; do
             EXTENSION=$(echo $DOCKERFILE | sed 's/.*Dockerfile\.//')
             IMAGE_NAME=${EXTENSION:-default}
 
-            # Define the tag for the Docker image
             TAG="ghcr.io/${{ github.repository }}/$IMAGE_NAME:latest"
 
-            echo "Building and pushing image: $TAG"
+            echo "Building and pushing base image: $TAG"
 
-            # Build and push Docker image
             docker buildx build --push --tag $TAG -f $DOCKERFILE $(dirname $DOCKERFILE)
           done
 
+  build-app-images:
+    runs-on: ubuntu-latest
+    needs: build-base-images
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Application Images
+        run: |
+          # Build application images
+          APP_DOCKERFILES=$(find dockerfiles/app_images -name 'Dockerfile*')
+          
+          for DOCKERFILE in $APP_DOCKERFILES; do
+            EXTENSION=$(echo $DOCKERFILE | sed 's/.*Dockerfile\.//')
+            IMAGE_NAME=${EXTENSION:-default}
+
+            TAG="ghcr.io/${{ github.repository }}/$IMAGE_NAME:latest"
+
+            echo "Building and pushing app image: $TAG"
+
+            docker buildx build --push --tag $TAG -f $DOCKERFILE $(dirname $DOCKERFILE)
+          done
+
+  verify-images:
+    runs-on: ubuntu-latest
+    needs: build-app-images
+
+    steps:
       - name: Verify images
         run: |
           echo "Listing Docker images in the GitHub Container Registry"

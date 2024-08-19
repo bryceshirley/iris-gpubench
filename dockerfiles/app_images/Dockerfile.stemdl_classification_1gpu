@@ -8,3 +8,6 @@ WORKDIR /root
 RUN /bin/bash -c "source /root/anaconda3/bin/activate bench && \
     sciml-bench install stemdl_classification && \
     sciml-bench download stemdl_ds1"
+
+# Set the entrypoint to run the benchmark
+ENTRYPOINT ["/bin/bash", "-c", "source /root/anaconda3/bin/activate bench && sciml_bench --output_dir=/root/results/ -b epochs 1 -gpus 1 stemdl_classification"]
