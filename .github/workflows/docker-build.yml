@@ -19,12 +19,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to Harbor
         uses: docker/login-action@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GH_PAT }}
+          registry: harbor.stfc.ac.uk
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_TOKEN }}
 
       - name: Build Base Images
         run: |
@@ -35,7 +35,7 @@ jobs:
             EXTENSION=$(echo $DOCKERFILE | sed 's/.*Dockerfile\.//')
             IMAGE_NAME=${EXTENSION:-default}
 
-            TAG="ghcr.io/${{ github.repository }}/$IMAGE_NAME:latest"
+            TAG="harbor.stfc.ac.uk/stfc-cloud/$IMAGE_NAME:latest"
 
             echo "Building and pushing base image: $TAG"
 
@@ -53,12 +53,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to Harbor
         uses: docker/login-action@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GH_PAT }}
+          registry: harbor.stfc.ac.uk
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_TOKEN }}
 
       - name: Build Application Images
         run: |
@@ -69,20 +69,9 @@ jobs:
             EXTENSION=$(echo $DOCKERFILE | sed 's/.*Dockerfile\.//')
             IMAGE_NAME=${EXTENSION:-default}
 
-            TAG="ghcr.io/${{ github.repository }}/$IMAGE_NAME:latest"
+            TAG="harbor.stfc.ac.uk/stfc-cloud/$IMAGE_NAME:latest"
 
             echo "Building and pushing app image: $TAG"
 
             docker buildx build --push --tag $TAG -f $DOCKERFILE $(dirname $DOCKERFILE)
           done
-
-  verify-images:
-    runs-on: ubuntu-latest
-    needs: build-app-images
-
-    steps:
-      - name: Verify images
-        run: |
-          echo "Listing Docker images in the GitHub Container Registry"
-          curl -s -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
-          "https://ghcr.io/v2/${{ github.repository }}/tags/list"
