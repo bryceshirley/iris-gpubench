@@ -1,6 +1,3 @@
-Here's an updated version of the example commands section in the documentation, including detailed explanations for each example:
-
----
 
 ## Example Usage
 
