@@ -35,7 +35,7 @@ jobs:
             EXTENSION=$(echo $DOCKERFILE | sed 's/.*Dockerfile\.//')
             IMAGE_NAME=${EXTENSION:-default}
 
-            TAG="harbor.stfc.ac.uk/stfc-cloud-staging/$IMAGE_NAME:latest"
+            TAG="harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench$IMAGE_NAME:latest"
 
             echo "Building and pushing base image: $TAG"
 
