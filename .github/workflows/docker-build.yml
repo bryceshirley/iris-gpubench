@@ -46,7 +46,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: ${{ github.ref == 'refs/heads/main' }}
-          context: "/iris-gpubench/dockerfiles/base_images"
+          context: "./dockerfiles/base_images"
           dockerfile: "Dockerfile.${{ matrix.image }}"
           tags: "harbor.stfc.ac.uk/stfc-cloud/iris-bench/${{ matrix.image }}:latest"
 
