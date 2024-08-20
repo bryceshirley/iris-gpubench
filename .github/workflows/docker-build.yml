@@ -59,7 +59,6 @@ jobs:
             mnist_tf_keras,
             stemdl_classification_1gpu,
             stemdl_classification_2gpu,
-            synthetic_regression
             #mantid_run_1,
             #mantid_run_8
           ]
