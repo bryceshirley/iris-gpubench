@@ -2,8 +2,9 @@ name: Build and Push Docker Images
 
 on:
   push:
-    branches:
-      - main
+    paths:
+      - 'dockerfiles/**'
+  pull_request:
     paths:
       - 'dockerfiles/**'
   workflow_dispatch:
@@ -11,6 +12,14 @@ on:
 jobs:
   build-base-images:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # Build all images so we can see which fail
+    matrix:
+      image:
+        [
+          sciml_base,
+          mantid_base
+        ]
 
     steps:
       - name: Checkout repository
@@ -27,24 +36,32 @@ jobs:
           password: ${{ secrets.HARBOR_PASSWORD }}
 
       - name: Build Base Images
-        run: |
-          # Build base images
-          BASE_DOCKERFILES=$(find dockerfiles/base_images -name 'Dockerfile*')
-          
-          for DOCKERFILE in $BASE_DOCKERFILES; do
-            EXTENSION=$(echo $DOCKERFILE | sed 's/.*Dockerfile\.//')
-            IMAGE_NAME=${EXTENSION:-default}
-
-            TAG="harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench/$IMAGE_NAME:latest"
-
-            echo "Building and pushing base image: $TAG"
-
-            docker buildx build --push --tag $TAG -f $DOCKERFILE $(dirname $DOCKERFILE)
-          done
+        uses: docker/build-push-action@v3
+        with:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          push: ${{ github.ref == 'refs/heads/main' }}
+          context: "./dockerfiles/base_images"
+          dockerfile: "Dockerfile.${{ matrix.image }}"
+          tags: "harbor.stfc.ac.uk/stfc-cloud/iris-bench/${{ matrix.image }}:latest"
 
   build-app-images:
     runs-on: ubuntu-latest
     needs: build-base-images
+
+    strategy:
+      fail-fast: false # Build all images so we can see which fail
+    matrix:
+      image:
+        [
+          synthetic_regression,
+          mnist_tf_keras,
+          stemdl_classification_1gpu,
+          stemdl_classification_2gpu,
+          synthetic_regression,
+          mantid_run_1,
+          mantid_run_8
+        ]
 
     steps:
       - name: Checkout repository
@@ -61,17 +78,11 @@ jobs:
           password: ${{ secrets.HARBOR_PASSWORD }}
 
       - name: Build Application Images
-        run: |
-          # Build application images
-          APP_DOCKERFILES=$(find dockerfiles/app_images -name 'Dockerfile*')
-          
-          for DOCKERFILE in $APP_DOCKERFILES; do
-            EXTENSION=$(echo $DOCKERFILE | sed 's/.*Dockerfile\.//')
-            IMAGE_NAME=${EXTENSION:-default}
-
-            TAG="harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench/$IMAGE_NAME:latest"
-
-            echo "Building and pushing app image: $TAG"
-
-            docker buildx build --push --tag $TAG -f $DOCKERFILE $(dirname $DOCKERFILE)
-          done
+        uses: docker/build-push-action@v3
+        with:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          push: ${{ github.ref == 'refs/heads/main' }}
+          context: "./dockerfiles/base_images"
+          dockerfile: "Dockerfile.${{ matrix.image }}"
+          tags: "harbor.stfc.ac.uk/stfc-cloud/iris-bench/${{ matrix.image }}:latest"
