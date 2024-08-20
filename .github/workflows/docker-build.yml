@@ -34,9 +34,9 @@ jobs:
       #     registry: harbor.stfc.ac.uk
       #     username: ${{ secrets.HARBOR_USERNAME }}
       #     password: ${{ secrets.HARBOR_PASSWORD }}
-      - name: Login to Harbor, if building master
+      - name: Login to Harbor, if building main
         uses: docker/login-action@v2
-        if: ${{ github.ref == 'refs/heads/master' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         with:
           registry: harbor.stfc.ac.uk
           username: ${{ secrets.HARBOR_USERNAME }}
@@ -83,9 +83,9 @@ jobs:
       #     registry: harbor.stfc.ac.uk
       #     username: ${{ secrets.HARBOR_USERNAME }}
       #     password: ${{ secrets.HARBOR_PASSWORD }}
-      - name: Login to Harbor, if building master
+      - name: Login to Harbor, if building main
         uses: docker/login-action@v2
-        if: ${{ github.ref == 'refs/heads/master' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         with:
           registry: harbor.stfc.ac.uk
           username: ${{ secrets.HARBOR_USERNAME }}
