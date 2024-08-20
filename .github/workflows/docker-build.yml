@@ -14,12 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false # Build all images so we can see which fail
-    matrix:
-      image:
-        [
-          sciml_base,
-          mantid_base
-        ]
+      matrix:
+        image:
+          [
+            sciml_base,
+            mantid_base
+          ]
 
     steps:
       - name: Checkout repository
@@ -51,17 +51,17 @@ jobs:
 
     strategy:
       fail-fast: false # Build all images so we can see which fail
-    matrix:
-      image:
-        [
-          synthetic_regression,
-          mnist_tf_keras,
-          stemdl_classification_1gpu,
-          stemdl_classification_2gpu,
-          synthetic_regression,
-          mantid_run_1,
-          mantid_run_8
-        ]
+      matrix:
+        image:
+          [
+            synthetic_regression,
+            mnist_tf_keras,
+            stemdl_classification_1gpu,
+            stemdl_classification_2gpu,
+            synthetic_regression,
+            mantid_run_1,
+            mantid_run_8
+          ]
 
     steps:
       - name: Checkout repository
