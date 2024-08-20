@@ -35,10 +35,6 @@ jobs:
           registry: harbor.stfc.ac.uk
           username: ${{ secrets.HARBOR_USERNAME }}
           password: ${{ secrets.HARBOR_TOKEN }}
-      
-      - name: List files in base_images
-        run: |
-          ls -R ./dockerfiles/base_images
 
       - name: Build Base Images
         uses: docker/build-push-action@v3
@@ -46,8 +42,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: ${{ github.ref == 'refs/heads/main' }}
-          context: ./dockerfiles/app_images
-          file: ./dockerfiles/app_images/Dockerfile.${{ matrix.image }}
+          context: ./dockerfiles/base_images
+          file: ./dockerfiles/base_images/Dockerfile.${{ matrix.image }}
           tags: "harbor.stfc.ac.uk/stfc-cloud/iris-bench/${{ matrix.image }}:latest"
 
   build-app-images:
@@ -72,10 +68,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: List files in repository
-        run: |
-          ls -R
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -93,6 +85,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: ${{ github.ref == 'refs/heads/main' }}
-          context: ./dockerfiles/base_images
-          file: ./dockerfiles/base_images/Dockerfile.${{ matrix.image }}
+          context: ./dockerfiles/app_images
+          file: ./dockerfiles/app_images/Dockerfile.${{ matrix.image }}
           tags: "harbor.stfc.ac.uk/stfc-cloud/iris-bench/${{ matrix.image }}:latest"
