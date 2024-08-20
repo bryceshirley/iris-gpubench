@@ -47,7 +47,7 @@ jobs:
           cache-to: type=gha,mode=max
           push: ${{ github.ref == 'refs/heads/main' }}
           context: "./dockerfiles/base_images"
-          dockerfile: "Dockerfile.${{ matrix.image }}"
+          dockerfile: "${{ matrix.image }}"
           tags: "harbor.stfc.ac.uk/stfc-cloud/iris-bench/${{ matrix.image }}:latest"
 
   build-app-images:
@@ -94,5 +94,5 @@ jobs:
           cache-to: type=gha,mode=max
           push: ${{ github.ref == 'refs/heads/main' }}
           context: "/iris-gpubench/dockerfiles/base_images"
-          dockerfile: "Dockerfile.${{ matrix.image }}"
+          dockerfile: "${{ matrix.image }}"
           tags: "harbor.stfc.ac.uk/stfc-cloud/iris-bench/${{ matrix.image }}:latest"
