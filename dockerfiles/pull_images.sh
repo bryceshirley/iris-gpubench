@@ -20,16 +20,22 @@
 # ==============================================================================
 
 # Set the GitHub Container Registry base URL and repository
-REGISTRY_URL="ghcr.io"
-REPOSITORY="bryceshirley/iris-gpubench"
+REGISTRY_URL="https://harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench/"
 
-# Directory containing Dockerfiles
-DOCKERFILE_DIR="dockerfiles/app_images"
+# Perform Docker login using environment variables
+echo "Logging in to Harbor Container Registry..."
+docker login harbor.stfc.ac.uk -u "$HARBOR_USERNAME" -p "$HARBOR_PASSWORD"
+
+if [ $? -ne 0 ]; then
+  echo "Docker login failed. Exiting..."
+  exit 1
+fi
+
 
 # Find all Dockerfiles in the directory
-DOCKERFILES=$(ls ${DOCKERFILE_DIR}/Dockerfile.*)
+DOCKERFILES=$(ls app_images/Dockerfile.*)
 
-echo "Pulling images from GitHub Container Registry..."
+echo "Pulling images from Habour Container Registry..."
 
 # Loop through each Dockerfile, extract image names, and pull the images
 for DOCKERFILE in $DOCKERFILES; do
@@ -37,7 +43,7 @@ for DOCKERFILE in $DOCKERFILES; do
   IMAGE_NAME=$(basename $DOCKERFILE | sed 's/Dockerfile\.//')
 
   # Construct the full image tag
-  IMAGE_TAG="${REGISTRY_URL}/${REPOSITORY}/${IMAGE_NAME}:latest"
+  IMAGE_TAG="${REGISTRY_URL}/${IMAGE_NAME}:latest"
 
   echo "Pulling image: ${IMAGE_TAG}..."
   docker pull ${IMAGE_TAG}

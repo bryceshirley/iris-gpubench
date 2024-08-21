@@ -16,8 +16,7 @@ RUN apt-get update && \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Clone the Mantid_imaging_cloud_bench and rm the "Work around for old glibc on Rocky8" line
-# Clone the repository
+# Clone the Mantid_imaging_cloud_bench
 RUN git clone https://github.com/samtygier-stfc/mantid_imaging_cloud_bench.git
 
 # Change directory and run the setup script
