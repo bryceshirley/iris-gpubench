@@ -17,8 +17,8 @@ jobs:
       matrix:
         image:
           [
-            sciml_base
-            #mantid_base
+            sciml_base,
+            mantid_base
           ]
 
     steps:
@@ -59,8 +59,8 @@ jobs:
             mnist_tf_keras,
             stemdl_classification_1gpu,
             stemdl_classification_2gpu,
-            #mantid_run_1,
-            #mantid_run_8
+            mantid_run_1,
+            mantid_run_8
           ]
 
     steps:

@@ -1,5 +1,5 @@
 # Use the official Ubuntu base image
-FROM ghcr.io/bryceshirley/mantid_base:latest
+FROM harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench/mantid_base:latest
 
 # Set the working directory
 WORKDIR /root
