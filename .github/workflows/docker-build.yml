@@ -79,6 +79,9 @@ jobs:
           username: ${{ secrets.HARBOR_USERNAME }}
           password: ${{ secrets.HARBOR_TOKEN }}
 
+      - name: Set ulimit for memory
+        run: ulimit -m 8388608  # Limit memory usage to 8 GB
+
       - name: Build Application Images
         uses: docker/build-push-action@v3
         with:
