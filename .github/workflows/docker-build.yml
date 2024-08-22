@@ -60,7 +60,8 @@ jobs:
             stemdl_classification_1gpu,
             stemdl_classification_2gpu,
             mantid_run_1,
-            mantid_run_8
+            mantid_run_8,
+            dummy
           ]
 
     steps:
