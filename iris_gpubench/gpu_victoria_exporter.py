@@ -45,18 +45,14 @@ import os
 from typing import Dict, List
 
 import requests
+from requests.auth import HTTPBasicAuth
+import base64
 
-# GLOBAL VARIABLES: Default URL for VictoriaMetrics API and CSV format specification
+# GLOBAL VARIABLES
 from .utils.globals import LOGGER, TIMEOUT_SECONDS, RESULTS_DIR
-VICTORIA_METRICS_URL = "https://172.16.101.182:8247/api/v1/import/csv"
-CSV_HEADER = (
-    "1:time:rfc3339,"
-    "2:label:gpu_idx,"
-    "3:metric:util,"
-    "4:metric:power,"
-    "5:metric:temp,"
-    "6:metric:mem"
-)
+MEERKAT_USERNAME = 'your_db_username'
+MEERKAT_PASSWORD = 'your_db_password'
+MEERKAT_URL = 'https://172.16.101.182:8247/write'
 
 
 class VictoriaMetricsExporter:
@@ -89,23 +85,38 @@ class VictoriaMetricsExporter:
     """
 
     def __init__(self,
-                 time_series_data: Dict[str, List],
-                 victoria_metrics_url: str = VICTORIA_METRICS_URL,
-                 csv_header: str = CSV_HEADER):
+                 gpu_name: str, benchmark: str):
         """
         Initializes the VictoriaMetricsExporter class.
-
-        Args:
-            time_series_data (dict): Time series data to be exported.
-            victoria_metrics_url (str): URL to the VictoriaMetrics import endpoint.
-            csv_header (str): CSV format string specifying the format for VictoriaMetrics.
         """
-        self.time_series_data = time_series_data
-        self.victoria_metrics_url = victoria_metrics_url
-        self.csv_header = csv_header
+        self.gpu_name = gpu_name
+        self.benchmark = benchmark
 
-        # Set up csv data
-        self._convert_to_csv()
+    def export_metric_readings(self,metric_readings) -> None:
+        """
+        Exports a metric to Meerkat Database
+        """
+
+        # Create the authorization header
+        auth_str = f"{MEERKAT_USERNAME}:{MEERKAT_PASSWORD}"
+        auth_b64 = base64.b64encode(auth_str.encode()).decode()
+        headers = {
+            'Authorization': f'Basic {auth_b64}'
+        }
+
+        # Create the data payload
+        for metric in metric_readings:
+            gpu_results = "Parse results into this format: gpu0={metric_recording[0]},gpu1={metric_recording[1]}"
+            data = f"{metric},gpu_name={self.gpu_name},benchmark={self.benchmark} {gpu_results}"
+
+            # Send the POST request
+            response = requests.post(MEERKAT_URL, headers=headers, data=data, verify=False)  # verify=False to skip SSL verification
+
+            
+    def export_carbon_and_metric_results(self) -> None:
+        """
+        Exports Completion Results to Meerkat Database
+        """
 
     def _convert_to_csv(self) -> None:
         """

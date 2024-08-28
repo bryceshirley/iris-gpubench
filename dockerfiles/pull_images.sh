@@ -20,7 +20,7 @@
 # ==============================================================================
 
 # Set the GitHub Container Registry base URL and repository
-REGISTRY_URL="https://harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench/"
+REGISTRY_URL="harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench"
 
 # Perform Docker login using environment variables
 echo "Logging in to Harbor Container Registry..."
@@ -45,8 +45,17 @@ for DOCKERFILE in $DOCKERFILES; do
   # Construct the full image tag
   IMAGE_TAG="${REGISTRY_URL}/${IMAGE_NAME}:latest"
 
+  # Pull the image
   echo "Pulling image: ${IMAGE_TAG}..."
   docker pull ${IMAGE_TAG}
+
+  # Retag the image to remove the registry URL and have just the image name
+  echo "Retagging image to: ${IMAGE_NAME}:latest..."
+  docker tag ${IMAGE_TAG} ${IMAGE_NAME}:latest
+
+  # Optionally, remove the original image tag to save space
+  echo "Removing original image: ${IMAGE_TAG}..."
+  docker rmi ${IMAGE_TAG}
 done
 
-echo -e "Pull process completed.\n"
+echo -e "Pull and retag process completed.\n"
