@@ -3,6 +3,7 @@
 - Allow users to save there own container results from their benchmarks running with docker.
 - Update Readme with an explanation of the repos organisation and folder structure.
 - Use best practice for naming dockerfiles.
+- Include logging levels (basically nothing - everything) - Log tagging, info, error
 - Add shell check workflow: https://github.com/stfc/SCD-OpenStack-Utils/blob/master/.github/workflows/gpu_benchmark.yaml
 - Fix bug when collecting from Tmux logs.
 - Save container logs and Tmux logs into a results file.
