@@ -101,9 +101,6 @@ class GPUMonitor:
         # Initialize Previous Power
         self.previous_power: List[float] = []
 
-        # Initialize stats
-        self.__setup_stats()
-
         # Initialize pynvml
         try:
             pynvml.nvmlInit()
@@ -117,6 +114,9 @@ class GPUMonitor:
 
         # Initialise parameter for Benchmark Container
         self.container = None
+
+        # Initialize stats
+        self.__setup_stats()
 
     def __setup_stats(self) -> None:
         """
@@ -638,6 +638,7 @@ class GPUMonitor:
         self._stats["benchmark"] = benchmark_image
 
         # Activate the Exporter
+        victoria_exporter=True
         if victoria_exporter:
             exporter = VictoriaMetricsExporter(
                 gpu_name=self._stats["name"],
@@ -687,12 +688,14 @@ class GPUMonitor:
                     # Export to Victoria Metrics if enabled
                     if victoria_exporter:
                         try:
+                            LOGGER.info("Export to meerkat")
                             exporter.export_metric_readings(self.current_gpu_metrics)
                         except ValueError as ve:
                             LOGGER.error("Invalid data for VictoriaMetrics export: %s", ve)
+                            break
                         except requests.RequestException as re:
                             LOGGER.error("Failed to send data to VictoriaMetrics: %s", re)
-
+                            break
                     # Wait for the specified interval before the next update
                     time.sleep(self.config['monitor_interval'])
 
@@ -812,6 +815,7 @@ class GPUMonitor:
                     if victoria_exporter:
                         try:
                             exporter.export_metric_readings(self.current_gpu_metrics)
+                            LOGGER.info("Export to meerkat")
                         except ValueError as ve:
                             LOGGER.error("Invalid data for VictoriaMetrics export: %s", ve)
                         except requests.RequestException as re:

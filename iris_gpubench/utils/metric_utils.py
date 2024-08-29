@@ -48,28 +48,14 @@ def format_metrics(results_dir: str = RESULTS_DIR,
         with open(metrics_file_path, 'r', encoding='utf-8') as file:
             data = yaml.safe_load(file)
 
-        # Prepare data for tabulate
-        main_data = []
-
-        # Add benchmark image name if it exists
-        if 'benchmark_image' in data:
-            main_data.extend([
-                ["Benchmark Image Name", f"{data.get('benchmark_image')}"],
-                ["Elapsed Monitor Time of Container (s)", f"{data.get('elapsed_time'):.5f}"],
-            ])
-
-        # Add benchmark command run if it exists
-        if 'benchmark_command' in data:
-            main_data.extend([
-                ["Benchmark Command Run", f"{data.get('benchmark_command')}"],
-                ["Elapsed Monitor Time of Command (s)", f"{data.get('elapsed_time'):.5f}"],
-            ])
 
         # Add other data
-        main_data.extend([
+        main_data= [
+            ["Benchmark: ", f"{data.get('benchmark')}"],
+            ["Elapsed Monitor Time of Command (s)", f"{data.get('elapsed_time'):.5f}"],
             ["Total GPU Energy Consumed (kWh)", f"{data.get('total_energy'):.5f}"],
             ["Total GPU Carbon Emissions (gCO2)", f"{data.get('total_carbon'):.5f}"],
-        ])
+        ]
 
         if data.get('time') is not None:
             main_data.insert(0, ["Benchmark Score (s)", f"{data.get('time'):.5f}"])

@@ -50,8 +50,8 @@ import base64
 
 # GLOBAL VARIABLES
 from .utils.globals import LOGGER, TIMEOUT_SECONDS, RESULTS_DIR
-MEERKAT_USERNAME = 'your_db_username'
-MEERKAT_PASSWORD = 'your_db_password'
+MEERKAT_USERNAME = 'Meerkat'
+MEERKAT_PASSWORD = 'password'
 MEERKAT_URL = 'https://172.16.101.182:8247/write'
 
 
@@ -94,7 +94,8 @@ class VictoriaMetricsExporter:
             gpu_name (str): The name or model of the GPU being monitored.
             benchmark (str): The name of the benchmark being run.
         """
-        self.benchmark_info = "gpu_name={gpu_name},benchmark={benchmark}""
+        gpu_name = gpu_name.split(' ')[-1]
+        self.benchmark_info = f"gpu_name={gpu_name},benchmark={benchmark}"
         self.headers = self._create_auth_header()
         self.db_url = MEERKAT_URL
 
@@ -134,7 +135,7 @@ class VictoriaMetricsExporter:
                 data = f"{metric_key},{self.benchmark_info} {gpu_results}"
                 self._send_metric_data(data)
 
-            LOGGER.info(f"Successfully exported metrics for {self.gpu_name} - {self.benchmark}")
+            LOGGER.info(f"Successfully exported metrics for {self.benchmark_info}")
         except KeyError as e:
             LOGGER.error(f"Missing key in GPU metrics: {e}")
             raise ValueError(f"Invalid GPU metrics data: missing key {e}")
@@ -176,7 +177,8 @@ class VictoriaMetricsExporter:
             response.raise_for_status()
         except requests.RequestException as e:
             LOGGER.error(f"Failed to send data to VictoriaMetrics: {e}")
-            raise
+        except requests.exceptions.RequestException as e:
+            LOGGER.error(f"An error occurred: {e}")
 
     def export_stats(self) -> None:
         """
