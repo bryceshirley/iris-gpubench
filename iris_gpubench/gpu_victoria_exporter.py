@@ -57,175 +57,137 @@ MEERKAT_URL = 'https://172.16.101.182:8247/write'
 
 class VictoriaMetricsExporter:
     """
-    A class for exporting time series data to a VictoriaMetrics instance.
+    A class for exporting GPU metrics to a VictoriaMetrics instance.
 
-    This class handles the conversion of time series data into CSV format
-    compatible with VictoriaMetrics
-    and sends the data to a specified VictoriaMetrics instance via HTTP POST
-    request.
+    This class handles the formatting and sending of GPU metric data to a specified
+    VictoriaMetrics instance via HTTP POST requests. It supports multiple GPUs and
+    various metric types.
 
     Attributes:
-        time_series_data (Dict[str, List]): Time series data to be exported.
-            - 'timestamp': List of timestamp strings.
-            - 'gpu_idx': List of lists, where each sublist contains GPU indices.
-            - 'util': List of lists, where each sublist contains utilization metrics.
-            - 'power': List of lists, where each sublist contains power metrics.
-            - 'temp': List of lists, where each sublist contains temperature metrics.
-            - 'mem': List of lists, where each sublist contains memory metrics.
-        victoria_metrics_url (str): URL to the VictoriaMetrics import endpoint.
-        csv_header (str): CSV format string specifying the format for VictoriaMetrics.
+        benchmark_info (str): A formatted string containing GPU name and benchmark information.
+        headers (Dict[str, str]): HTTP headers for authentication.
+        db_url (str): URL of the VictoriaMetrics import endpoint.
 
     Methods:
-        _convert_to_csv() -> str:
-            Converts the time series data into a CSV formatted string.
+        export_metric_readings(current_gpu_metrics: Dict[str, List]) -> None:
+            Exports the current GPU metrics to the VictoriaMetrics instance.
+        export_stats() -> None:
+            Exports completion results to the VictoriaMetrics instance (not implemented yet).
 
-        send_to_victoria(timeout: int = 30) -> None:
-            Sends the formatted CSV data to the VictoriaMetrics instance with a 
-            specified timeout duration.
+    Usage:
+        exporter = VictoriaMetricsExporter("NVIDIA A100", "BERT-Large")
+        current_gpu_metrics = {
+            'gpu_idx': [0, 1],
+            'util': [80, 90],
+            'power': [250.5, 260.2],
+            'temp': [70.0, 72.5],
+            'mem': [16384, 16384]
+        }
+        exporter.export_metric_readings(current_gpu_metrics)
     """
 
-    def __init__(self,
-                 gpu_name: str, benchmark: str):
+    def __init__(self, gpu_name: str, benchmark: str):
         """
-        Initializes the VictoriaMetricsExporter class.
-        """
-        self.gpu_name = gpu_name
-        self.benchmark = benchmark
+        Initializes the VictoriaMetricsExporter with GPU and benchmark information.
 
-    def export_metric_readings(self,metric_readings) -> None:
+        Args:
+            gpu_name (str): The name or model of the GPU being monitored.
+            benchmark (str): The name of the benchmark being run.
         """
-        Exports a metric to Meerkat Database
-        """
+        self.benchmark_info = "gpu_name={gpu_name},benchmark={benchmark}""
+        self.headers = self._create_auth_header()
+        self.db_url = MEERKAT_URL
 
-        # Create the authorization header
+    def _create_auth_header(self) -> Dict[str, str]:
+        """
+        Creates the authorization header for VictoriaMetrics requests.
+
+        Returns:
+            Dict[str, str]: A dictionary containing the authorization header.
+        """
         auth_str = f"{MEERKAT_USERNAME}:{MEERKAT_PASSWORD}"
         auth_b64 = base64.b64encode(auth_str.encode()).decode()
-        headers = {
-            'Authorization': f'Basic {auth_b64}'
-        }
+        return {'Authorization': f'Basic {auth_b64}'}
 
-        # Create the data payload
-        for metric in metric_readings:
-            gpu_results = "Parse results into this format: gpu0={metric_recording[0]},gpu1={metric_recording[1]}"
-            data = f"{metric},gpu_name={self.gpu_name},benchmark={self.benchmark} {gpu_results}"
+    def export_metric_readings(self, current_gpu_metrics: Dict[str, List]) -> None:
+        """
+        Exports the current GPU metrics to the VictoriaMetrics instance.
 
-            # Send the POST request
-            response = requests.post(MEERKAT_URL, headers=headers, data=data, verify=False)  # verify=False to skip SSL verification
+        This method formats the GPU metrics into the required string format and
+        sends a POST request to the VictoriaMetrics endpoint for each metric type.
 
-            
-    def export_carbon_and_metric_results(self) -> None:
+        Args:
+            current_gpu_metrics (Dict[str, List]): A dictionary containing the current
+                GPU metrics. Each key (except 'gpu_idx') represents a metric type,
+                and its value is a list of metric values for each GPU.
+
+        Raises:
+            ValueError: If the input metrics are invalid or missing required data.
+            requests.RequestException: If there's an error in sending the request.
+        """
+        try:
+            num_gpus = len(current_gpu_metrics['gpu_idx'])
+            metric_keys = [key for key in current_gpu_metrics.keys() if key != 'gpu_idx']
+
+            for metric_key in metric_keys:
+                gpu_results = self._format_gpu_results(current_gpu_metrics[metric_key], num_gpus)
+                data = f"{metric_key},{self.benchmark_info} {gpu_results}"
+                self._send_metric_data(data)
+
+            LOGGER.info(f"Successfully exported metrics for {self.gpu_name} - {self.benchmark}")
+        except KeyError as e:
+            LOGGER.error(f"Missing key in GPU metrics: {e}")
+            raise ValueError(f"Invalid GPU metrics data: missing key {e}")
+        except Exception as e:
+            LOGGER.error(f"Error in exporting metrics: {e}")
+            raise
+
+    def _format_gpu_results(self, metric_values: List, num_gpus: int) -> str:
+        """
+        Formats the GPU results into a string for VictoriaMetrics.
+
+        Args:
+            metric_values (List): List of metric values for each GPU.
+            num_gpus (int): Number of GPUs.
+
+        Returns:
+            str: Formatted string of GPU results.
+
+        Raises:
+            ValueError: If the number of metric values doesn't match the number of GPUs.
+        """
+        if len(metric_values) != num_gpus:
+            raise ValueError(f"Mismatch in number of GPUs ({num_gpus}) and metric values ({len(metric_values)})")
+
+        return ','.join(f"gpu{i}={value}" for i, value in enumerate(metric_values))
+
+    def _send_metric_data(self, data: str) -> None:
+        """
+        Sends the formatted metric data to VictoriaMetrics.
+
+        Args:
+            data (str): Formatted metric data string.
+
+        Raises:
+            requests.RequestException: If there's an error in sending the request.
+        """
+        try:
+            response = requests.post(self.db_url, headers=self.headers, data=data, verify=False)
+            response.raise_for_status()
+        except requests.RequestException as e:
+            LOGGER.error(f"Failed to send data to VictoriaMetrics: {e}")
+            raise
+
+    def export_stats(self) -> None:
         """
         Exports Completion Results to Meerkat Database
         """
+        print('This Does not work yet')
 
-    def _convert_to_csv(self) -> None:
+    def export_carbon_index(self, carbon_forecast) -> None:
         """
-        Converts time series data to CSV data required by VictoriaMetrics.
-
-        Raises:
-            Exception: If an error occurs during the conversion process.
+        Exports Carbon index"
         """
-        try:
-            # Initialize a list to store CSV lines
-            csv_lines = []
+        print('This currently does nothing')
 
-            # Extract data from the input dictionary
-            timestamps = self.time_series_data['timestamp']
-            gpu_indices = self.time_series_data['gpu_idx']
-            util = self.time_series_data['util']
-            power = self.time_series_data['power']
-            temp = self.time_series_data['temp']
-            mem = self.time_series_data['mem']
 
-            # Flatten the data and format it as CSV
-            for reading_index, timestamp in enumerate(timestamps):
-                for gpu_index in gpu_indices[reading_index]:
-                    # Format each line as a CSV entry
-                    csv_line = (
-                        f"{timestamp},"
-                        f"{gpu_index},"
-                        f"{util[reading_index][gpu_index]},"
-                        f"{power[reading_index][gpu_index]},"
-                        f"{temp[reading_index][gpu_index]},"
-                        f"{mem[reading_index][gpu_index]}"
-                    )
-                    # Append the formatted line to the list
-                    csv_lines.append(csv_line)
-
-            # Join the lines with newline characters to create the final CSV string
-            self.csv_data = "\n".join(csv_lines)
-            LOGGER.info("Successfully converted time series data to CSV format.")
-
-        except Exception as error_message:
-            # Log any errors that occur during conversion
-            LOGGER.error("Error converting time series data to CSV format: %s", error_message)
-            raise
-
-    def send_to_victoria(self) -> None:
-        """
-        Sends the formatted CSV data to VictoriaMetrics.
-
-        This method performs a POST request to the VictoriaMetrics endpoint with the CSV data.
-
-        Args:
-            timeout (int): The timeout duration for the HTTP request in seconds.
-
-        Raises:
-            requests.RequestException: If an error occurs during the HTTP request.
-        """
-        try:
-            # Perform the POST request to send the data
-            response = requests.post(
-                self.victoria_metrics_url,
-                data=self.csv_data,
-                headers={'Content-Type': 'text/csv'},
-                timeout=TIMEOUT_SECONDS  # Set the timeout for the request
-            )
-
-            # Check the response status code
-            if response.status_code == 200:
-                LOGGER.info("Data successfully sent to VictoriaMetrics.")
-            else:
-                # Log the error if the request was not successful
-                LOGGER.error(
-                    "Failed to send data to VictoriaMetrics. Status code: %d, Response: %s",
-                    response.status_code,
-                    response.text
-                )
-        except requests.RequestException as error_message:
-            # Log any request exceptions that occur
-            LOGGER.error("An error occurred while sending data to VictoriaMetrics: %s",
-                         error_message)
-
-    def save_csv_to_file(self, file_dir: str = RESULTS_DIR) -> None:
-        """
-        Saves the CSV formatted data, including the header, to a specified file.
-
-        Args:
-            file_dir (str): The directory where the CSV data should be saved.
-            The file will be named 'timeseries.csv'.
-
-        Raises:
-            IOError: If an error occurs while writing to the file.
-        """
-        try:
-            # Ensure the target directory exists and create if not
-            if not os.path.exists(file_dir):
-                os.makedirs(file_dir)
-
-            # Construct the full file path
-            file_path = os.path.join(file_dir, 'timeseries.csv')
-
-            # Prepare CSV data by combining the header and the data
-            csv_to_write = f"{self.csv_header}\n{self.csv_data}"
-
-            # Open the file in write mode with UTF-8 encoding
-            with open(file_path, 'w', encoding='utf-8') as file:
-                file.write(csv_to_write)
-
-            # Log a success message with the file path
-            LOGGER.info("CSV data successfully saved to %s", file_path)
-        except IOError as error_message:
-            # Log an error message if an exception occurs during file writing
-            LOGGER.error("Error saving CSV data to file %s: %s", file_path, error_message)
-            raise

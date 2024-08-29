@@ -142,7 +142,8 @@ def main():
             live_monitoring=not args.no_live_monitor,
             plot=not args.no_plot,
             live_plot=args.live_plot,
-            monitor_logs=args.monitor_logs
+            monitor_logs=args.monitor_logs,
+            victoria_exporter=args.export_to_victoria
         )
         LOGGER.info("GPU monitoring completed.")
 
@@ -151,12 +152,12 @@ def main():
         gpu_monitor.save_stats_to_yaml()
         LOGGER.info("Saving monitoring completed.")
 
-        # Export data to VictoriaMetrics if specified
-        if args.export_to_victoria:
-            LOGGER.info("Starting data export to VictoriaMetrics...")
-            exporter = VictoriaMetricsExporter(gpu_monitor.time_series_data)
-            exporter.send_to_victoria()
-            LOGGER.info("Data export to VictoriaMetrics completed.")
+        # # Export data to VictoriaMetrics if specified
+        # if args.export_to_victoria:
+        #     LOGGER.info("Starting data export to VictoriaMetrics...")
+        #     exporter = VictoriaMetricsExporter(gpu_monitor.time_series_data)
+        #     exporter.send_to_victoria()
+        #     LOGGER.info("Data export to VictoriaMetrics completed.")
 
     except ValueError as value_error:
         LOGGER.error("Value error occurred: %s", value_error)
