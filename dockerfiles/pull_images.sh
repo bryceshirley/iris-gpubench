@@ -24,7 +24,7 @@ REGISTRY_URL="harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench"
 
 # Hardcoded lists of images
 BASE_IMAGES=("mantid_base" "sciml_base")
-SCIML_IMAGES=("mnist_tf_keras" "stemdl_classification_1gpu" "stemdl_classification_2gpu" "synthetic_regression")
+SCIML_IMAGES=("mnist_tf_keras" "stemdl_classification" "synthetic_regression")
 MANTID_IMAGES=("mantid_run_1" "mantid_run_8")
 OTHER_IMAGES=("dummy")
 

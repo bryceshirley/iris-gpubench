@@ -640,6 +640,7 @@ class GPUMonitor:
                 benchmark_image,
                 detach=True,
                 device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])],
+                shm_size="1024G" # Set to large to ensure all that is needed is used
             )
 
             # Reload to update status from created to running
@@ -675,7 +676,6 @@ class GPUMonitor:
                     # Export to meerkat Metrics if enabled
                     if export_to_meerkat:
                         try:
-                            LOGGER.info("Export to meerkat")
                             self.exporter.export_metric_readings(self.current_gpu_metrics)
                         except ValueError as ve:
                             LOGGER.error("Invalid data for MeerkatDB export: %s", ve)

@@ -13,4 +13,4 @@ RUN /bin/bash -c "source /root/anaconda3/bin/activate bench && \
     sciml-bench download mnist"
 
 # Set the entrypoint to run the benchmark
-ENTRYPOINT ["/bin/bash", "-c", "source /root/anaconda3/bin/activate bench && sciml_bench --output_dir=/root/results/ mnist_tf_keras"]
+ENTRYPOINT ["/bin/bash", "-c", "source /root/anaconda3/bin/activate bench && sciml-bench run mnist_tf_keras --output_dir=/root/results/"]

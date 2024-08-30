@@ -25,7 +25,7 @@ APP_IMAGES_DIR="app_images"
 BASE_IMAGES=("mantid_base" "sciml_base")
 
 # List of app images to build
-SCIML_IMAGES=("mnist_tf_keras" "stemdl_classification_1gpu" "stemdl_classification_2gpu" "synthetic_regression")
+SCIML_IMAGES=("mnist_tf_keras" "stemdl_classification" "synthetic_regression")
 MANTID_IMAGES=("mantid_run_1" "mantid_run_8")
 
 # Build base images first

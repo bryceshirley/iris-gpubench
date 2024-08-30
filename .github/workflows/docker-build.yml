@@ -51,8 +51,7 @@ jobs:
       matrix:
         include:
           - {name: mnist_tf_keras, dockerfile: app_images/sciml_bench/Dockerfile.mnist_tf_keras}
-          - {name: stemdl_classification_1gpu, dockerfile: app_images/sciml_bench/Dockerfile.stemdl_classification_1gpu}
-          - {name: stemdl_classification_2gpu, dockerfile: app_images/sciml_bench/Dockerfile.stemdl_classification_2gpu}
+          - {name: stemdl_classification, dockerfile: app_images/sciml_bench/Dockerfile.stemdl_classification}
           - {name: synthetic_regression, dockerfile: app_images/sciml_bench/Dockerfile.synthetic_regression}
           - {name: mantid_run_1, dockerfile: app_images/mantid_bench/Dockerfile.mantid_run_1}
           - {name: mantid_run_8, dockerfile: app_images/mantid_bench/Dockerfile.mantid_run_8}
