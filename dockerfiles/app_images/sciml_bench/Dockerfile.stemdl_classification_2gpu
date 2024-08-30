@@ -1,5 +1,7 @@
-# Use the harbor image by default, but allow override to use a local image
+# Use an ARG to specify the base image, with a default value
 ARG BASE_IMAGE=harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench/sciml_base:latest
+
+# Use the specified base image
 FROM ${BASE_IMAGE}
 
 # Set the working directory

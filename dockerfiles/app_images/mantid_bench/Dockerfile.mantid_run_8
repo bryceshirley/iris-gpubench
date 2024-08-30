@@ -1,0 +1,11 @@
+# Use an ARG to specify the base image, with a default value
+ARG BASE_IMAGE=harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench/mantid_base:latest
+
+# Use the specified base image
+FROM ${BASE_IMAGE}
+
+# Set the working directory
+WORKDIR /root
+
+# Set the entrypoint to run the benchmark
+CMD ["/bin/bash", "-c", "cd /root/mantid_imaging_cloud_bench && ./run_8.sh"]
