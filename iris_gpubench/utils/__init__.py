@@ -10,3 +10,5 @@ from iris_gpubench.utils.globals import *
 from iris_gpubench.utils.logging_utils import *
 from iris_gpubench.utils.metric_utils import *
 from iris_gpubench.utils.docker_utils import *
+from iris_gpubench.utils.cli import *
+from iris_gpubench.carbon_metrics import *

@@ -1,0 +1,16 @@
+# Use an ARG to specify the base image, with a default value
+ARG BASE_IMAGE=harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench/sciml_base:latest
+
+# Use the specified base image
+FROM ${BASE_IMAGE}
+
+# Set the working directory
+WORKDIR /root
+
+# Install the benchmark
+RUN /bin/bash -c "source /root/anaconda3/bin/activate bench && \
+    sciml-bench install mnist_tf_keras && \
+    sciml-bench download mnist"
+
+# Set the entrypoint to run the benchmark
+ENTRYPOINT ["/bin/bash", "-c", "source /root/anaconda3/bin/activate bench && sciml-bench run mnist_tf_keras --output_dir=/root/results/"]

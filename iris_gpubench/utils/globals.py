@@ -22,7 +22,7 @@ os.makedirs(RESULTS_DIR, exist_ok=True)
 TIMEOUT_SECONDS = 30
 
 # Time in seconds between readings
-MONITOR_INTERVAL = 10
+MONITOR_INTERVAL = 20
 
 # Initialize the logger with the specified configuration
 LOGGER = setup_logging(RESULTS_DIR)

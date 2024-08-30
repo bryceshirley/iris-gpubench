@@ -11,7 +11,7 @@ Imports:
 - `GPUMonitor`: Class for monitoring GPU metrics.
 - `get_carbon_forecast`: Function for retrieving carbon forecast data.
 - `get_carbon_region_names`: Function for obtaining valid carbon region names.
-- `VictoriaMetricsExporter`: Class for exporting data to VictoriaMetrics.
+- `MeerkatExporter`: Class for exporting data to MeerkatDB.
 
 Package Metadata:
 - __version__: The current version of the package.
@@ -21,13 +21,14 @@ Package Metadata:
 from iris_gpubench.main import *
 from iris_gpubench.gpu_monitor import *
 from iris_gpubench.carbon_metrics import *
-from iris_gpubench.gpu_victoria_exporter import *
+from iris_gpubench.gpu_meerkat_exporter import *
 
 # Import utilities from the utils sub-package
 from .utils.logging_utils import *
 from .utils.globals import *
 from .utils.metric_utils import *
 from .utils.docker_utils import *
+from .utils.cli import *
 
 # Define package-level variables
 __version__ = '0.1.0-dev1'
