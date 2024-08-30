@@ -59,8 +59,7 @@ Gives you saves plot png during every reading so that the metrics can be viewed 
 ```sh
 gpu_monitor --benchmark_image "stemdl_classification_2gpu" --plot_live
 ```
-
-![GPU Metrics Output](docs_image_multigpu.png)
+This command was run on a VM with 2 V100 GPUs for the results in [Collecting Results Section](collecting_results.md#gpu-metrics-timeseries-plot-png).
 
 
 ## (Grafana) Timeseries Plot Live
@@ -71,7 +70,7 @@ If the `--export_to_meerkat` tag is used the results can be viewed live from the
 ```sh
 iris-gpubench --benchmark_image "stemdl_classification" --export_to_meerkat
 ```
-Ran this command on VM with 2 V100 GPUs and a VM with an A4000 for the results in [Collecting Results Section](collecting_results.md#gpu-metric-grafana-plots).
+This command was run on a VM with 2 V100 GPUs and a VM with an A4000 for the results in [Collecting Results Section](collecting_results.md#gpu-metric-grafana-plots).
 
 ---
 
