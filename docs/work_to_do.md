@@ -1,5 +1,5 @@
 ## Priority Order
-- Fix victoria_metrics exporter (username and password needed) and Test with grafana (add grafana link to docs)
+- Add carbon and energy data exporter to grafana
 - Allow users to save there own container results from their benchmarks running with docker.
 - Update Readme with an explanation of the repos organisation and folder structure.
 - Use best practice for naming dockerfiles.
