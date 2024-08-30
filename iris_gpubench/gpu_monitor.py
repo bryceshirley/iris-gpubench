@@ -32,7 +32,7 @@ import yaml
 from tabulate import tabulate
 
 from .carbon_metrics import get_carbon_forecast
-from .gpu_victoria_exporter import VictoriaMetricsExporter
+from .gpu_meerkat_exporter import MeerkatExporter
 
 # Global Variables
 from .utils.globals import RESULTS_DIR, LOGGER, MONITOR_INTERVAL
@@ -613,7 +613,7 @@ class GPUMonitor:
                                  plot: bool = True,
                                  live_plot: bool = False,
                                  monitor_logs: bool = False,
-                                 victoria_exporter: bool = False) -> None:
+                                 export_to_meerkat: bool = False) -> None:
         """
         Runs the GPU monitoring and plotting process while executing a container.
 
@@ -631,21 +631,8 @@ class GPUMonitor:
             LOGGER.error("Docker functionality is not available. Please install Docker.")
             raise RuntimeError("The 'docker' module is required but not available. Please install it.")
 
-        # Initialize GPU statistics
-        self._stats["start_carbon_forecast"] = get_carbon_forecast(self.config['carbon_region_shorthand'])
-        start_time = datetime.now() # Start timing
-        self._stats["start_datetime"] = start_time.strftime("%Y-%m-%d %H:%M:%S")
-        self._stats["benchmark"] = benchmark_image
-
-        # Activate the Exporter
-        victoria_exporter=True
-        if victoria_exporter:
-            exporter = VictoriaMetricsExporter(
-                gpu_name=self._stats["name"],
-                benchmark=self._stats["benchmark"]                
-            )
-            
-        LOGGER.info("Initialized benchmark runner for tmux session.")
+        # Initialize stats such as timer and exporter
+        start_time = self._initialize_benchmark(benchmark_image, export_to_meerkat)
 
         try:
             # Run the container in the background
@@ -685,16 +672,16 @@ class GPUMonitor:
                             print(self._live_monitor_metrics())
                             print(f"\n Benchmark Status: {self.container.status}")
                     
-                    # Export to Victoria Metrics if enabled
-                    if victoria_exporter:
+                    # Export to meerkat Metrics if enabled
+                    if export_to_meerkat:
                         try:
                             LOGGER.info("Export to meerkat")
-                            exporter.export_metric_readings(self.current_gpu_metrics)
+                            self.exporter.export_metric_readings(self.current_gpu_metrics)
                         except ValueError as ve:
-                            LOGGER.error("Invalid data for VictoriaMetrics export: %s", ve)
+                            LOGGER.error("Invalid data for MeerkatDB export: %s", ve)
                             break
                         except requests.RequestException as re:
-                            LOGGER.error("Failed to send data to VictoriaMetrics: %s", re)
+                            LOGGER.error("Failed to send data to MeerkatDB: %s", re)
                             break
                     # Wait for the specified interval before the next update
                     time.sleep(self.config['monitor_interval'])
@@ -724,7 +711,7 @@ class GPUMonitor:
             self._stats['elapsed_time'] = (end_time - start_time).total_seconds()
 
             # Safe shutdown
-            self._shutdown(plot)
+            self._shutdown(plot, export_to_meerkat)
 
             # Clean up Docker container
             if self.container:
@@ -737,7 +724,7 @@ class GPUMonitor:
     def _run_benchmark_in_tmux(self, benchmark_command: str, 
                                live_monitoring: bool = True, plot: bool = True,
                                live_plot: bool = False, monitor_logs: bool = False,
-                               victoria_exporter: bool = False) -> None:
+                               export_to_meerkat: bool = False) -> None:
         """
         Executes a benchmark command in a tmux session.
 
@@ -752,20 +739,8 @@ class GPUMonitor:
         if not SUBPROCESS_AVAILABLE:
             raise RuntimeError("The 'subprocess' module is required but not available. Please install it.")
         
-        # Initialize GPU statistics
-        self._stats["start_carbon_forecast"] = get_carbon_forecast(self.config['carbon_region_shorthand'])
-        start_time = datetime.now() # Start timing
-        self._stats["start_datetime"] = start_time.strftime("%Y-%m-%d %H:%M:%S")
-        self._stats["benchmark"] = benchmark_command
-
-        # Activate the Exporter
-        if victoria_exporter:
-            exporter = VictoriaMetricsExporter(
-                gpu_name=self._stats["name"],
-                benchmark=self._stats["benchmark"]                
-            )
-
-        LOGGER.info("Initialized benchmark runner for tmux session.")
+        # Initialize stats such as timer and exporter
+        start_time = self._initialize_benchmark(benchmark_image, export_to_meerkat)
 
         try:
             # Create a new tmux session and Run Benchmark Command
@@ -811,15 +786,15 @@ class GPUMonitor:
                             print("\nBenchmark Status: Running")
                             LOGGER.info("Live monitoring metrics displayed.")
                     
-                    # Export to Victoria Metrics if enabled
-                    if victoria_exporter:
+                    # Export to  Meerkat DB if enabled
+                    if export_to_meerkat:
                         try:
-                            exporter.export_metric_readings(self.current_gpu_metrics)
+                            self.exporter.export_metric_readings(self.current_gpu_metrics)
                             LOGGER.info("Export to meerkat")
                         except ValueError as ve:
-                            LOGGER.error("Invalid data for VictoriaMetrics export: %s", ve)
+                            LOGGER.error("Invalid data for MeerkatDB export: %s", ve)
                         except requests.RequestException as re:
-                            LOGGER.error("Failed to send data to VictoriaMetrics: %s", re)
+                            LOGGER.error("Failed to send data to MeerkatDB: %s", re)
 
                      # Check if the tmux session is still running
                     status_command = ["tmux", "has-session", "-t", session_name]
@@ -863,7 +838,7 @@ class GPUMonitor:
             self._stats['elapsed_time'] = (end_time - start_time).total_seconds()
 
             # Safe shutdown
-            self._shutdown(plot)
+            self._shutdown(plot, export_to_meerkat)
 
             # Clean up tmux session
             try:
@@ -872,7 +847,25 @@ class GPUMonitor:
             except subprocess.CalledProcessError as e:
                 LOGGER.error("Failed to clean up tmux session '%s': %s", session_name, e)
 
-    def _shutdown(self, plot: bool) -> None:
+    def _initialize_benchmark(self, benchmark_name: str, export_to_meerkat: bool):
+        # Initialize GPU statistics
+        self._stats["start_carbon_forecast"] = get_carbon_forecast(self.config['carbon_region_shorthand'])
+        start_time = datetime.now() # Start timing
+        self._stats["start_datetime"] = start_time.strftime("%Y-%m-%d %H:%M:%S")
+        self._stats["benchmark"] = benchmark_name
+
+        # Activate the Exporter
+        if export_to_meerkat:
+            self.exporter = MeerkatExporter(
+                gpu_name=self._stats["name"],
+                benchmark=self._stats["benchmark"]                
+            )
+
+        LOGGER.info("Initialized benchmark runner for tmux session.")
+
+        return start_time
+
+    def _shutdown(self, plot: bool,export_to_meerkat: bool) -> None:
         """
         Perform a safe and complete shutdown of the monitoring process.
 
@@ -892,8 +885,18 @@ class GPUMonitor:
             - pynvml.NVMLError: For errors related to NVML operations.
             - Exception: For any other unexpected errors during the shutdown process.
         """
-        self.__completion_stats()  # Finalize and clean up statistics
+        self.__completion_stats()  # Finalize statistics
         LOGGER.info("Monitoring stopped.")
+
+        if export_to_meerkat:
+            try:
+                self.exporter.export_metric_readings(self.current_gpu_metrics,
+                                                    reset_meerkat=True)
+                LOGGER.info("Export to meerkat")
+            except ValueError as ve:
+                LOGGER.error("Invalid data for MeerkatDB export: %s", ve)
+            except requests.RequestException as re:
+                LOGGER.error("Failed to send data to MeerkatDB: %s", re)
 
         # Save the metrics plot if requested
         if plot:
@@ -919,7 +922,7 @@ class GPUMonitor:
             live_monitoring: bool = True,
             plot: bool = True, live_plot: bool = False,
             monitor_logs: bool = False,
-            victoria_exporter: bool = False) -> None:
+            export_to_meerkat: bool = False) -> None:
         """
         Runs the benchmark process either in a tmux session or Docker container based on provided arguments.
 
@@ -953,7 +956,7 @@ class GPUMonitor:
             # Call the private method to handle tmux session execution
             self._run_benchmark_in_tmux(benchmark_command, live_monitoring,
                                         plot, live_plot, monitor_logs,
-                                        victoria_exporter)
+                                        export_to_meerkat)
         
         # Run the benchmark in a Docker container if a Docker image is provided
         elif benchmark_image:
@@ -965,7 +968,9 @@ class GPUMonitor:
                 raise RuntimeError("Docker functionality is not available. Please install Docker.")
             
             # Call the private method to handle Docker container execution
-            self._run_benchmark_in_docker(benchmark_image, live_monitoring, plot, live_plot, monitor_logs)
+            self._run_benchmark_in_docker(benchmark_image, live_monitoring,
+                                          plot, live_plot, monitor_logs,
+                                          export_to_meerkat)
         
         # If neither a benchmark command nor a Docker image is provided, raise an error
         else:

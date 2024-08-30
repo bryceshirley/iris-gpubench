@@ -1,133 +1,37 @@
 """
 This script is the entry point for monitoring GPU metrics using the GPUMonitor class.
-It parses command-line arguments, validates them, and initializes the GPU monitoring process.
-Additionally, it handles exporting the collected data to VictoriaMetrics if specified.
+It uses the argument parser from utils.cli to handle command-line arguments,
+initializes the GPU monitoring process, and optionally exports the collected data to MeerkatDB.
 
 Dependencies:
-- argparse: For parsing command-line arguments.
-- os: For interacting with the operating system, e.g., creating directories.
-- sys: For system-specific parameters and functions, e.g., exiting with error codes.
-- GPUMonitor: Class for monitoring GPU metrics.
-- VictoriaMetricsExporter: Class for exporting data to VictoriaMetrics.
-- format_metrics: Utility function for formatting and saving metrics.
+- utils.cli: For parsing command-line arguments.
+- gpu_monitor: Contains the GPUMonitor class for monitoring GPU metrics.
+- gpu_meerkat_exporter: Contains the MeerkatExporter class for exporting data to MeerkatDB.
+- utils.globals: For accessing global constants.
+- utils.metric_utils: For formatting and saving metrics.
 
 Usage:
 - Run the script with appropriate arguments to monitor GPU metrics and optionally export data.
 """
 
-import argparse
-import os
 import sys
 
-from .carbon_metrics import get_carbon_region_names
 from .gpu_monitor import GPUMonitor
-from .gpu_victoria_exporter import VictoriaMetricsExporter
-from .utils.globals import RESULTS_DIR, LOGGER, MONITOR_INTERVAL
+from .carbon_metrics import get_carbon_region_names
+from .utils.cli import parse_arguments
+from .utils.globals import RESULTS_DIR, LOGGER
 from .utils.metric_utils import format_metrics
-from .utils.docker_utils import image_exists, list_available_images
 
-def parse_arguments():
-    """
-    Parses command-line arguments for the GPU monitoring script.
-
-    Returns:
-        argparse.Namespace: Parsed command-line arguments.
-    """
-    # Create an argument parser
-    parser = argparse.ArgumentParser(
-        description='Monitor GPU metrics and optionally export data to VictoriaMetrics.'
-    )
-
-    # Argument for enabling or disabling live monitoring
-    parser.add_argument('--no_live_monitor', action='store_true',
-                        help='Disable live monitoring of GPU metrics (default is enabled).')
-
-    # Argument for setting the monitoring interval
-    parser.add_argument('--interval', type=int, default=MONITOR_INTERVAL,
-                        help='Interval in seconds for collecting GPU metrics (default is 5 seconds).')
-
-    # Argument for specifying the carbon region
-    parser.add_argument(
-        '--carbon_region',
-        type=str,
-        default='South England',
-        help='Region shorthand for The National Grid ESO Regional Carbon Intensity API (default is "South England").'
-    )
-
-    # Argument for enabling or disabling plotting
-    parser.add_argument('--no_plot', action='store_true',
-                        help='Disable plotting of GPU metrics (default is enabled).')
-
-    # Argument for enabling live plotting
-    parser.add_argument('--live_plot', action='store_true',
-                        help='Enable live plotting of GPU metrics.')
-
-    # Argument for enabling data export to VictoriaMetrics
-    parser.add_argument('--export_to_victoria', action='store_true',
-                        help='Enable exporting of collected data to VictoriaMetrics.')
-
-    # Argument for specifying the Docker container image for benchmarking
-    parser.add_argument('--benchmark_image', type=str,
-                        help='Docker container image to run as a benchmark.')
-
-    # Argument for specifying the command to run the benchmark in a tmux session
-    parser.add_argument('--benchmark_command', type=str,
-                        help='Command to run as a benchmark in a tmux session.')
-
-    # Argument for monitoring both metrics and container or tmux logs
-    parser.add_argument('--monitor_logs', action='store_true',
-                        help='Enable monitoring of container or tmux logs in addition to GPU metrics.')
-
-    # Parse command-line arguments
-    args = parser.parse_args()
-
-    # Validate that either benchmark_image or benchmark_command is provided, but not both
-    if not args.benchmark_image and not args.benchmark_command:
-        LOGGER.error("Neither '--benchmark_image' nor '--benchmark_command' provided. One must be specified.")
-        parser.error("You must specify either '--benchmark_image' or '--benchmark_command'.")
-
-    if args.benchmark_image and args.benchmark_command:
-        LOGGER.error("Both '--benchmark_image' and '--benchmark_command' provided. Only one must be specified.")
-        parser.error("You must specify either '--benchmark_image' or '--benchmark_command', not both.")
-
-    # Validate the interval argument
-    if args.interval <= 0:
-        error_message = f"Monitoring interval must be a positive integer. Provided value: {args.interval}"
-        print(error_message)
-        LOGGER.error(error_message)
-        sys.exit(1)
-
-    # Validate the carbon region argument
-    valid_regions = get_carbon_region_names()
-    if args.carbon_region not in valid_regions:
-        error_message = (f"Invalid carbon region: {args.carbon_region}. Valid regions are: {', '.join(valid_regions)}")
-        print(error_message)
-        LOGGER.error(error_message)
-        sys.exit(1)
-
-    # Validate the Docker image if specified
-    if args.benchmark_image and not image_exists(args.benchmark_image):
-        print(f"Image '{args.benchmark_image}' is not valid.")
-        LOGGER.error("Image '%s' does not exist.", args.benchmark_image)
-
-        # List available images excluding those with "base" in their name
-        available_images = list_available_images(exclude_base=True, exclude_none=True)
-        print("Available images (excluding 'base' images):")
-        for image in available_images:
-            print(f"  - {image}")
-        sys.exit(1)
-
-    return args
 
 def main():
     """
     Main function for Iris-gpubench for running the GPU monitoring process.
 
     Parses command-line arguments, validates them, initializes the GPUMonitor,
-    and handles data exporting to VictoriaMetrics if specified.
+    and handles data exporting to MeerkatDB if specified.
     """
     # Parse the command-line arguments
-    args = parse_arguments()
+    args = parse_arguments(get_carbon_region_names)
 
     # Create an instance of GPUMonitor
     gpu_monitor = GPUMonitor(monitor_interval=args.interval,
@@ -143,7 +47,7 @@ def main():
             plot=not args.no_plot,
             live_plot=args.live_plot,
             monitor_logs=args.monitor_logs,
-            victoria_exporter=args.export_to_victoria
+            export_to_meerkat=args.export_to_meerkat
         )
         LOGGER.info("GPU monitoring completed.")
 
@@ -151,13 +55,6 @@ def main():
         LOGGER.info("Saving monitoring results...")
         gpu_monitor.save_stats_to_yaml()
         LOGGER.info("Saving monitoring completed.")
-
-        # # Export data to VictoriaMetrics if specified
-        # if args.export_to_victoria:
-        #     LOGGER.info("Starting data export to VictoriaMetrics...")
-        #     exporter = VictoriaMetricsExporter(gpu_monitor.time_series_data)
-        #     exporter.send_to_victoria()
-        #     LOGGER.info("Data export to VictoriaMetrics completed.")
 
     except ValueError as value_error:
         LOGGER.error("Value error occurred: %s", value_error)

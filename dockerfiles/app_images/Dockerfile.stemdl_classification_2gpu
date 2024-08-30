@@ -1,5 +1,6 @@
-# Use the official Ubuntu base image
-FROM harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench/sciml_base:latest
+# Use the harbor image by default, but allow override to use a local image
+ARG BASE_IMAGE=harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench/sciml_base:latest
+FROM ${BASE_IMAGE}
 
 # Set the working directory
 WORKDIR /root
