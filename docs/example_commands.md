@@ -12,18 +12,18 @@ iris-gpubench --benchmark_image "synthetic_regression"
 ### Example 2: Exporting Data to VictoriaMetrics:
 
 ```sh
-iris-gpubench --benchmark_image "synthetic_regression" --export_to_victoria
+iris-gpubench --benchmark_image "synthetic_regression" --export_to_meerkat
 ```
 
-- **Explanation**: Similar to the first example, this command runs the `synthetic_regression` Docker image benchmark and collects GPU metrics. Additionally, the collected data is exported to VictoriaMetrics for long-term storage and further analysis. This is useful when you need to monitor metrics over time and visualize them later using external tools.
+- **Explanation**: Similar to the first example, this command runs the `synthetic_regression` Docker image benchmark and collects GPU metrics. Additionally, the collected data is exported to Meerkat for long-term storage and further analysis. This is useful when you need to monitor metrics over time and visualize them later using external tools such as the Grafana Dashboard.
 
 ### Example 3: Full Command with All Options:
 
 ```sh
-iris-gpubench --benchmark_image "stemdl_classification_2gpu" --interval 10 --carbon_region "South England" --live_plot --export_to_victoria --monitor_logs
+iris-gpubench --benchmark_image "stemdl_classification_2gpu" --interval 10 --carbon_region "South England" --live_plot --export_to_meerkat --monitor_logs
 ```
 
-- **Explanation**: This is a comprehensive example that runs the `stemdl_classification_2gpu` benchmark in a Docker container and collects GPU metrics at a 10-second interval. The `--carbon_region` flag specifies the carbon intensity region as "South England" to track the carbon emissions impact. Live plotting of GPU metrics is enabled (`--live_plot`), and data will be exported to VictoriaMetrics (`--export_to_victoria`). The `--monitor_logs` flag enables logging of both GPU metrics and the Docker container logs, allowing for deeper analysis of benchmark performance.
+- **Explanation**: This is a comprehensive example that runs the `stemdl_classification_2gpu` benchmark in a Docker container and collects GPU metrics at a 10-second interval. The `--carbon_region` flag specifies the carbon intensity region as "South England" to track the carbon emissions impact. Live plotting of GPU metrics is enabled (`--live_plot`), and data will be exported to Meerkat DB via VictoriaMetrics (`--export_to_meerkat`). The `--monitor_logs` flag enables logging of both GPU metrics and the Docker container logs, allowing for deeper analysis of benchmark performance.
 
 ### Example 4: Run and Monitor Benchmark in the Background without the Need for a Container:
 

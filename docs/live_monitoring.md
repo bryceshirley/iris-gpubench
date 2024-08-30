@@ -50,15 +50,28 @@ Epoch 0:   4%|▍         | 350/8000 [00:09<03:23, 37.56it/s, v_num=0]
 
 (Long container logs containing "\r" to clear the line for progress bars are not a very efficiently processed, as it captures a snapshot of the entire container log at that moment.
 Potiential solution: use asynico package to capture and process the logs whilst the monitor is paused between intervals)
+
 ## (Save png) Timeseries Plot Live
-  
+
+Gives you saves plot png during every reading so that the metrics can be viewed live **locally**.
+
+**Example command and Results:**
 ```sh
 gpu_monitor --benchmark_image "stemdl_classification_2gpu" --plot_live
 ```
 
 ![GPU Metrics Output](docs_image_multigpu.png)
 
-Gives you saves plot png during every reading so that the metrics can be viewed live.
+
+## (Grafana) Timeseries Plot Live
+
+If the `--export_to_meerkat` tag is used the results can be viewed live from the Grafana Dashboard.
+
+**Example command and Results:**
+```sh
+iris-gpubench --benchmark_image "stemdl_classification" --export_to_meerkat
+```
+Ran this command on VM with 2 V100 GPUs and a VM with an A4000 for the results in [Collecting Results Section](collecting_results.md#gpu-metric-grafana-plots).
 
 ---
 

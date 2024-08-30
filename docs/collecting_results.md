@@ -22,7 +22,7 @@ GPU and Carbon Performance Results
 +---------------------------------------+------------------------+
 | Metric                                | Value                  |
 +=======================================+========================+
-| Benchmark Image Name                  | synthetic_regression   |
+| Benchmark                             | synthetic_regression   |
 +---------------------------------------+------------------------+
 | Elapsed Monitor Time of Container (s) | 245.627                |
 +---------------------------------------+------------------------+
@@ -74,9 +74,12 @@ GPU Information
 - **Description:** Contains formatted data on GPU and carbon performance results. Includes metrics such as benchmark image name, elapsed monitor time, total GPU energy consumed, total carbon emissions, carbon forecast information, and detailed GPU performance data.  
 
 
-## GPU Metric Grafana Plots (--export_to_victoria) (NOT WORKING)
+## GPU Metric Grafana Plots 
 
-INSERT GRAFANA LINK HERE
+- **Description:** Exports the collected timeseries gpu metrics for a given benchmark and gpu type to Meerkat DB which is then scraped by a [Grafana Dashboard.](http://172.16.112.145:3000/d/fdw7dv7phr0g0e/iris-bench?orgId=1)
+
+- **Example:**  
+![Grafana Dashboard](docs_image_grafana.png)
 
 ---
 
