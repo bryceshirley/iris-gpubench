@@ -10,7 +10,6 @@ Dependencies:
 - pynvml: NVIDIA Management Library for GPU monitoring.
 - requests: For HTTP requests to the Carbon Intensity API.
 - yaml: For saving metrics to YAML format.
-- matplotlib: For plotting GPU metrics.
 - tabulate: For tabular data representation.
 
 Usage:
@@ -24,21 +23,17 @@ import time
 from datetime import datetime
 from typing import Optional, Dict, List
 
-import matplotlib.backends.backend_agg as agg
-from matplotlib import figure
-from matplotlib import ticker
 import pynvml
 import yaml
 from tabulate import tabulate
 
 from .carbon_metrics import get_carbon_forecast
 from .gpu_meerkat_exporter import MeerkatExporter
+from .utils.metric_utils import plot_metrics
 
 # Global Variables
 from .utils.globals import RESULTS_DIR, LOGGER, MONITOR_INTERVAL
-SECONDS_IN_HOUR = 3600  # Number of seconds in an hour
 METRICS_FILE_PATH = os.path.join(RESULTS_DIR, 'metrics.yml')
-METRIC_PLOT_PATH = os.path.join(RESULTS_DIR, 'metric_plot.png')
 
 # Attempt to import docker and subprocess
 try:
@@ -57,22 +52,32 @@ except ImportError:
     SUBPROCESS_AVAILABLE = False
     LOGGER.warning("Subprocess module not available. Tmux functionality will be disabled.")
 
+from abc import ABC, abstractmethod
 
-class GPUMonitor:
+class BaseMonitor(ABC):
     """
+    Abstract base class for GPU monitoring.
+
     Manages NVIDIA GPU metrics using NVML and collects carbon metrics from the
     National Grid ESO Regional Carbon Intensity API.
+    
+    Attributes:
+        config (Dict[str, Any]): Configuration settings for the monitor.
+        _time_series_data (Dict[str, List]): Time series data of GPU metrics.
+        current_gpu_metrics (Dict[str, List]): Current GPU metrics.
+        previous_power (List[float]): Previous power readings.
+        _stats (Dict[str, Any]): Various statistics about the GPU and monitoring process.
     """
-
     def __init__(self, monitor_interval: int = MONITOR_INTERVAL,
                  carbon_region_shorthand: str = "South England"):
         """
-        Initializes the GPUMonitor class.
+        Initialize the BaseMonitor.
 
         Args:
-            monitor_interval (int): Interval in seconds for collecting GPU metrics.
-            carbon_region_shorthand (str): Region shorthand for carbon intensity API.
+            monitor_interval (int): Interval for collecting GPU metrics.
+            carbon_region_shorthand (str): Region for carbon intensity data.
         """
+
         # General configuration
         self.config = {
             'monitor_interval': monitor_interval,
@@ -81,27 +86,26 @@ class GPUMonitor:
 
         # Initialize time series data for GPU metrics
         self._time_series_data: Dict[str, List] = {
-            'timestamp': [],
-            'gpu_idx': [],
-            'util': [],
-            'power': [],
-            'temp': [],
-            'mem': [],
+            'timestamp': [], 'gpu_idx': [], 'util': [],
+            'power': [], 'temp': [], 'mem': [],
         }
 
         # Initialize private GPU metrics as a dict of Lists
         self.current_gpu_metrics: Dict[str, List] = {
-            'gpu_idx': [],
-            'util': [],
-            'power': [],
-            'temp': [],
-            'mem': []
+            'gpu_idx': [], 'util': [], 'power': [], 'temp': [], 'mem': []
         }
 
         # Initialize Previous Power
         self.previous_power: List[float] = []
 
         # Initialize pynvml
+        self._init_nvml()
+
+        # Initialize stats
+        self.__init_stats()
+
+    def _init_nvml(self) -> None:
+        """Initialize NVIDIA Management Library (NVML)."""
         try:
             pynvml.nvmlInit()
             LOGGER.info("NVML initialized")
@@ -109,16 +113,7 @@ class GPUMonitor:
             LOGGER.error("Failed to initialize NVML: %s", nvml_error)
             raise
 
-        # Initialize Docker client if Docker is available
-        self.client = docker.from_env() if DOCKER_AVAILABLE else None
-
-        # Initialise parameter for Benchmark Container
-        self.container = None
-
-        # Initialize stats
-        self.__setup_stats()
-
-    def __setup_stats(self) -> None:
+    def __init_stats(self) -> None:
         """
         Initializes GPU statistics and records initial carbon forecast.
 
@@ -167,7 +162,7 @@ class GPUMonitor:
         except pynvml.NVMLError as nvml_error:
             LOGGER.error("Failed to setup GPU stats: %s", nvml_error)
             raise
-
+    
     def __update_gpu_metrics(self) -> None:
         """
         Updates the GPU metrics and appends new data to the time series.
@@ -221,7 +216,7 @@ class GPUMonitor:
 
         except pynvml.NVMLError as nvml_error:
             LOGGER.error("NVML Error: %s", nvml_error)
-
+    
     def __update_total_energy(self) -> None:
         """
         Computes and updates the total energy consumption based on GPU power readings.
@@ -237,7 +232,7 @@ class GPUMonitor:
                 raise ValueError("Length of previous_power or current_power does not match the number of devices.")
 
             # Convert monitoring interval from seconds to hours
-            collection_interval_h = self.config['monitor_interval'] / SECONDS_IN_HOUR
+            collection_interval_h = self.config['monitor_interval'] / 3600
 
             # Calculate energy consumption in Wh using the trapezoidal rule
             energy_wh = sum(((prev + curr) / 2) * collection_interval_h for prev, curr in zip(self.previous_power, current_power))
@@ -260,14 +255,64 @@ class GPUMonitor:
             # Log unexpected errors during energy calculation
             LOGGER.error("Unexpected error in total energy calculation: %s", ex)
 
-    def __completion_stats(self) -> None:
+    def _live_monitor_metrics(self) -> str:
         """
-        Calculates and updates completion statistics including average metrics
+        Clears the terminal and prints the current GPU metrics in a formatted table.
+
+        Clears the terminal screen, fetches the current date and time,
+        and prints the GPU metrics as a grid table with headers.
+        """
+        try:
+            # Clear the terminal screen for fresh output
+            os.system('clear')
+            
+            # Get the current date and time as a formatted string
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # Define table headers with GPU stats information
+            headers = [
+                f'GPU Index ({self._stats["name"]})',
+                'Utilization (%)',
+                f"Power (W) / Max {self._stats['max_power_limit']} W",
+                'Temperature (C)',
+                f"Memory (MiB) / Total {self._stats['total_mem']} MiB"
+            ]
+
+            # Format GPU metrics
+            gpu_metrics_str = tabulate(self.current_gpu_metrics, headers=headers, tablefmt='grid')
+
+            # Build the full message
+            message = (
+                f"\nCurrent GPU Metrics as of {current_time}:\n"
+                f"{gpu_metrics_str}\n"
+            )
+
+            # Print the current GPU metrics in a grid format
+            return message
+        except OSError as os_error:
+            LOGGER.error("Error clearing the terminal screen: %s", os_error)
+            raise
+
+        except KeyError as key_error:
+            LOGGER.error("Missing key in GPU stats or metrics: %s", key_error)
+            raise
+
+        except ValueError as value_error:
+            LOGGER.error("Error formatting GPU metrics: %s", value_error)
+            raise
+
+    def __cleanup_stats(self) -> None:
+        """
+        Calculates and updates statistics including average metrics
         and total carbon emissions.
 
         Updates the final stats with completion details and average values.
         """
         try:
+            end_time = datetime.now()
+
+            self._stats['elapsed_time'] = (end_time - self._stats['start_time']).total_seconds()
+
             # Record the end time of the stats collection
             self._stats["end_datetime"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
@@ -318,540 +363,14 @@ class GPUMonitor:
             # Handle any unexpected errors
             LOGGER.error("Unexpected error in completion stats calculation: %s", ex)
 
-    def save_stats_to_yaml(self, file_path: str = METRICS_FILE_PATH) -> None:
+    def __init_benchmark(self, benchmark_name: str, export_to_meerkat: bool) -> None:
         """
-        Saves the collected statistics to a YAML file.
-
-        Args:
-            file_path (str): Path to the YAML file.
-
-        Raises:
-            IOError: If there is an issue writing to the file.
+        Initialize benchmark-specific data and start timers.
         """
-        try:
-            # Open the specified file in write mode with UTF-8 encoding
-            with open(file_path, 'w', encoding='utf-8') as yaml_file:
-                # Dump the statistics dictionary into the YAML file
-                yaml.dump(self._stats, yaml_file, default_flow_style=False)
-
-            # Log success message with file path
-            LOGGER.info("Stats saved to YAML file: %s", file_path)
-
-        except IOError as io_error:
-            # Log error message if file writing fails
-            LOGGER.error("Failed to save stats to YAML file: %s. Error: %s", file_path, io_error)
-
-    @property
-    def time_series_data(self) -> Dict[str, List]:
-        """
-        Returns the collected time series data for GPU metrics.
-
-        Returns:
-            Dict[str, List]: A dictionary with lists of time series data for various GPU metrics.
-        """
-        return self._time_series_data
-
-    @staticmethod
-    def plot_metric(axis, data: tuple, line_info: Optional[tuple] = None,
-                    ylim: Optional[tuple] = None) -> None:
-        """
-        Helper function to plot a GPU metric on a given axis.
-
-        Args:
-            axis (matplotlib.axes.Axes): The axis to plot on.
-            data (tuple): Tuple containing (timestamps, y_data, title, ylabel, xlabel).
-            line_info (Optional[tuple]): Tuple containing a horizontal line's y value and label.
-            ylim (Optional[tuple]): y-axis limits.
-        """
-        # Unpack the data tuple into individual components
-        timestamps, y_data, title, ylabel, xlabel = data
-
-        # Plot the metric data for each GPU
-        for i, gpu_data in enumerate(y_data):
-            axis.plot(timestamps, gpu_data, label=f"GPU {i}", marker="*")
-
-        # Optionally plot a horizontal line for a specific threshold
-        if line_info:
-            yline, yline_label = line_info
-            axis.axhline(y=yline, color="r", linestyle="--", label=yline_label)
-
-        # Set plot title and labels
-        axis.set_title(title, fontweight="bold")
-        axis.set_ylabel(ylabel, fontweight="bold")
-        if xlabel:
-            axis.set_xlabel(xlabel, fontweight="bold")
-
-        # Add legend, grid, and format x-axis
-        axis.legend()
-        axis.grid(True)
-        axis.xaxis.set_major_locator(ticker.MaxNLocator(5))
-        axis.tick_params(axis="x", rotation=45)
-
-        # Optionally set y-axis limits
-        if ylim:
-            axis.set_ylim(ylim)
-
-
-    def plot_metrics(self, plot_path: str = METRIC_PLOT_PATH) -> None:
-        """
-        Plot and save GPU metrics to a file.
-
-        Creates plots for power usage, utilization, temperature, and memory usage,
-        and saves them to the specified file path.
-        """
-        try:
-            # Retrieve timestamps for plotting
-            timestamps = self._time_series_data["timestamp"]
-
-            # Prepare data for plotting for each metric and GPU
-            power_data = [
-                [p[i] for p in self._time_series_data["power"]]
-                for i in range(self._stats['device_count'])
-            ]
-            util_data = [
-                [u[i] for u in self._time_series_data["util"]]
-                for i in range(self._stats['device_count'])
-            ]
-            temp_data = [
-                [t[i] for t in self._time_series_data["temp"]]
-                for i in range(self._stats['device_count'])
-            ]
-            mem_data = [
-                [m[i] for m in self._time_series_data["mem"]]
-                for i in range(self._stats['device_count'])
-            ]
-
-            # Create a new figure with a 2x2 grid of subplots
-            fig = figure.Figure(figsize=(20, 15))
-            axes = fig.subplots(nrows=2, ncols=2)
-
-            # Create a backend for rendering the plot
-            canvas = agg.FigureCanvasAgg(fig)
-
-            # Plot each metric using the helper function
-            self.plot_metric(
-                axes[0, 0],
-                (
-                    timestamps,
-                    power_data,
-                    f"GPU Power Usage, Total Energy: {self._stats['total_energy']:.3g}kWh",
-                    "Power (W)",
-                    "Timestamp",
-                ),
-                (self._stats["max_power_limit"], "Power Limit"),
-            )
-            self.plot_metric(
-                axes[0, 1],
-                (timestamps, util_data, "GPU Utilization", "Utilization (%)", "Timestamp"),
-                ylim=(0, 100),  # Set y-axis limits for utilization
-            )
-            self.plot_metric(
-                axes[1, 0],
-                (timestamps, temp_data, "GPU Temperature", "Temperature (C)", "Timestamp"),
-            )
-            self.plot_metric(
-                axes[1, 1],
-                (timestamps, mem_data, "GPU Memory Usage", "Memory (MiB)", "Timestamp"),
-                (self._stats["total_mem"], "Total Memory"),
-            )
-
-            # Adjust layout to prevent overlap
-            fig.tight_layout(pad=3.0)
-
-            # Render the figure to the canvas and save it as a PNG file
-            canvas.draw()  # Ensure the figure is fully rendered
-            canvas.figure.savefig(plot_path, bbox_inches="tight")  # Save the plot as PNG
-
-            # Free memory by deleting the figure
-            del fig  # Remove reference to figure to free memory
-
-        except (FileNotFoundError, IOError) as plot_error:
-            # Log specific error if the file cannot be found or opened
-            LOGGER.error("Error during plotting: %s", plot_error)
-        except Exception as ex:
-            # Log any unexpected errors during plotting
-            LOGGER.error("Unexpected error during plotting: %s", ex)
-
-    def _live_monitor_metrics(self) -> str:
-        """
-        Clears the terminal and prints the current GPU metrics in a formatted table.
-
-        Clears the terminal screen, fetches the current date and time,
-        and prints the GPU metrics as a grid table with headers.
-        """
-        try:
-            # Clear the terminal screen for fresh output
-            os.system('clear')
-            
-            # Get the current date and time as a formatted string
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-            # Define table headers with GPU stats information
-            headers = [
-                f'GPU Index ({self._stats["name"]})',
-                'Utilization (%)',
-                f"Power (W) / Max {self._stats['max_power_limit']} W",
-                'Temperature (C)',
-                f"Memory (MiB) / Total {self._stats['total_mem']} MiB"
-            ]
-
-            # Format GPU metrics
-            gpu_metrics_str = tabulate(self.current_gpu_metrics, headers=headers, tablefmt='grid')
-
-            # Build the full message
-            message = (
-                f"\nCurrent GPU Metrics as of {current_time}:\n"
-                f"{gpu_metrics_str}\n"
-            )
-
-            # Print the current GPU metrics in a grid format
-            return message
-
-        except OSError as os_error:
-            # Log any OS-related errors during live monitoring
-            LOGGER.error("OS error in live monitoring: %s", os_error)
-        except ValueError as value_error:
-            # Log value errors that occur during processing
-            LOGGER.error("Value error in live monitoring: %s", value_error)
-        except Exception as ex:
-            # Log any unexpected errors
-            LOGGER.error("Unexpected error in live monitoring: %s", ex)
-
-    def _live_monitor_container(self) -> str:
-        """
-        Monitors and retrieves benchmark metrics and container logs in real-time.
-
-        This method collects live metrics from the benchmarking process, retrieves
-        logs from the container, and formats them into a complete message.
-
-        It captures any potential errors during processing and logs them accordingly.
-
-        Returns:
-            str: A formatted string containing the metrics message and container logs.
-
-        Raises:
-            ValueError: If there is a value error during live monitoring.
-            Exception: For any other unexpected errors during live monitoring.
-        """
-        try:
-            # Collect live metrics
-            metrics_message = self._live_monitor_metrics()
-
-            # Collect container logs
-            container_log = self.container.logs(follow=False).decode('utf-8')
-
-            # Initialize the complete message with metrics and container logs header
-            complete_message = f"{metrics_message}\nContainer Logs:\n"
-
-            # Process the logs
-            container_log = container_log.replace('\\r', '\r')
-            lines = container_log.split('\n')  # Split the entire log into lines
-
-            # Process each line to handle log loading bars
-            for line in lines:
-                if '\r' in line:
-                    # Handle the last segment after '\r'
-                    line = line.split('\r')[-1]
-                # Append the processed line to the complete message
-                complete_message += f"\n {line.strip()}"
-
-            return complete_message
-
-        except ValueError as value_error:
-            # Log value errors that occur during processing
-            LOGGER.error("Value error in live monitoring: %s", value_error)
-            raise  # Re-raise the exception if you want it to propagate
-
-        except Exception as ex:
-            # Log any unexpected errors
-            LOGGER.error("Unexpected error in live monitoring: %s", ex)
-            raise  # Re-raise the exception if you want it to propagate
-    
-    def _live_monitor_tmux(self, session_name: str) -> str:
-        """
-        Monitors and retrieves benchmark metrics and tmux logs in real-time.
-
-        This method collects live metrics from the benchmarking process, retrieves
-        logs from the tmux, and formats them into a complete message.
-
-        It captures any potential errors during processing and logs them accordingly.
-
-        Returns:
-            str: A formatted string containing the metrics message and tmux logs.
-
-        Raises:
-            ValueError: If there is a value error during live monitoring.
-            Exception: For any other unexpected errors during live monitoring.
-        """
-        try:
-            # Collect live metrics
-            metrics_message = self._live_monitor_metrics()
-
-            # Capture and display logs from tmux
-            logs_command = ["tmux", "capture-pane", "-t", session_name, "-p"]
-            try:
-                logs = subprocess.check_output(logs_command).decode()
-                LOGGER.info("Captured logs from tmux session.")
-            except subprocess.CalledProcessError as e:
-                LOGGER.error("Failed to capture logs from tmux session: %s", e)
-            
-            # Return complete message with metrics and Tmux logs header
-            return f"{metrics_message}\nTmux Logs:\n\n{logs}"
-
-        except ValueError as value_error:
-            # Log value errors that occur during processing
-            LOGGER.error("Value error in live monitoring: %s", value_error)
-            raise  # Re-raise the exception if you want it to propagate
-
-        except Exception as ex:
-            # Log any unexpected errors
-            LOGGER.error("Unexpected error in live monitoring: %s", ex)
-            raise  # Re-raise the exception if you want it to propagate
-
-    def _run_benchmark_in_docker(self, benchmark_image: str,
-                                 live_monitoring: bool = True,
-                                 plot: bool = True,
-                                 live_plot: bool = False,
-                                 monitor_logs: bool = False,
-                                 export_to_meerkat: bool = False) -> None:
-        """
-        Runs the GPU monitoring and plotting process while executing a container.
-
-        Args:
-            benchmark_image (str): The Docker container image to run.
-            live_monitoring (bool): If True, enables live monitoring display.
-            Defaults to True.
-            plot (bool): If True, saves the metrics plot at the end. Defaults to True.
-            live_plot (bool): If True, updates the plot in real-time. Defaults to False.
-            monitor_logs (bool): If True, monitors both metrics and container logs.
-            Defaults to False.
-        """
-        # Check if docker is available
-        if not DOCKER_AVAILABLE:
-            LOGGER.error("Docker functionality is not available. Please install Docker.")
-            raise RuntimeError("The 'docker' module is required but not available. Please install it.")
-
-        # Initialize stats such as timer and exporter
-        start_time = self._initialize_benchmark(benchmark_image, export_to_meerkat)
-
-        try:
-            # Run the container in the background
-            self.container = self.client.containers.run(
-                benchmark_image,
-                detach=True,
-                device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])],
-                shm_size="1024G" # Set to large to ensure all that is needed is used
-            )
-
-            # Reload to update status from created to running
-            self.container.reload()
-
-            while self.container.status == 'running':
-                try:
-                    # Reload container status to check if it is still running
-                    self.container.reload()
-
-                    # Update the current GPU metrics
-                    self.__update_gpu_metrics()
-
-                    # Plot metrics if live plotting is enabled
-                    if live_plot:
-                        try:
-                            self.plot_metrics()
-                        except (FileNotFoundError, IOError) as plot_error:
-                            # Log any errors during plotting and continue monitoring
-                            LOGGER.error("Error during plotting: %s", plot_error)
-                            continue  # Skip plotting and continue monitoring
-
-                    # Display live monitoring output if enabled
-                    if live_monitoring:
-                        if monitor_logs:
-                            # Monitor both metrics and container logs
-                            print(self._live_monitor_container())
-                        else:
-                            # Monitor only metrics
-                            print(self._live_monitor_metrics())
-                            print(f"\n Benchmark Status: {self.container.status}")
-                    
-                    # Export to meerkat Metrics if enabled
-                    if export_to_meerkat:
-                        try:
-                            self.exporter.export_metric_readings(self.current_gpu_metrics)
-                        except ValueError as ve:
-                            LOGGER.error("Invalid data for MeerkatDB export: %s", ve)
-                            break
-                        except requests.RequestException as re:
-                            LOGGER.error("Failed to send data to MeerkatDB: %s", re)
-                            break
-                    # Wait for the specified interval before the next update
-                    time.sleep(self.config['monitor_interval'])
-
-                except (KeyboardInterrupt, SystemExit):
-                    LOGGER.info("Monitoring interrupted by user.")
-                    print(
-                        "\nMonitoring interrupted by user."
-                        "\nStopping gracefully, please wait..."
-                    )
-                    break
-                except Exception as ex:
-                    LOGGER.error("Unexpected error during monitoring: %s", ex)
-        except (KeyboardInterrupt, SystemExit):
-            LOGGER.info("Monitoring interrupted by user.")
-            print(
-                "\nMonitoring interrupted by user."
-                "\nStopping gracefully, please wait..."
-            )
-        except docker.errors.DockerException as docker_error:
-            LOGGER.error("Docker error: %s", docker_error)
-        except Exception as ex:
-            LOGGER.error("Unexpected error: %s", ex)
-        finally:
-            # End timing
-            end_time = datetime.now()
-            self._stats['elapsed_time'] = (end_time - start_time).total_seconds()
-
-            # Safe shutdown
-            self._shutdown(plot, export_to_meerkat)
-
-            # Clean up Docker container
-            if self.container:
-                try:
-                    self.container.remove(force=True)
-                    LOGGER.info("Docker container removed.")
-                except docker.errors.APIError as docker_error:
-                    LOGGER.error("Failed to remove Docker container: %s", docker_error)
-
-    def _run_benchmark_in_tmux(self, benchmark_command: str, 
-                               live_monitoring: bool = True, plot: bool = True,
-                               live_plot: bool = False, monitor_logs: bool = False,
-                               export_to_meerkat: bool = False) -> None:
-        """
-        Executes a benchmark command in a tmux session.
-
-        Args:
-            benchmark_command (str): The command to run in the tmux session.
-            live_monitoring (bool): If True, enables live monitoring display. Defaults to True.
-            plot (bool): If True, saves the metrics plot at the end. Defaults to True.
-            live_plot (bool): If True, updates the plot in real-time. Defaults to False.
-            monitor_logs (bool): If True, monitors both metrics and session logs. Defaults to False.
-        """
-        # Check if tmux is available
-        if not SUBPROCESS_AVAILABLE:
-            raise RuntimeError("The 'subprocess' module is required but not available. Please install it.")
-        
-        # Initialize stats such as timer and exporter
-        start_time = self._initialize_benchmark(benchmark_image, export_to_meerkat)
-
-        try:
-            # Create a new tmux session and Run Benchmark Command
-            session_name = "benchmark_session"
-            tmux_command = [
-                "tmux", "new-session", "-d", "-s", session_name,
-                "bash -c 'cd \"$(pwd)\" && " + benchmark_command + "'"
-            ]
-            LOGGER.info("Starting tmux session with command: %s", benchmark_command)
-            try:
-                subprocess.run(tmux_command, check=True)
-                LOGGER.info("Tmux session started successfully.")
-            except subprocess.CalledProcessError as e:
-                LOGGER.error("Failed to start tmux session: %s", e)
-                raise RuntimeError(f"Failed to start tmux session: {e}") from e
-
-
-            while True:
-                try:
-                    # Update the current GPU metrics
-                    self.__update_gpu_metrics()
-
-                    # Plot Metrics if live plotting is enabled
-                    if live_plot:
-                        try:
-                            self.plot_metrics()
-                            LOGGER.info("Live plot updated.")
-                        except (FileNotFoundError, IOError) as plot_error:
-                            LOGGER.error("Error during plotting: %s", plot_error)
-                            continue
-
-                    # Display live monitoring output if enabled
-                    if live_monitoring:
-                        if monitor_logs:
-                            # Monitor both metrics and container logs
-                            try:
-                                print(self._live_monitor_tmux(session_name=session_name))
-                            except subprocess.CalledProcessError:
-                                LOGGER.info("Tmux session has ended.")
-                                break
-                        else:
-                            print(self._live_monitor_metrics())
-                            print("\nBenchmark Status: Running")
-                            LOGGER.info("Live monitoring metrics displayed.")
-                    
-                    # Export to  Meerkat DB if enabled
-                    if export_to_meerkat:
-                        try:
-                            self.exporter.export_metric_readings(self.current_gpu_metrics)
-                            LOGGER.info("Export to meerkat")
-                        except ValueError as ve:
-                            LOGGER.error("Invalid data for MeerkatDB export: %s", ve)
-                        except requests.RequestException as re:
-                            LOGGER.error("Failed to send data to MeerkatDB: %s", re)
-
-                     # Check if the tmux session is still running
-                    status_command = ["tmux", "has-session", "-t", session_name]
-                    try:
-                        subprocess.run(status_command, check=True)
-                    except subprocess.CalledProcessError:
-                        LOGGER.info("Tmux session has ended.")
-                        break
-                    # Check if tmux session is still running via logs
-                    logs_command = ["tmux", "capture-pane", "-t", session_name, "-p"]
-                    try:
-                        subprocess.check_output(logs_command)
-                        LOGGER.info("Captured logs from tmux session - still running.")
-                    except subprocess.CalledProcessError as e:
-                        LOGGER.error("Failed to capture logs from tmux session: %s", e)
-                        LOGGER.info("Tmux session has ended.")
-                        break
-                    
-                    # Wait for the specified interval before the next update
-                    time.sleep(self.config['monitor_interval'])
-
-                except (KeyboardInterrupt, SystemExit):
-                    LOGGER.info("Monitoring interrupted by user.")
-                    print("\nMonitoring interrupted by user.\nStopping gracefully, please wait...")
-                    break
-                except subprocess.CalledProcessError:
-                        LOGGER.info("Tmux session has ended.")
-                        break
-                except Exception as ex:
-                    LOGGER.error("Unexpected error during monitoring: %s", ex)
-        except (KeyboardInterrupt, SystemExit):
-            LOGGER.info("Monitoring interrupted by user.")
-            print("\nMonitoring interrupted by user.\nStopping gracefully, please wait...")
-        except subprocess.CalledProcessError as subprocess_error:
-            LOGGER.error("Subprocess error: %s", subprocess_error)
-        except Exception as ex:
-            LOGGER.error("Unexpected error: %s", ex)
-        finally:
-            # End timing
-            end_time = datetime.now()
-            self._stats['elapsed_time'] = (end_time - start_time).total_seconds()
-
-            # Safe shutdown
-            self._shutdown(plot, export_to_meerkat)
-
-            # Clean up tmux session
-            try:
-                subprocess.run(["tmux", "kill-session", "-t", session_name], check=True)
-                LOGGER.info("Tmux session '%s' terminated.", session_name)
-            except subprocess.CalledProcessError as e:
-                LOGGER.error("Failed to clean up tmux session '%s': %s", session_name, e)
-
-    def _initialize_benchmark(self, benchmark_name: str, export_to_meerkat: bool):
-        # Initialize GPU statistics
+        # Start timers and carbon forecasts
         self._stats["start_carbon_forecast"] = get_carbon_forecast(self.config['carbon_region_shorthand'])
-        start_time = datetime.now() # Start timing
-        self._stats["start_datetime"] = start_time.strftime("%Y-%m-%d %H:%M:%S")
+        self._stats['start_time'] = datetime.now() # Start timing
+        self._stats["start_datetime"] = self._stats['start_time'].strftime("%Y-%m-%d %H:%M:%S")
         self._stats["benchmark"] = benchmark_name
 
         # Activate the Exporter
@@ -862,10 +381,8 @@ class GPUMonitor:
             )
 
         LOGGER.info("Initialized benchmark runner for tmux session.")
-
-        return start_time
-
-    def _shutdown(self, plot: bool,export_to_meerkat: bool) -> None:
+    
+    def __shutdown(self, plot: bool,export_to_meerkat: bool) -> None:
         """
         Perform a safe and complete shutdown of the monitoring process.
 
@@ -877,17 +394,11 @@ class GPUMonitor:
 
         It logs detailed information about each step and handles potential errors
         that might occur during container management and NVML shutdown.
-
-        Exceptions:
-            - docker.errors.NotFound: If the container is not found during cleanup.
-            - docker.errors.APIError: For errors related to Docker API operations
-            such as stopping, removing, or force-removing containers.
-            - pynvml.NVMLError: For errors related to NVML operations.
-            - Exception: For any other unexpected errors during the shutdown process.
         """
-        self.__completion_stats()  # Finalize statistics
+        self.__cleanup_stats()  # Finalize statistics
         LOGGER.info("Monitoring stopped.")
 
+        # Reset Meerkat Results
         if export_to_meerkat:
             try:
                 self.exporter.export_metric_readings(self.current_gpu_metrics,
@@ -901,7 +412,7 @@ class GPUMonitor:
         # Save the metrics plot if requested
         if plot:
             try:
-                self.plot_metrics()
+                plot_metrics(time_series_data=self._time_series_data)
                 LOGGER.info("Metrics plot saved.")
             except (FileNotFoundError, IOError) as plot_error:
                 LOGGER.error("Error during plotting: %s", plot_error)
@@ -918,63 +429,437 @@ class GPUMonitor:
             # Handle any unexpected exceptions
             LOGGER.error("Unexpected error during NVML shutdown: %s", ex)
 
-    def run(self, benchmark_command: str = None, benchmark_image: str = None,
-            live_monitoring: bool = True,
-            plot: bool = True, live_plot: bool = False,
-            monitor_logs: bool = False,
-            export_to_meerkat: bool = False) -> None:
-        """
-        Runs the benchmark process either in a tmux session or Docker container based on provided arguments.
+        self._cleanup_benchmark()
 
-        This method determines whether to execute the benchmark using a tmux session or a Docker container,
-        depending on the provided input. It will raise an error if both or neither `benchmark_command` and 
-        `benchmark_image` are provided.
+    def save_stats_to_yaml(self, file_path: str = METRICS_FILE_PATH) -> None:
+        """
+        Saves the collected statistics to a YAML file.
 
         Args:
-            benchmark_command (str): The shell command to run in a tmux session.
-            benchmark_image (str): The Docker container image to run.
+            file_path (str): Path to the YAML file.
+        """
+        try:
+            # Open the specified file in write mode with UTF-8 encoding
+            with open(file_path, 'w', encoding='utf-8') as yaml_file:
+                # Dump the statistics dictionary into the YAML file
+                yaml.dump(self._stats, yaml_file, default_flow_style=False)
+
+            # Log success message with file path
+            LOGGER.info("Stats saved to YAML file: %s", file_path)
+
+        except IOError as io_error:
+            # Log error message if file writing fails
+            LOGGER.error("Failed to save stats to YAML file: %s. Error: %s", file_path, io_error)
+
+    def run_benchmark(self, benchmark_name: str, live_monitoring: bool = True,
+                      plot: bool = True, live_plot: bool = False,
+                      monitor_logs: bool = False,
+                      export_to_meerkat: bool = False) -> None:
+        """
+        Method to runs the benchmark process
+
+        Args:
+            benchmark_name (str): Name of benchmark to be run
             live_monitoring (bool): If True, enables live monitoring display during execution. Defaults to True.
             plot (bool): If True, saves the metrics plot at the end of execution. Defaults to True.
             live_plot (bool): If True, updates the metrics plot in real-time while the benchmark is running. Defaults to False.
             monitor_logs (bool): If True, monitors both GPU metrics and logs from the tmux session or Docker container. Defaults to False.
+            export_to_meerkat (bool): If True, exports data to meerkat data base. Defaults to False.
         """
-        
-        # Ensure that either a benchmark command or a Docker image is specified, but not both
-        if benchmark_command and benchmark_image:
-            # Log the error of conflicting input arguments
-            LOGGER.error("Both 'benchmark_command' and 'benchmark_image' provided. Please use only one.")
-            
-            # Raise an error indicating that only one method of benchmark execution can be chosen
-            raise ValueError("You must specify either 'benchmark_command' or 'benchmark_image', not both.")
+        # Initialize stats such as timer and exporter
+        start_time = self.__init_benchmark(benchmark_name, export_to_meerkat)
 
-        # Run the benchmark in a tmux session if a command is provided
-        if benchmark_command:
-            # Check if tmux is available
-            if not SUBPROCESS_AVAILABLE:
-                raise RuntimeError("The 'subprocess' module is required but not available. Please install it.")
-        
-            # Call the private method to handle tmux session execution
-            self._run_benchmark_in_tmux(benchmark_command, live_monitoring,
-                                        plot, live_plot, monitor_logs,
-                                        export_to_meerkat)
-        
-        # Run the benchmark in a Docker container if a Docker image is provided
-        elif benchmark_image:
-            # Check if Docker is available
-            if not DOCKER_AVAILABLE:
-                LOGGER.error("Docker functionality is not available. Please install Docker.")
+        try:
+            # Start Benchmark in Background
+            self._start_benchmark(benchmark_name)
+
+            while self._is_benchmark_running():
+                try:
+                    # Update the current GPU metrics
+                    self.__update_gpu_metrics()
+
+                    # Plot Metrics if live plotting is enabled
+                    if live_plot:
+                        plot_metrics(time_series_data=self._time_series_data)
+
+                    # Display live monitoring output if enabled
+                    if live_monitoring:
+                        self._display_live_monitoring(monitor_logs)
+                    
+                    # Export to  Meerkat DB if enabled
+                    if export_to_meerkat:
+                        self.exporter.export_metric_readings(self.current_gpu_metrics)
+                    
+                     # Wait for the specified interval before the next update
+                    time.sleep(self.config['monitor_interval'])
                 
-                # Raise a runtime error indicating that Docker is required but not available
-                raise RuntimeError("Docker functionality is not available. Please install Docker.")
-            
-            # Call the private method to handle Docker container execution
-            self._run_benchmark_in_docker(benchmark_image, live_monitoring,
-                                          plot, live_plot, monitor_logs,
-                                          export_to_meerkat)
+                except (KeyboardInterrupt, SystemExit):
+                    LOGGER.info("Monitoring interrupted by user.")
+                    print("\nMonitoring interrupted by user.\nStopping gracefully, please wait...")
+                    break
+                except Exception as ex:
+                    LOGGER.error("Unexpected error during monitoring: %s", ex)
+        except Exception as ex:
+            LOGGER.error("Unexpected error: %s", ex)
+        finally:
+            # Shutdown the Process
+            self.__shutdown(plot,export_to_meerkat)
+    
+
+    @abstractmethod
+    def _start_benchmark(self, benchmark_command) -> None:
+        """Start the benchmark process."""
+        pass
+
+    @abstractmethod
+    def _is_benchmark_running(self) -> bool:
+        """Check if the benchmark is still running."""
+        pass
+
+    @abstractmethod
+    def _display_live_monitoring(self, monitor_logs: bool) -> None:
+        """Display live monitoring information."""
+        pass
+
+    @abstractmethod
+    def _cleanup_benchmark(self) -> None:
+        """Clean up after the benchmark has finished."""
+        pass
+
+class DockerGPUMonitor(BaseMonitor):
+    """
+    GPU monitor for Docker-based benchmarks.
+    
+    Extends BaseMonitor to run and monitor GPU metrics for benchmarks
+    executed within Docker containers. Handles container lifecycle
+    and logs retrieval.
+
+    Attributes:
+        client (docker.client.DockerClient): Docker client for container management.
+        container (docker.models.containers.Container): Docker container running the benchmark.
+    """
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Initialize DockerGPUMonitor.
+
+        Raises:
+            RuntimeError: If Docker functionality is not available.
+        """
+        super().__init__(*args, **kwargs)
+        if not DOCKER_AVAILABLE:
+            LOGGER.error("Docker functionality is not available. Please install Docker.")
+            raise RuntimeError("Docker functionality is not available. Please install Docker.")
         
-        # If neither a benchmark command nor a Docker image is provided, raise an error
+        # Initialize Docker client
+        self.client = docker.from_env()
+
+        # Initialise parameter for Benchmark Container
+        self.container = None
+
+    def _start_benchmark(self, benchmark_image) -> None:
+        """
+        Start the benchmark in a Docker container.
+
+        Args:
+            benchmark_image (str): Docker image name for the benchmark.
+        """
+        try:
+            # Run the container in the background
+            self.container = self.client.containers.run(
+                    benchmark_image,
+                    detach=True,
+                    device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])],
+                    shm_size="1024G" # Set to large to ensure all that is needed is used
+            )
+
+            # Reload to update status from created to running
+            self.container.reload()
+        except docker.errors.DockerException as docker_error:
+            LOGGER.error("Docker error: %s", docker_error)
+
+    def _is_benchmark_running(self) -> bool:
+        """
+        Check if the Docker container is still running.
+
+        Returns:
+            bool: True if the container is running, False otherwise.
+        """
+
+        # Reload container status and check if it is still running
+        try:
+            self.container.reload()
+            return self.container.status == 'running'
+        except docker.errors.DockerException as docker_error:
+            LOGGER.error("Docker error: %s", docker_error)
+
+    def _display_live_monitoring(self, monitor_logs: bool) -> None:
+        """
+        Display live GPU metrics and optionally container logs.
+
+        Args:
+            monitor_logs (bool): If True, display container logs along with GPU metrics.
+        """
+        if monitor_logs:
+            print(self._live_monitor_container())
         else:
-            LOGGER.error("Neither 'benchmark_command' nor 'benchmark_image' provided.")
+            print(self._live_monitor_metrics())
+            print(f"\n Benchmark Status: {self.container.status}")
+
+    def _live_monitor_container(self) -> str:
+        """
+        Retrieve and format live GPU metrics and container logs.
+
+        Returns:
+            str: Formatted string containing GPU metrics and container logs.
+        """
+        try:
+            # Collect container logs
+            container_log = self.container.logs(follow=False).decode('utf-8')
+
+            # Initialize container message
+            container_message = f"\nContainer Logs:\n"
+
+            # Process the logs
+            container_log = container_log.replace('\\r', '\r')
+            lines = container_log.split('\n')  # Split the entire log into lines
+
+            # Process each line to handle log loading bars
+            for line in lines:
+                if '\r' in line:
+                    # Handle the last segment after '\r'
+                    line = line.split('\r')[-1]
+                # Append the processed line to the complete message
+                container_message += f"\n {line.strip()}"
+
+            # Collect live metrics
+            metrics_message = self._live_monitor_metrics()
+
+            # Complete message
+            complete_message = f"\n\n{metrics_message}"
+
+            return complete_message
+        except OSError as os_error:
+            LOGGER.error("Error clearing the terminal screen: %s", os_error)
+            raise
+
+        except KeyError as key_error:
+            LOGGER.error("Missing key in GPU stats or metrics: %s", key_error)
+            raise
+
+        except ValueError as value_error:
+            LOGGER.error("Error formatting GPU metrics: %s", value_error)
+            raise
+
+    def _cleanup_benchmark(self) -> None:
+        """Remove the Docker container."""
+        if self.container:
+            try:
+                self.container.remove(force=True)
+                LOGGER.info("Docker container removed.")
+            except docker.errors.APIError as docker_error:
+                LOGGER.error("Failed to remove Docker container: %s", docker_error)
+
+class TmuxGPUMonitor(BaseMonitor):
+    """
+    GPU monitor for tmux-based benchmarks.
+    
+    Extends BaseMonitor to run and monitor GPU metrics for benchmarks
+    executed within tmux sessions. Manages tmux session lifecycle
+    and log retrieval.
+
+    Attributes:
+        session_name (str): Name of the tmux session running the benchmark.
+    """
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Initialize TmuxGPUMonitor.
+
+        Raises:
+            RuntimeError: If subprocess module is not available.
+        """
+        super().__init__(*args, **kwargs)
+        if not SUBPROCESS_AVAILABLE:
+            raise RuntimeError("The 'subprocess' module is required but not available. Please install it.")
+        self.session_name = "benchmark_session"
+
+    def _start_benchmark(self, benchmark_command) -> None:
+        """
+        Start the benchmark in a tmux session.
+
+        Args:
+            benchmark_command (str): Command to run the benchmark.
+        """
+        tmux_command = [
+                "tmux", "new-session", "-d", "-s", self.session_name,
+                "bash -c 'cd \"$(pwd)\" && " + benchmark_command + "'"
+        ]
+        LOGGER.info("Starting tmux session with command: %s", benchmark_command)
+        try:
+            subprocess.run(tmux_command, check=True)
+            LOGGER.info("Tmux session started successfully.")
+        except subprocess.CalledProcessError as e:
+            LOGGER.error("Failed to start tmux session: %s", e)
+            raise RuntimeError(f"Failed to start tmux session: {e}") from e
+
+    def _is_benchmark_running(self) -> bool:
+        """
+        Check if the tmux session is still active.
+
+        Returns:
+            bool: True if the session is active, False otherwise.
+        """
+        # Check if the tmux session is still running
+        status_command = ["tmux", "has-session", "-t", self.session_name]
+        try:
+            subprocess.run(status_command, check=True)
+            return True
+        except subprocess.CalledProcessError:
+            LOGGER.info("Tmux session has ended.")
+            return False
+        # Check if tmux session is still running via logs
+        logs_command = ["tmux", "capture-pane", "-t", self.session_name, "-p"]
+        try:
+            subprocess.check_output(logs_command)
+            LOGGER.info("Captured logs from tmux session - still running.")
+            return True
+        except subprocess.CalledProcessError as e:
+            LOGGER.error("Failed to capture logs from tmux session: %s", e)
+            LOGGER.info("Tmux session has ended.")
+            return False
+
+    def _display_live_monitoring(self, monitor_logs) -> None:
+        """
+        Display live GPU metrics and optionally tmux session logs.
+
+        Args:
+            monitor_logs (bool): If True, display tmux logs along with GPU metrics.
+        """
+        if monitor_logs:
+            try:
+                print(self._live_monitor_tmux())
+            except subprocess.CalledProcessError:
+                LOGGER.info("Tmux session has ended.")
+        else:
+            print(self._live_monitor_metrics())
+            print("\nBenchmark Status: Running")
+
+    def _live_monitor_tmux(self) -> str:
+        """
+        Retrieve and format live GPU metrics and tmux session logs.
+
+        Returns:
+            str: Formatted string containing GPU metrics and tmux session logs.
+        """
+        try:
+            # Collect live metrics
+            metrics_message = self._live_monitor_metrics()
+
+            # Capture and display logs from tmux
+            logs_command = ["tmux", "capture-pane", "-t", self.session_name, "-p"]
+            try:
+                logs = subprocess.check_output(logs_command).decode()
+                LOGGER.info("Captured logs from tmux session.")
+            except subprocess.CalledProcessError as e:
+                LOGGER.error("Failed to capture logs from tmux session: %s", e)
             
-            # Raise an error indicating that one of the two options must be provided to run the benchmark
+            # Return complete message with metrics and Tmux logs header
+            return f"\nTmux Logs:\n\n{logs}\n\n{metrics_message}"
+
+        except ValueError as value_error:
+            # Log value errors that occur during processing
+            LOGGER.error("Value error in live monitoring: %s", value_error)
+            raise  # Re-raise the exception if you want it to propagate
+
+        except Exception as ex:
+            # Log any unexpected errors
+            LOGGER.error("Unexpected error in live monitoring: %s", ex)
+            raise  # Re-raise the exception if you want it to propagate
+
+    def _cleanup_benchmark(self) -> None:
+        """Terminate the tmux session."""
+        try:
+            subprocess.run(["tmux", "kill-session", "-t", self.session_name], check=True)
+            LOGGER.info("Tmux session '%s' terminated.", self.session_name)
+        except subprocess.CalledProcessError as e:
+            LOGGER.error("Failed to clean up tmux session '%s': %s", self.session_name, e)
+
+class GPUMonitor:
+    """
+    High-level GPU monitoring interface.
+    
+    Provides a unified interface for monitoring GPU metrics,
+    supporting both Docker and tmux-based benchmarks. Handles
+    the creation of appropriate monitor instances and delegates
+    monitoring operations.
+
+    Attributes:
+        config (Dict[str, Any]): Configuration settings for the monitor.
+        monitor (Optional[BaseMonitor]): Instance of DockerGPUMonitor or TmuxGPUMonitor.
+    """
+    def __init__(self, monitor_interval: int = MONITOR_INTERVAL,
+                 carbon_region_shorthand: str = "South England") -> None:
+        """
+        Initialize GPUMonitor.
+
+        Args:
+            monitor_interval (int): Interval for collecting GPU metrics.
+            carbon_region_shorthand (str): Region for carbon intensity data.
+        """
+        self.config = {
+            'monitor_interval': monitor_interval,
+            'carbon_region_shorthand': carbon_region_shorthand
+        }
+        self.monitor = None
+
+    def run(self, benchmark_command: str = None, benchmark_image: str = None,
+            live_monitoring: bool = True, plot: bool = True, live_plot: bool = False,
+            monitor_logs: bool = False, export_to_meerkat: bool = False) -> None:
+        """
+        Run the benchmark and monitor GPU metrics.
+
+        Creates appropriate monitor instance based on input and starts monitoring.
+
+        Args:
+            benchmark_command (Optional[str]): Command to run for tmux-based benchmarks.
+            benchmark_image (Optional[str]): Docker image for Docker-based benchmarks.
+            live_monitoring (bool): Enable live monitoring display.
+            plot (bool): Save metrics plot at the end.
+            live_plot (bool): Update metrics plot in real-time.
+            monitor_logs (bool): Monitor both GPU metrics and logs.
+            export_to_meerkat (bool): Export metrics to MeerkatDB.
+
+        Raises:
+            ValueError: If both or neither benchmark_command and benchmark_image are specified.
+        """
+        if benchmark_command and benchmark_image:
+            raise ValueError("You must specify either 'benchmark_command' or 'benchmark_image', not both.")
+        elif benchmark_command:
+            self.monitor = TmuxGPUMonitor(**self.config)
+        elif benchmark_image:
+            self.monitor = DockerGPUMonitor(**self.config)
+        else:
             raise ValueError("You must specify either 'benchmark_command' or 'benchmark_image'.")
+
+        self.monitor.run_benchmark(
+            benchmark_command or benchmark_image,
+            live_monitoring=live_monitoring,
+            plot=plot,
+            live_plot=live_plot,
+            monitor_logs=monitor_logs,
+            export_to_meerkat=export_to_meerkat
+        )
+
+    def save_stats_to_yaml(self, file_path: str = METRICS_FILE_PATH) -> None:
+        """
+        Save collected GPU statistics to a YAML file.
+
+        Args:
+            file_path (str): Path to save the YAML file.
+
+        Raises:
+            RuntimeError: If no monitoring has been performed yet.
+        """
+        if self.monitor:
+            self.monitor.save_stats_to_yaml(file_path)
+        else:
+            raise RuntimeError("No monitoring has been performed yet.")

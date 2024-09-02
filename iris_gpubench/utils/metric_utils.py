@@ -1,25 +1,29 @@
 """
-Utility functions for handling and formatting metrics in the iris-gpubench package.
+Utility functions for metrics handling in iris-gpubench.
 
-This module provides functionality to format metrics from a YAML file into 
-human-readable tables and save them to a file.
+Provides functionality to format, convert, and visualize GPU metrics.
 
 Functions:
-    format_metrics(results_dir: str, metrics_file_path: str, formatted_metrics_path: str) -> None:
-        Formats metrics from a YAML file into human-readable tables, prints them to the console,
-        and saves them to a text file.
+    format_metrics: Format YAML metrics into human-readable tables.
+    save_metrics_to_csv: Convert time series data to CSV format.
+    plot_metric: Helper function for plotting individual GPU metrics.
+    plot_metrics: Plot and save multiple GPU metrics to a file.
 
-Dependencies:
-- `os`: For directory operations.
-- `yaml`: For parsing YAML files.
-- `tabulate`: For formatting data into tables.
+Dependencies: os, yaml, tabulate, matplotlib
 """
 
 import os
 import yaml
 from tabulate import tabulate
+import matplotlib.backends.backend_agg as agg
+from matplotlib import figure
+from matplotlib import ticker
+
+from typing import Optional
 
 from .globals import RESULTS_DIR, LOGGER
+
+METRIC_PLOT_PATH = os.path.join(RESULTS_DIR, 'metric_plot.png')
 
 def format_metrics(results_dir: str = RESULTS_DIR,
                    metrics_file_path: str = 'metrics.yml',
@@ -114,7 +118,7 @@ def format_metrics(results_dir: str = RESULTS_DIR,
         LOGGER.error("Missing expected data in metrics file: %s", key_error)
 
 
-def convert_and_save_csv(time_series_data: dict, results_dir: str = RESULTS_DIR,) -> None:
+def save_metrics_to_csv(time_series_data: dict, results_dir: str = RESULTS_DIR,) -> None:
     """
     Converts time series data to CSV format and saves it to a file.
 
@@ -193,3 +197,123 @@ def convert_and_save_csv(time_series_data: dict, results_dir: str = RESULTS_DIR,
     except Exception as error_message:
         LOGGER.error("Unexpected error: %s", error_message)
         raise
+
+def plot_metric(axis, data: tuple, line_info: Optional[tuple] = None,
+                ylim: Optional[tuple] = None) -> None:
+    """
+    Helper function to plot a GPU metric on a given axis.
+
+    Args:
+        axis (matplotlib.axes.Axes): The axis to plot on.
+        data (tuple): Tuple containing (timestamps, y_data, title, ylabel, xlabel).
+        line_info (Optional[tuple]): Tuple containing a horizontal line's y value and label.
+        ylim (Optional[tuple]): y-axis limits.
+    """
+    # Unpack the data tuple into individual components
+    timestamps, y_data, title, ylabel, xlabel = data
+
+    # Plot the metric data for each GPU
+    for i, gpu_data in enumerate(y_data):
+        axis.plot(timestamps, gpu_data, label=f"GPU {i}", marker="*")
+
+    # Optionally plot a horizontal line for a specific threshold
+    if line_info:
+        yline, yline_label = line_info
+        axis.axhline(y=yline, color="r", linestyle="--", label=yline_label)
+
+    # Set plot title and labels
+    axis.set_title(title, fontweight="bold")
+    axis.set_ylabel(ylabel, fontweight="bold")
+    if xlabel:
+        axis.set_xlabel(xlabel, fontweight="bold")
+
+    # Add legend, grid, and format x-axis
+    axis.legend()
+    axis.grid(True)
+    axis.xaxis.set_major_locator(ticker.MaxNLocator(5))
+    axis.tick_params(axis="x", rotation=45)
+
+    # Optionally set y-axis limits
+    if ylim:
+        axis.set_ylim(ylim)
+
+
+def plot_metrics(time_series_data: dict, plot_path: str = METRIC_PLOT_PATH) -> None:
+    """
+    Plot and save GPU metrics to a file.
+
+    Creates plots for power usage, utilization, temperature, and memory usage,
+    and saves them to the specified file path.
+    """
+    try:
+        # Retrieve timestamps for plotting
+        timestamps = time_series_data["timestamp"]
+
+        # Prepare data for plotting for each metric and GPU
+        power_data = [
+            [p[i] for p in time_series_data["power"]]
+            for i in range(self._stats['device_count'])
+        ]
+        util_data = [
+            [u[i] for u in time_series_data["util"]]
+            for i in range(self._stats['device_count'])
+        ]
+        temp_data = [
+            [t[i] for t in time_series_data["temp"]]
+            for i in range(self._stats['device_count'])
+        ]
+        mem_data = [
+            [m[i] for m in time_series_data["mem"]]
+            for i in range(self._stats['device_count'])
+        ]
+
+        # Create a new figure with a 2x2 grid of subplots
+        fig = figure.Figure(figsize=(20, 15))
+        axes = fig.subplots(nrows=2, ncols=2)
+
+        # Create a backend for rendering the plot
+        canvas = agg.FigureCanvasAgg(fig)
+
+        # Plot each metric using the helper function
+        plot_metric(
+            axes[0, 0],
+            (
+                timestamps,
+                power_data,
+                f"GPU Power Usage, Total Energy: {self._stats['total_energy']:.3g}kWh",
+                "Power (W)",
+                "Timestamp",
+            ),
+            (self._stats["max_power_limit"], "Power Limit"),
+        )
+        plot_metric(
+            axes[0, 1],
+            (timestamps, util_data, "GPU Utilization", "Utilization (%)", "Timestamp"),
+            ylim=(0, 100),  # Set y-axis limits for utilization
+        )
+        plot_metric(
+            axes[1, 0],
+            (timestamps, temp_data, "GPU Temperature", "Temperature (C)", "Timestamp"),
+        )
+        plot_metric(
+            axes[1, 1],
+            (timestamps, mem_data, "GPU Memory Usage", "Memory (MiB)", "Timestamp"),
+            (self._stats["total_mem"], "Total Memory"),
+        )
+
+        # Adjust layout to prevent overlap
+        fig.tight_layout(pad=3.0)
+
+        # Render the figure to the canvas and save it as a PNG file
+        canvas.draw()  # Ensure the figure is fully rendered
+        canvas.figure.savefig(plot_path, bbox_inches="tight")  # Save the plot as PNG
+
+        # Free memory by deleting the figure
+        del fig  # Remove reference to figure to free memory
+
+    except (FileNotFoundError, IOError) as plot_error:
+        # Log specific error if the file cannot be found or opened
+        LOGGER.error("Error during plotting: %s", plot_error)
+    except Exception as ex:
+        # Log any unexpected errors during plotting
+        LOGGER.error("Unexpected error during plotting: %s", ex)
