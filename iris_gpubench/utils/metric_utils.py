@@ -1,25 +1,23 @@
 """
-Utility functions for handling and formatting metrics in the iris-gpubench package.
+Utility functions for metrics handling in iris-gpubench.
 
-This module provides functionality to format metrics from a YAML file into 
-human-readable tables and save them to a file.
+Provides functionality to format, convert, and visualize GPU metrics.
 
 Functions:
-    format_metrics(results_dir: str, metrics_file_path: str, formatted_metrics_path: str) -> None:
-        Formats metrics from a YAML file into human-readable tables, prints them to the console,
-        and saves them to a text file.
+    format_metrics: Format YAML metrics into human-readable tables.
+    save_metrics_to_csv: Convert time series data to CSV format.
 
-Dependencies:
-- `os`: For directory operations.
-- `yaml`: For parsing YAML files.
-- `tabulate`: For formatting data into tables.
+Dependencies: os, yaml, tabulate, matplotlib
 """
 
 import os
 import yaml
 from tabulate import tabulate
 
+from typing import Optional
+
 from .globals import RESULTS_DIR, LOGGER
+
 
 def format_metrics(results_dir: str = RESULTS_DIR,
                    metrics_file_path: str = 'metrics.yml',
@@ -112,84 +110,3 @@ def format_metrics(results_dir: str = RESULTS_DIR,
     except KeyError as key_error:
         # Log missing data error
         LOGGER.error("Missing expected data in metrics file: %s", key_error)
-
-
-def convert_and_save_csv(time_series_data: dict, results_dir: str = RESULTS_DIR,) -> None:
-    """
-    Converts time series data to CSV format and saves it to a file.
-
-    Args:
-        time_series_data (dict): A dictionary containing time series data with keys
-                                 'timestamp', 'gpu_idx', 'util', 'power', 'temp', 'mem'.
-        results_dir (str): The directory where the CSV file should be saved.
-                        Defaults to RESULTS_DIR.
-
-    Raises:
-        ValueError: If the input data is invalid or missing required keys.
-        IOError: If an error occurs while writing to the file.
-    """
-    try:
-        # Validate input data
-        required_keys = ['timestamp', 'gpu_idx', 'util', 'power', 'temp', 'mem']
-        if not all(key in time_series_data for key in required_keys):
-            raise ValueError("Input data is missing required keys")
-
-        # Extract data from the input dictionary
-        timestamps = time_series_data['timestamp']
-        gpu_indices = time_series_data['gpu_idx']
-        util = time_series_data['util']
-        power = time_series_data['power']
-        temp = time_series_data['temp']
-        mem = time_series_data['mem']
-
-        # Validate data lengths
-        data_length = len(timestamps)
-        if not all(len(data) == data_length for data in [gpu_indices, util, power, temp, mem]):
-            raise ValueError("All data arrays must have the same length")
-
-        # Initialize a list to store CSV lines
-        csv_lines = []
-
-        # Add header to CSV
-        csv_header = "timestamp,gpu_index,utilization,power,temperature,memory"
-        csv_lines.append(csv_header)
-
-        # Flatten the data and format it as CSV
-        for reading_index in range(data_length):
-            for gpu_index, gpu_util in enumerate(util[reading_index]):
-                # Format each line as a CSV entry
-                csv_line = (
-                    f"{timestamps[reading_index]},"
-                    f"{gpu_indices[reading_index][gpu_index]},"
-                    f"{gpu_util},"
-                    f"{power[reading_index][gpu_index]},"
-                    f"{temp[reading_index][gpu_index]},"
-                    f"{mem[reading_index][gpu_index]}"
-                )
-                # Append the formatted line to the list
-                csv_lines.append(csv_line)
-
-        # Join the lines with newline characters to create the final CSV string
-        csv_data = "\n".join(csv_lines)
-
-        # Ensure the target directory exists and create if not
-        os.makedirs(results_dir, exist_ok=True)
-
-        # Construct the full file path
-        file_path = os.path.join(results_dir, 'timeseries.csv')
-
-        # Open the file in write mode with UTF-8 encoding
-        with open(file_path, 'w', encoding='utf-8') as file:
-            file.write(csv_data)
-
-        LOGGER.info("CSV data successfully converted and saved to %s", file_path)
-
-    except ValueError as error_message:
-        LOGGER.error("Invalid input data: %s", error_message)
-        raise
-    except IOError as error_message:
-        LOGGER.error("Error saving CSV data to file %s: %s", file_path, error_message)
-        raise
-    except Exception as error_message:
-        LOGGER.error("Unexpected error: %s", error_message)
-        raise
