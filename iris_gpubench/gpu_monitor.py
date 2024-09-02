@@ -971,7 +971,7 @@ class TmuxGPUMonitor(BaseMonitor):
             # If logs are effectively empty
             if len(logs.strip()) == 0:
                 logs = "Currently no logs to display."
-
+                
             # Return complete message with metrics and Tmux logs header
             return f"\nTmux Logs:\n\n{logs}\n\n{metrics_message}"
 
@@ -1082,7 +1082,7 @@ class GPUMonitor:
     
     def save_timeseries_to_csv(self, results_dir: str = RESULTS_DIR):
         if self.monitor:
-            self.monitor.save_timeseries_to_csv(RESULTS_DIR)
+            self.monitor.save_timeseries_to_csv(results_dir)
         else:
             raise RuntimeError("No monitoring has been performed yet.")
     
