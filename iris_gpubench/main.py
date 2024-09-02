@@ -56,6 +56,11 @@ def main():
         gpu_monitor.save_stats_to_yaml()
         LOGGER.info("Saving monitoring completed.")
 
+        # Save monitoring results
+        LOGGER.info("Saving monitoring results...")
+        gpu_monitor.save_timeseries_to_csv()
+        LOGGER.info("Saving monitoring completed.")
+
     except ValueError as value_error:
         LOGGER.error("Value error occurred: %s", value_error)
         print(f"Value error occurred: {value_error}")
