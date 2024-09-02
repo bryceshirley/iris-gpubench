@@ -398,16 +398,10 @@ class BaseMonitor(ABC):
 
         # Reset Meerkat Results And Export Stats
         if export_to_meerkat:
-            try:
-                self.exporter.export_metric_readings(self.current_gpu_metrics,
-                                                    reset_meerkat=True)
+            self.exporter.export_metric_readings(self.current_gpu_metrics,
+                                                reset_meerkat=True)
 
-                self.exporter.export_stats(self._stats)
-
-            except ValueError as ve:
-                LOGGER.error("Invalid data for MeerkatDB export: %s", ve)
-            except requests.RequestException as re:
-                LOGGER.error("Failed to send data to MeerkatDB: %s", re)
+            self.exporter.export_stats(self._stats)
 
         # Save the metrics plot if requested
         if plot:
@@ -692,16 +686,11 @@ class BaseMonitor(ABC):
                     
                     # Export to  Meerkat DB if enabled
                     if export_to_meerkat:
-                        try:
-                            # Export GPU Metrics
-                            self.exporter.export_metric_readings(self.current_gpu_metrics)
+                        # Export GPU Metrics
+                        self.exporter.export_metric_readings(self.current_gpu_metrics)
 
-                            # Export Carbon Forcast
-                            self.exporter.export_carbon_forcast(self.config['carbon_region_shorthand'])
-                        except ValueError as ve:
-                            LOGGER.error("Invalid data for MeerkatDB export: %s", ve)
-                        except requests.RequestException as re:
-                            LOGGER.error("Failed to send data to MeerkatDB: %s", re)
+                        # Export Carbon Forcast
+                        self.exporter.export_carbon_forcast(self.config['carbon_region_shorthand'])
 
                     
                      # Wait for the specified interval before the next update
