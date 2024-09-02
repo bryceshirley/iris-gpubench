@@ -52,7 +52,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # GLOBAL VARIABLES
-from .utils.globals import LOGGER, TIMEOUT_SECONDS, RESULTS_DIR
+from .utils.globals import LOGGER, TIMEOUT_SECONDS, RESULTS_DIR, DEFAULT_REGION
 MEERKAT_USERNAME = ''
 MEERKAT_PASSWORD = ''
 MEERKAT_URL = 'https://172.16.101.182:8247/write'
@@ -101,8 +101,9 @@ class MeerkatExporter:
             benchmark (str): The name of the benchmark being run.
             verify_ssl (bool): Whether to verify SSL certificates. Defaults to False.
         """
-        gpu_name = gpu_name.split(' ')[-1]
-        self.benchmark_info = f"gpu_name={gpu_name},benchmark={benchmark}"
+        self.gpu_name = gpu_name.split(' ')[-1]
+        self.benchmark = benchmark
+        self.benchmark_info = f"gpu_name={self.gpu_name},benchmark={self.benchmark}"
         self.headers = self._create_auth_header()
         self.db_url = MEERKAT_URL
         self.verify_ssl = verify_ssl
@@ -219,14 +220,20 @@ class MeerkatExporter:
         except requests.exceptions.RequestException as e:
             LOGGER.error(f"An error occurred: {e}")
 
-    def export_stats(self) -> None:
+    def export_stats(self,stats) -> None:
         """
         Exports Completion Results to Meerkat Database
         """
-        print('This Does not work yet')
+        data = f"{self.gpu_name},benchmark={self.benchmark} _elapsed_time={stats['elapsed_time']},_av_carbon_forecast={stats['av_carbon_forecast']},_total_carbon={stats['total_carbon']},_total_energy={stats['total_energy']},_av_temp={stats['av_temp']},_av_util={stats['av_util']},_av_mem={stats['av_mem']},,_av_power={stats['av_power']}"
+        self._send_metric_data(data)
+        
 
-    def export_carbon_index(self, carbon_forecast) -> None:
+    def export_carbon_forcast(self, carbon_region_shorthand: str = DEFAULT_REGION) -> None:
         """
-        Exports Carbon index
+        Exports Carbon forcast
         """
-        print('This currently does nothing')
+        carbon_forcast = get_carbon_forecast(carbon_region_shorthand)
+
+        data = f"Carbon, _forcast={carbon_forcast}"
+
+        self._send_metric_data(data)
