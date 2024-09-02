@@ -26,3 +26,6 @@ MONITOR_INTERVAL = 5
 
 # Initialize the logger with the specified configuration
 LOGGER = setup_logging(RESULTS_DIR)
+
+# Default Carbon Forecast Region
+DEFAULT_REGION = "South England"

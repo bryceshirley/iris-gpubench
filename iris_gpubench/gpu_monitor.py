@@ -394,11 +394,20 @@ class BaseMonitor(ABC):
         """
         # Finalize statistics
         self.__cleanup_stats() 
+        # Finalize statistics
+        self.__cleanup_stats() 
         LOGGER.info("Monitoring stopped.")
 
-        # Export Stats to Meerkat
+        # Reset Meerkat Results
         if export_to_meerkat:
-            self.exporter.export_stats(self._stats)
+            try:
+                self.exporter.export_metric_readings(self.current_gpu_metrics,
+                                                    reset_meerkat=True)
+                LOGGER.info("Export to meerkat")
+            except ValueError as ve:
+                LOGGER.error("Invalid data for MeerkatDB export: %s", ve)
+            except requests.RequestException as re:
+                LOGGER.error("Failed to send data to MeerkatDB: %s", re)
 
         # Save the metrics plot if requested
         if plot:
@@ -968,7 +977,7 @@ class TmuxGPUMonitor(BaseMonitor):
             # If logs are effectively empty
             if len(logs.strip()) == 0:
                 logs = "Currently no logs to display."
-
+            
             # Return complete message with metrics and Tmux logs header
             return f"\nTmux Logs:\n\n{logs}\n\n{metrics_message}"
 
