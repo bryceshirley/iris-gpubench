@@ -394,20 +394,11 @@ class BaseMonitor(ABC):
         """
         # Finalize statistics
         self.__cleanup_stats() 
-        # Finalize statistics
-        self.__cleanup_stats() 
         LOGGER.info("Monitoring stopped.")
 
-        # Reset Meerkat Results
+        # Export stats
         if export_to_meerkat:
-            try:
-                self.exporter.export_metric_readings(self.current_gpu_metrics,
-                                                    reset_meerkat=True)
-                LOGGER.info("Export to meerkat")
-            except ValueError as ve:
-                LOGGER.error("Invalid data for MeerkatDB export: %s", ve)
-            except requests.RequestException as re:
-                LOGGER.error("Failed to send data to MeerkatDB: %s", re)
+                self.exporter.export_stats(self._stats)
 
         # Save the metrics plot if requested
         if plot:
