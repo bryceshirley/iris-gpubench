@@ -392,19 +392,13 @@ class BaseMonitor(ABC):
         It logs detailed information about each step and handles potential errors
         that might occur during container management and NVML shutdown.
         """
-        self.__cleanup_stats()  # Finalize statistics
+        # Finalize statistics
+        self.__cleanup_stats() 
         LOGGER.info("Monitoring stopped.")
 
-        # Reset Meerkat Results
+        # Export Stats to Meerkat
         if export_to_meerkat:
-            try:
-                self.exporter.export_metric_readings(self.current_gpu_metrics,
-                                                    reset_meerkat=True)
-                LOGGER.info("Export to meerkat")
-            except ValueError as ve:
-                LOGGER.error("Invalid data for MeerkatDB export: %s", ve)
-            except requests.RequestException as re:
-                LOGGER.error("Failed to send data to MeerkatDB: %s", re)
+            self.exporter.export_stats(self._stats)
 
         # Save the metrics plot if requested
         if plot:
@@ -689,7 +683,12 @@ class BaseMonitor(ABC):
                     
                     # Export to  Meerkat DB if enabled
                     if export_to_meerkat:
+                        # Export GPU Metrics
                         self.exporter.export_metric_readings(self.current_gpu_metrics)
+
+                        # Export Carbon Forcast
+                        self.exporter.export_carbon_forcast(self.config['carbon_region_shorthand'])
+
                     
                      # Wait for the specified interval before the next update
                     time.sleep(self.config['monitor_interval'])
@@ -708,7 +707,7 @@ class BaseMonitor(ABC):
     
 
     @abstractmethod
-    def _start_benchmark(self, benchmark_command) -> None:
+    def _start_benchmark(self, benchmark_name) -> None:
         """Start the benchmark process."""
         pass
 
@@ -969,7 +968,7 @@ class TmuxGPUMonitor(BaseMonitor):
             # If logs are effectively empty
             if len(logs.strip()) == 0:
                 logs = "Currently no logs to display."
-            
+
             # Return complete message with metrics and Tmux logs header
             return f"\nTmux Logs:\n\n{logs}\n\n{metrics_message}"
 
@@ -1080,7 +1079,7 @@ class GPUMonitor:
     
     def save_timeseries_to_csv(self, results_dir: str = RESULTS_DIR):
         if self.monitor:
-            self.monitor.save_timeseries_to_csv(results_dir)
+            self.monitor.save_timeseries_to_csv(RESULTS_DIR)
         else:
             raise RuntimeError("No monitoring has been performed yet.")
     

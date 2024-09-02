@@ -51,8 +51,10 @@ import urllib3
 # Suppress InsecureRequestWarning
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+from .carbon_metrics import get_carbon_forecast
+
 # GLOBAL VARIABLES
-from .utils.globals import LOGGER, TIMEOUT_SECONDS, RESULTS_DIR
+from .utils.globals import LOGGER, TIMEOUT_SECONDS, RESULTS_DIR, DEFAULT_REGION
 MEERKAT_USERNAME = ''
 MEERKAT_PASSWORD = ''
 MEERKAT_URL = 'https://172.16.101.182:8247/write'
@@ -101,8 +103,9 @@ class MeerkatExporter:
             benchmark (str): The name of the benchmark being run.
             verify_ssl (bool): Whether to verify SSL certificates. Defaults to False.
         """
-        gpu_name = gpu_name.split(' ')[-1]
-        self.benchmark_info = f"gpu_name={gpu_name},benchmark={benchmark}"
+        self.gpu_name = gpu_name.split(' ')[-1]
+        self.benchmark = benchmark
+        self.benchmark_info = f"gpu_name={self.gpu_name},benchmark={self.benchmark}"
         self.headers = self._create_auth_header()
         self.db_url = MEERKAT_URL
         self.verify_ssl = verify_ssl
@@ -179,25 +182,6 @@ class MeerkatExporter:
 
         return ','.join(f"gpu{i}={value}" for i, value in enumerate(metric_values))
 
-    def _format_gpu_results_reset(self, metric_values: List, num_gpus: int) -> str:
-        """
-        Formats the GPU results into a string for MeerkatDB.
-
-        Args:
-            metric_values (List): List of metric values for each GPU.
-            num_gpus (int): Number of GPUs.
-
-        Returns:
-            str: Formatted string of GPU results.
-
-        Raises:
-            ValueError: If the number of metric values doesn't match the number of GPUs.
-        """
-        if len(metric_values) != num_gpus:
-            raise ValueError(f"Mismatch in number of GPUs ({num_gpus}) and metric values ({len(metric_values)})")
-
-        return ','.join(f"gpu{i}={0}" for i in range(num_gpus))
-
     def _send_metric_data(self, data: str) -> None:
         """
         Sends the formatted metric data to MeerkatDB.
@@ -219,14 +203,29 @@ class MeerkatExporter:
         except requests.exceptions.RequestException as e:
             LOGGER.error(f"An error occurred: {e}")
 
-    def export_stats(self) -> None:
+    def export_stats(self,stats) -> None:
         """
         Exports Completion Results to Meerkat Database
         """
-        print('This Does not work yet')
+        stats_values = f"av_carbon_forecast={stats['av_carbon_forecast']:.5f},total_carbon={stats['total_carbon']:.5f},total_energy={stats['total_energy']:.5f},av_temp={stats['av_temp']:.5f},av_util={stats['av_util']:.5f},av_mem={stats['av_mem']:.5f},av_power={stats['av_power']:.5f}"
+        gpu_info = f"gpu_name={self.gpu_name}"
+        data = f"{self.benchmark},{gpu_info},{stats_values} time={stats['elapsed_time']:.2f}"
+        self._send_metric_data(data)
 
-    def export_carbon_index(self, carbon_forecast) -> None:
+        LOGGER.info(f"Exported Stats. data:{data}")
+        
+
+    def export_carbon_forcast(self, carbon_region_shorthand: str = DEFAULT_REGION) -> None:
         """
-        Exports Carbon index
+        Exports Carbon forcast
         """
-        print('This currently does nothing')
+        carbon_forcast = get_carbon_forecast(carbon_region_shorthand)
+
+        # Remove spaces
+        carbon_region_shorthand=carbon_region_shorthand.replace(" ","_")
+
+        data = f"carbon,region={carbon_region_shorthand} forecast={carbon_forcast}"
+
+        self._send_metric_data(data)
+
+        LOGGER.info(f"Exported Carbon Forecast. data:{data}")
