@@ -966,9 +966,9 @@ class TmuxGPUMonitor(BaseMonitor):
                 LOGGER.error("Failed to capture logs from tmux session: %s", e)
                 logs = ""
 
-            # If both logs are effectively empty, return an empty string
+            # If logs are effectively empty
             if len(logs.strip()) == 0:
-                return "No logs."
+                logs = "Currently no logs to display."
             
             # Return complete message with metrics and Tmux logs header
             return f"\nTmux Logs:\n\n{logs}\n\n{metrics_message}"
