@@ -1,5 +1,0 @@
-Database:
-  address: "https://{{ db_ip }}:{{ db_port }}/write"
-  username: "{{ db_username }}"
-  password: "{{ db_password }}"
-
