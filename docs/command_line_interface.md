@@ -25,7 +25,7 @@ iris-gpubench --help
 
 ## Important Notes
 
-- For `--export_to_meerkat` the username and password for Meerkat has to be put into corresponding global variables in `gpu_meerkat_exporter.py` as they are available on github.
+- For `--export_to_meerkat` the username and password for Meerkat export them to as environment variables, ie: `export MEERKAT_USERNAME='insert_username'` and `export MEERKAT_USERNAME='insert_password'`.
 - Either `--benchmark_image` or `--benchmark_command` must be provided, but not both. If both options are specified, an error will be raised.
 - Live GPU metrics monitoring and saving a final plot are enabled by default; use `--no_live_monitor` and `--no_plot` to disable them, respectively.
 - To view the available carbon regions, use `--carbon_region ""` to get a list of all regions.
