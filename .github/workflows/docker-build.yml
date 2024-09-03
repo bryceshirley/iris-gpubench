@@ -17,7 +17,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [mantid_base, sciml_base]
+        include:
+          - {name: mantid_base, dockerfile: base_images//Dockerfile.mantid_base}
+          - {name: sciml_base, dockerfile: base_images/Dockerfile.sciml_base}
+        
 
     steps:
       - name: Checkout repository
