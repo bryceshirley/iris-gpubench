@@ -55,8 +55,10 @@ from .carbon_metrics import get_carbon_forecast
 
 # GLOBAL VARIABLES
 from .utils.globals import LOGGER, TIMEOUT_SECONDS, RESULTS_DIR, DEFAULT_REGION
-MEERKAT_USERNAME = ''
-MEERKAT_PASSWORD = ''
+
+MEERKAT_USERNAME = os.getenv("MEERKAT_USERNAME")
+MEERKAT_PASSWORD = os.getenv("MEERKAT_PASSWORD")
+
 MEERKAT_URL = 'https://172.16.101.182:8247/write'
 
 class MeerkatExporter:
@@ -207,7 +209,7 @@ class MeerkatExporter:
         """
         Exports Completion Results to Meerkat Database
         """
-        stats_values = f"av_carbon_forecast={stats['av_carbon_forecast']:.5f},total_carbon={stats['total_carbon']:.5f},total_energy={stats['total_energy']:.5f},av_temp={stats['av_temp']:.5f},av_util={stats['av_util']:.5f},av_mem={stats['av_mem']:.5f},av_power={stats['av_power']:.5f}"
+        stats_values = f"av_carbon_forecast={stats['av_carbon_forecast']:.5f},total_carbon={stats['total_carbon']:.5f},total_energy={stats['total_energy']:.5f},av_temp={stats['av_temp']:.5f},av_util={stats['av_util']:.5f},av_mem={stats['av_mem']:.5f},av_power={stats['av_power']:.5f},device_count={stats['device_count']}"
         gpu_info = f"gpu_name={self.gpu_name}"
         data = f"{self.benchmark},{gpu_info},{stats_values} time={stats['elapsed_time']:.2f}"
         self._send_metric_data(data)
