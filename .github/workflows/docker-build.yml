@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {name: mantid_base, dockerfile: base_images//Dockerfile.mantid_base}
+          - {name: mantid_base, dockerfile: base_images/Dockerfile.mantid_base}
           - {name: sciml_base, dockerfile: base_images/Dockerfile.sciml_base}
         
 
@@ -36,13 +36,16 @@ jobs:
           username: ${{ secrets.HARBOR_USERNAME }}
           password: ${{ secrets.HARBOR_TOKEN }}
 
-      - name: Build and Push Base Image
+      - name: Set ulimit for memory
+        run: ulimit -m 8388608  # Limit memory usage to 8 GB
+
+      - name: Build and Push App Image
         uses: docker/build-push-action@v3
         with:
-          context: ./base_images
-          file: ./base_images/Dockerfile.${{ matrix.image }}
-          push: true
-          tags: harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench/${{ matrix.image }}:latest
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: harbor.stfc.ac.uk/stfc-cloud-staging/iris-bench/${{ matrix.name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
