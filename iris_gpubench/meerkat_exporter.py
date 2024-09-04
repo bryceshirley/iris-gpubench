@@ -1,26 +1,15 @@
 """
-gpu_meerkat_exporter.py
+meerkat_exporter.py
 
 This module provides functionality for exporting time series data to a
 MeerkatDB instance.
-It includes a class for converting time series data into a CSV format compatible
-with MeerkatDB
-and for sending this data via HTTP POST requests.
-
-Dependencies:
-- requests: For sending HTTP requests.
-- logging: For logging information and errors.
 
 Usage:
-1. Initialize the `MeerkatDBExporter` class with time series data and
+1. Export Meerkat Username and Password to environment variables.
+2. Initialize the `MeerkatDBExporter` class with time series data and
 optional configuration parameters.
-2. Call the `send_to_meerkat` method to format the data and send it to
+3. Call the `send_to_meerkat` method to format the data and send it to
 MeerkatDB.
-
-Configuration:
-- The MeerkatDB instance URL and CSV format are configurable via the class
-constructor.
-- Logging is configured to capture and store logs in a specified file.
 
 Example:
     from meerkat_exporter import MeerkatDBExporter

@@ -6,7 +6,7 @@ initializes the GPU monitoring process, and optionally exports the collected dat
 Dependencies:
 - utils.cli: For parsing command-line arguments.
 - gpu_monitor: Contains the GPUMonitor class for monitoring GPU metrics.
-- gpu_meerkat_exporter: Contains the MeerkatExporter class for exporting data to MeerkatDB.
+- meerkat_exporter: Contains the MeerkatExporter class for exporting data to MeerkatDB.
 - utils.globals: For accessing global constants.
 - utils.metric_utils: For formatting and saving metrics.
 

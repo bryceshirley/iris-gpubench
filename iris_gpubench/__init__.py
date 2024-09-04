@@ -21,7 +21,7 @@ Package Metadata:
 from iris_gpubench.main import *
 from iris_gpubench.gpu_monitor import *
 from iris_gpubench.carbon_metrics import *
-from iris_gpubench.gpu_meerkat_exporter import *
+from iris_gpubench.meerkat_exporter import *
 
 # Import utilities from the utils sub-package
 from .utils.logging_utils import *

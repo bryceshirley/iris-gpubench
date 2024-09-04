@@ -31,7 +31,7 @@ import yaml
 from tabulate import tabulate
 
 from .carbon_metrics import get_carbon_forecast
-from .gpu_meerkat_exporter import MeerkatExporter
+from .meerkat_exporter import MeerkatExporter
 
 # Global Variables
 from .utils.globals import RESULTS_DIR, LOGGER, MONITOR_INTERVAL
