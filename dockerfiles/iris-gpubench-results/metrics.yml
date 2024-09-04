@@ -1,0 +1,18 @@
+av_carbon_forecast: 237.0
+av_mem: 0.0
+av_power: 0.0
+av_temp: 0.0
+av_util: 0.0
+benchmark: mnist_tf_keras
+device_count: 1
+elapsed_time: 26.422769
+end_carbon_forecast: 237.0
+end_datetime: '2024-09-04 14:27:51'
+max_power_limit: 140.0
+name: NVIDIA RTX A4000
+start_carbon_forecast: 237.0
+start_datetime: '2024-09-04 14:27:24'
+start_time: 2024-09-04 14:27:24.900542
+total_carbon: 0.013687737500000002
+total_energy: 5.775416666666667e-05
+total_mem: 16376.0

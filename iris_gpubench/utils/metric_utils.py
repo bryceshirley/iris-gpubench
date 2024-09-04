@@ -65,7 +65,8 @@ def format_metrics(results_dir: str = RESULTS_DIR,
         ]
 
         gpu_data = [
-            ["GPU Name", data.get("name")],
+            ["GPU Type", data.get("name")],
+            ["No. of GPUs ", data.get("device_count")],
             ["Average GPU Util. (for >0.00% GPU Util.) (%)", f"{data.get('av_util'):.5f}"],
             ["Avg GPU Power (for >0.00% GPU Util.) (W)",
              f"{data.get('av_power'):.5f} (Power Limit: {int(data.get('max_power_limit', 0))})"],

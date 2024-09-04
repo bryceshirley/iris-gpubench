@@ -14,33 +14,33 @@ If the --export-to-meerkat tag is used, the timeseries data will be sent to a [G
 ## Formatted Results
 
 - **File:** `formatted_metrics.txt`  
-- **Description:** A human-readable version of the `metrics.yml` file. Provides a tabular summary of GPU and carbon performance metrics, including benchmark image name, elapsed monitor time, energy consumption, carbon emissions, and detailed GPU performance data. The top row of the first table could also say "Benchmark Command Run", if container option isn't used.
+- **Description:** A human-readable version of the `metrics.yml` file. Provides a tabular summary of GPU and carbon performance metrics, including benchmark image name, elapsed monitor time, energy consumption, carbon emissions, and detailed GPU performance data.
 - **Example:**  
 ```sh
 GPU and Carbon Performance Results
 
-+---------------------------------------+------------------------+
-| Metric                                | Value                  |
-+=======================================+========================+
-| Benchmark                             | synthetic_regression   |
-+---------------------------------------+------------------------+
-| Elapsed Monitor Time of Container (s) | 245.627                |
-+---------------------------------------+------------------------+
-| Total GPU Energy Consumed (kWh)       | 0.00993                |
-+---------------------------------------+------------------------+
-| Total GPU Carbon Emissions (gCO2)     | 1.4196                 |
-+---------------------------------------+------------------------+
++-------------------------------------+-----------------------+
+| Metric                              | Value                 |
++=====================================+=======================+
+| Benchmark:                          | stemdl_classification |
++-------------------------------------+-----------------------+
+| Elapsed Monitor Time of Command (s) | 182.55208             |
++-------------------------------------+-----------------------+
+| Total GPU Energy Consumed (kWh)     | 0.00397               |
++-------------------------------------+-----------------------+
+| Total GPU Carbon Emissions (gCO2)   | 0.95604               |
++-------------------------------------+-----------------------+
 
 Carbon Information
 
 +------------------------------------+---------------------+
 | Metric                             | Value               |
 +====================================+=====================+
-| Average Carbon Forecast (gCO2/kWh) | 143.0               |
+| Average Carbon Forecast (gCO2/kWh) | 241.0               |
 +------------------------------------+---------------------+
-| Carbon Forecast Start Time         | 2024-08-12 17:35:12 |
+| Carbon Forecast Start Time         | 2024-09-04 14:57:15 |
 +------------------------------------+---------------------+
-| Carbon Forecast End Time           | 2024-08-12 17:39:18 |
+| Carbon Forecast End Time           | 2024-09-04 15:00:18 |
 +------------------------------------+---------------------+
 
 GPU Information
@@ -48,15 +48,17 @@ GPU Information
 +------------------------------------------------+------------------------------------+
 | Metric                                         | Value                              |
 +================================================+====================================+
-| GPU Name                                       | Tesla V100-PCIE-32GB               |
+| GPU Type                                       | NVIDIA RTX A4000                   |
 +------------------------------------------------+------------------------------------+
-| Average GPU Util. (for >0.00% GPU Util.) (%)   | 92.90476                           |
+| No. of GPUs                                    | 1                                  |
 +------------------------------------------------+------------------------------------+
-| Avg GPU Power (for >0.00% GPU Util.) (W)       | 167.42962 (Power Limit: 250)       |
+| Average GPU Util. (for >0.00% GPU Util.) (%)   | 64.96364                           |
 +------------------------------------------------+------------------------------------+
-| Avg GPU Temperature (for >0.00% GPU Util.) (C) | 52.33333                           |
+| Avg GPU Power (for >0.00% GPU Util.) (W)       | 128.97436 (Power Limit: 140)       |
 +------------------------------------------------+------------------------------------+
-| Avg GPU Memory (for >0.00% GPU Util.) (MiB)    | 6500.00595 (Total Memory: 32768.0) |
+| Avg GPU Temperature (for >0.00% GPU Util.) (C) | 70.34545                           |
++------------------------------------------------+------------------------------------+
+| Avg GPU Memory (for >0.00% GPU Util.) (MiB)    | 1913.42159 (Total Memory: 16376.0) |
 +------------------------------------------------+------------------------------------+
 ```
 
