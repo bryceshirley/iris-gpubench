@@ -94,7 +94,7 @@ class MeerkatExporter:
             benchmark (str): The name of the benchmark being run.
             verify_ssl (bool): Whether to verify SSL certificates. Defaults to False.
         """
-        self.gpu_name = gpu_name.split(' ')[-1]
+        self.gpu_name = gpu_name.replace(" ","_")
         self.benchmark = benchmark
         self.benchmark_info = f"gpu_name={self.gpu_name},benchmark={self.benchmark}"
         self.headers = self._create_auth_header()
