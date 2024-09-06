@@ -16,11 +16,11 @@ Usage:
 
 import sys
 
-from .gpu_monitor import GPUMonitor
-from .carbon_metrics import get_carbon_region_names
-from .utils.cli import parse_arguments
-from .utils.globals import RESULTS_DIR, LOGGER
-from .utils.metric_utils import format_metrics
+from iris_gpubench.carbon_metrics import get_carbon_region_names
+from iris_gpubench.gpu_monitor import GPUMonitor
+from iris_gpubench.utils.cli import parse_arguments
+from iris_gpubench.utils.globals import LOGGER, RESULTS_DIR
+from iris_gpubench.utils.metric_utils import format_metrics
 
 
 def main():
@@ -50,16 +50,6 @@ def main():
             export_to_meerkat=args.export_to_meerkat
         )
         LOGGER.info("GPU monitoring completed.")
-
-        # Save monitoring results
-        LOGGER.info("Saving monitoring results...")
-        gpu_monitor.save_stats_to_yaml()
-        LOGGER.info("Saving monitoring completed.")
-
-        # Save monitoring results
-        LOGGER.info("Saving monitoring results...")
-        gpu_monitor.save_timeseries_to_csv()
-        LOGGER.info("Saving monitoring completed.")
 
     except ValueError as value_error:
         LOGGER.error("Value error occurred: %s", value_error)

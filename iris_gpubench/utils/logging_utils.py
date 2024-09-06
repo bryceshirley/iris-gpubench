@@ -4,8 +4,9 @@ Logging configuration for the iris-gpubench package.
 This module provides a setup_logging function to configure logging for the package.
 """
 
-import os
 import logging
+import os
+
 
 def setup_logging(results_dir: str) -> logging.Logger:
     """

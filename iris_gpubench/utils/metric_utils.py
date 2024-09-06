@@ -11,12 +11,12 @@ Dependencies: os, yaml, tabulate, matplotlib
 """
 
 import os
+from typing import Optional
+
 import yaml
 from tabulate import tabulate
 
-from typing import Optional
-
-from .globals import RESULTS_DIR, LOGGER
+from .globals import LOGGER, RESULTS_DIR
 
 
 def format_metrics(results_dir: str = RESULTS_DIR,
@@ -46,17 +46,13 @@ def format_metrics(results_dir: str = RESULTS_DIR,
         with open(metrics_file_path, 'r', encoding='utf-8') as file:
             data = yaml.safe_load(file)
 
-
         # Add other data
         main_data= [
             ["Benchmark: ", f"{data.get('benchmark')}"],
-            ["Elapsed Monitor Time of Command (s)", f"{data.get('elapsed_time'):.5f}"],
+            ["Elapsed Monitor Time (s)", f"{data.get('elapsed_time'):.5f}"],
             ["Total GPU Energy Consumed (kWh)", f"{data.get('total_energy'):.5f}"],
             ["Total GPU Carbon Emissions (gCO2)", f"{data.get('total_carbon'):.5f}"],
         ]
-
-        if data.get('time') is not None:
-            main_data.insert(0, ["Benchmark Score (s)", f"{data.get('time'):.5f}"])
 
         carbon_data = [
             ["Average Carbon Forecast (gCO2/kWh)", f"{data.get('av_carbon_forecast'):.1f}"],
@@ -75,6 +71,11 @@ def format_metrics(results_dir: str = RESULTS_DIR,
             ["Avg GPU Memory (for >0.00% GPU Util.) (MiB)",
              f"{data.get('av_mem'):.5f} (Total Memory: {data.get('total_mem')})"]
         ]
+
+        # Collect Benchmark Score if Exists;
+        if data.get('score') is not None:
+            main_data.insert(1, ["Benchmark Score (s)", f"{data.get('score'):.5f}"])
+
 
         # Create output list with formatted tables
         output = [
