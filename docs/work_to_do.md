@@ -1,6 +1,5 @@
 ## Priority Order
-- Add carbon and energy data exporter to grafana
-- Allow users to save there own container results from their benchmarks running with docker.
+- Add in docs how users can save data from containers
 - Update Readme with an explanation of the repos organisation and folder structure.
 - Use best practice for naming dockerfiles.
 - Include logging levels (basically nothing - everything) - Log tagging, info, error
