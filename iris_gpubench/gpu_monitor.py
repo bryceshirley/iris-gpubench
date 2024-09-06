@@ -16,25 +16,30 @@ Usage:
 - Create an instance of GPUMonitor with desired intervals and region settings.
 - Use the `run` method to start monitoring, with options for live monitoring,
   plotting, and live plotting.
+
+
+Note:
+   Most errors are logged but not raised, allowing the method to fail silently.
+   Find them in runtime.log
 """
 
 import os
 import time
+from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Optional, Dict, List
-import matplotlib.backends.backend_agg as agg
-from matplotlib import figure
-from matplotlib import ticker
+from typing import Dict, List, Optional
 
+import matplotlib.backends.backend_agg as agg
 import pynvml
 import yaml
+from matplotlib import figure, ticker
 from tabulate import tabulate
 
 from .carbon_metrics import get_carbon_forecast
 from .meerkat_exporter import MeerkatExporter
-
 # Global Variables
-from .utils.globals import RESULTS_DIR, LOGGER, MONITOR_INTERVAL
+from .utils.globals import LOGGER, MONITOR_INTERVAL, RESULTS_DIR
+
 METRICS_FILE_PATH = os.path.join(RESULTS_DIR, 'metrics.yml')
 TIMESERIES_PLOT_PATH = os.path.join(RESULTS_DIR, 'timeseries_plot.png')
 
@@ -55,7 +60,6 @@ except ImportError:
     SUBPROCESS_AVAILABLE = False
     LOGGER.warning("Subprocess module not available. Tmux functionality will be disabled.")
 
-from abc import ABC, abstractmethod
 
 class BaseMonitor(ABC):
     """
@@ -63,7 +67,7 @@ class BaseMonitor(ABC):
 
     Manages NVIDIA GPU metrics using NVML and collects carbon metrics from the
     National Grid ESO Regional Carbon Intensity API.
-    
+
     Attributes:
         config (Dict[str, Any]): Configuration settings for the monitor.
         _time_series_data (Dict[str, List]): Time series data of GPU metrics.
@@ -102,21 +106,13 @@ class BaseMonitor(ABC):
         self.previous_power: List[float] = []
 
         # Initialize pynvml
-        self._init_nvml()
+        pynvml.nvmlInit()
+        LOGGER.info("NVML initialized")
 
         # Initialize stats
-        self.__init_stats()
+        self._init_stats()
 
-    def _init_nvml(self) -> None:
-        """Initialize NVIDIA Management Library (NVML)."""
-        try:
-            pynvml.nvmlInit()
-            LOGGER.info("NVML initialized")
-        except pynvml.NVMLError as nvml_error:
-            LOGGER.error("Failed to initialize NVML: %s", nvml_error)
-            raise
-
-    def __init_stats(self) -> None:
+    def _init_stats(self) -> None:
         """
         Initializes GPU statistics and records initial carbon forecast.
 
@@ -157,7 +153,8 @@ class BaseMonitor(ABC):
                 "total_energy": 0.0,
                 "total_mem": total_memory,
                 "device_count": device_count,
-                "benchmark": ''
+                "benchmark": '',
+                "score": None
             }
 
             LOGGER.info("Statistics initialized: %s", self._stats)
@@ -165,8 +162,27 @@ class BaseMonitor(ABC):
         except pynvml.NVMLError as nvml_error:
             LOGGER.error("Failed to setup GPU stats: %s", nvml_error)
             raise
-    
-    def __update_gpu_metrics(self) -> None:
+
+    def _init_benchmark(self, benchmark_name: str, export_to_meerkat: bool) -> None:
+        """
+        Initialize benchmark-specific data and start timers.
+        """
+        # Start timers and carbon forecasts
+        self._stats["start_carbon_forecast"] = get_carbon_forecast(self.config['carbon_region_shorthand'])
+        self._stats['start_time'] = datetime.now() # Start timing
+        self._stats["start_datetime"] = self._stats['start_time'].strftime("%Y-%m-%d %H:%M:%S")
+        self._stats["benchmark"] = benchmark_name
+
+        # Activate the Exporter
+        if export_to_meerkat:
+            self.exporter = MeerkatExporter(
+                gpu_name=self._stats["name"],
+                benchmark=self._stats["benchmark"]                
+            )
+
+        LOGGER.info("Initialized benchmark runner.")
+
+    def _update_gpu_metrics(self) -> None:
         """
         Updates the GPU metrics and appends new data to the time series.
 
@@ -214,13 +230,13 @@ class BaseMonitor(ABC):
             # Update total energy and append to time series if previous power data exists
             if self.previous_power:
                 LOGGER.info("Timestamp: %s", current_time)
-                self.__update_total_energy()
+                self._update_total_energy()
                 LOGGER.info("Updated GPU metrics: %s", self.current_gpu_metrics)
 
         except pynvml.NVMLError as nvml_error:
             LOGGER.error("NVML Error: %s", nvml_error)
-    
-    def __update_total_energy(self) -> None:
+
+    def _update_total_energy(self) -> None:
         """
         Computes and updates the total energy consumption based on GPU power readings.
 
@@ -297,8 +313,21 @@ class BaseMonitor(ABC):
         except ValueError as value_error:
             LOGGER.error("Error formatting GPU metrics: %s", value_error)
             raise
+    
+    def _display_live_monitoring(self, monitor_logs: bool) -> None:
+        """Display live monitoring information."""
+        # Collect live metrics
 
-    def __cleanup_stats(self) -> None:
+        metrics_message = self._live_monitor_metrics()
+
+        logs_message = self._live_monitor_logs(monitor_logs)
+
+        # Complete message
+        complete_message = f"{logs_message}\n\n{metrics_message}"
+
+        return complete_message
+
+    def _cleanup_stats(self) -> None:
         """
         Calculates and updates statistics including average metrics
         and total carbon emissions.
@@ -360,26 +389,38 @@ class BaseMonitor(ABC):
             # Handle any unexpected errors
             LOGGER.error("Unexpected error in completion stats calculation: %s", ex)
 
-    def __init_benchmark(self, benchmark_name: str, export_to_meerkat: bool) -> None:
+    def _collect_benchmark_score(self):
         """
-        Initialize benchmark-specific data and start timers.
+        Collect the internal benchmark score and store it in _stats if available.
+
+        This method attempts to read the benchmark score or time from a YAML file
+        located at {RESULTS_DIR}/result_{benchmark_name}/metrics.yml. The file
+        should contain a 'time' key with the benchmark score as its value.
+
+        For example, the YAML file might contain:
+        time: 12.122
+
+        The benchmark score is saved to the file in the _cleanup_benchmark() method.
+
+        If successful, the score is stored in self._stats['score'].
         """
-        # Start timers and carbon forecasts
-        self._stats["start_carbon_forecast"] = get_carbon_forecast(self.config['carbon_region_shorthand'])
-        self._stats['start_time'] = datetime.now() # Start timing
-        self._stats["start_datetime"] = self._stats['start_time'].strftime("%Y-%m-%d %H:%M:%S")
-        self._stats["benchmark"] = benchmark_name
+        try:
+            # Collect Benchmark Score if Exists
+            benchmark_score_path = f'{RESULTS_DIR}/results_{self._stats["benchmark"]}/metrics.yml'
+            with open(benchmark_score_path, 'r', encoding='utf-8') as file:
+                benchmark_score_data = yaml.safe_load(file)
 
-        # Activate the Exporter
-        if export_to_meerkat:
-            self.exporter = MeerkatExporter(
-                gpu_name=self._stats["name"],
-                benchmark=self._stats["benchmark"]                
-            )
+            score = benchmark_score_data.get('time')
 
-        LOGGER.info("Initialized benchmark runner.")
-    
-    def __shutdown(self, plot: bool,export_to_meerkat: bool) -> None:
+            if score is not None:
+                self._stats['score'] = score
+        except IOError as io_error:
+            # Log error message if file writing fails
+            LOGGER.error("Failed to locate the benchmark score: %s. Error: %s", benchmark_score_path, io_error)
+
+    def _shutdown(self, live_monitoring: bool, monitor_logs: bool,
+                   shutdown_message: str, plot: bool,
+                   export_to_meerkat: bool) -> None:
         """
         Perform a safe and complete shutdown of the monitoring process.
 
@@ -392,32 +433,42 @@ class BaseMonitor(ABC):
         It logs detailed information about each step and handles potential errors
         that might occur during container management and NVML shutdown.
         """
+        # Display File Monitor Status, if enabled
+        if live_monitoring:
+            os.system('clear')
+            self._display_live_monitoring(monitor_logs)
+
+        # Print Shutdown Message
+        print(shutdown_message)
+
         # Finalize statistics
-        self.__cleanup_stats() 
+        self._cleanup_stats() 
         LOGGER.info("Monitoring stopped.")
 
         # Export stats
         if export_to_meerkat:
-                self.exporter.export_stats(self._stats)
+            self.exporter.export_stats(self._stats)
 
         # Save the metrics plot if requested
         if plot:
             self.plot_timeseries()
 
         # Handle NVML shutdown
-        try:
-            LOGGER.info("Attempting to shutdown NVML.")
-            pynvml.nvmlShutdown()
-            LOGGER.info("NVML shutdown successfully.")
-        except pynvml.NVMLError as nvml_error:
-            # Handle NVML-specific errors
-            LOGGER.error("NVML error during shutdown: %s", nvml_error)
-        except Exception as ex:
-            # Handle any unexpected exceptions
-            LOGGER.error("Unexpected error during NVML shutdown: %s", ex)
+        pynvml.nvmlShutdown()
+        LOGGER.info("NVML shutdown successfully.")
 
+        # Abstract Benchmark Clean Up
         self._cleanup_benchmark()
-    
+
+        # Collect Benchmark Score if Exists
+        self._collect_benchmark_score()
+
+        # Save monitoring results to yml
+        self.save_stats_to_yaml()
+
+        # Save Timeseries results to csv
+        self.save_timeseries_to_csv()
+
     def save_timeseries_to_csv(self, results_dir: str = RESULTS_DIR) -> None:
         """
         Converts time series data to CSV format and saves it to a file.
@@ -499,7 +550,7 @@ class BaseMonitor(ABC):
             raise
 
     @staticmethod
-    def __plot_metric(axis, data: tuple, line_info: Optional[tuple] = None,
+    def _plot_metric(axis, data: tuple, line_info: Optional[tuple] = None,
                     ylim: Optional[tuple] = None) -> None:
         """
         Helper function to plot a GPU metric on a given axis.
@@ -538,7 +589,6 @@ class BaseMonitor(ABC):
         if ylim:
             axis.set_ylim(ylim)
 
-
     def plot_timeseries(self, plot_path: str = TIMESERIES_PLOT_PATH) -> None:
         """
         Plot and save GPU metrics to a file.
@@ -576,7 +626,7 @@ class BaseMonitor(ABC):
             canvas = agg.FigureCanvasAgg(fig)
 
             # Plot each metric using the helper function
-            self.__plot_metric(
+            self._plot_metric(
                 axes[0, 0],
                 (
                     timestamps,
@@ -587,16 +637,16 @@ class BaseMonitor(ABC):
                 ),
                 (self._stats["max_power_limit"], "Power Limit"),
             )
-            self.__plot_metric(
+            self._plot_metric(
                 axes[0, 1],
                 (timestamps, util_data, "GPU Utilization", "Utilization (%)", "Timestamp"),
                 ylim=(0, 100),  # Set y-axis limits for utilization
             )
-            self.__plot_metric(
+            self._plot_metric(
                 axes[1, 0],
                 (timestamps, temp_data, "GPU Temperature", "Temperature (C)", "Timestamp"),
             )
-            self.__plot_metric(
+            self._plot_metric(
                 axes[1, 1],
                 (timestamps, mem_data, "GPU Memory Usage", "Memory (MiB)", "Timestamp"),
                 (self._stats["total_mem"], "Total Memory"),
@@ -628,6 +678,7 @@ class BaseMonitor(ABC):
         Args:
             file_path (str): Path to the YAML file.
         """
+
         try:
             # Open the specified file in write mode with UTF-8 encoding
             with open(file_path, 'w', encoding='utf-8') as yaml_file:
@@ -656,58 +707,56 @@ class BaseMonitor(ABC):
             monitor_logs (bool): If True, monitors both GPU metrics and logs from the tmux session or Docker container. Defaults to False.
             export_to_meerkat (bool): If True, exports data to meerkat data base. Defaults to False.
         """
-        # Initialize stats such as timer and exporter
-        start_time = self.__init_benchmark(benchmark_name, export_to_meerkat)
-
+        shutdown_message = "\nMonitoring Stopped.\nResults will follow..."
         try:
+            # Initialize stats such as timer and exporter
+            self._init_benchmark(benchmark_name, export_to_meerkat)
+
             # Start Benchmark in Background
             self._start_benchmark(benchmark_name)
 
             while self._is_benchmark_running():
                 try:
                     # Update the current GPU metrics
-                    self.__update_gpu_metrics()
+                    self._update_gpu_metrics()
 
                     # Display live monitoring output if enabled
                     if live_monitoring:
-                        try:
-                            # Clear the terminal screen for fresh output
-                            os.system('clear')
-                            self._display_live_monitoring(monitor_logs)
-                        except OSError as os_error:
-                            LOGGER.error("Error clearing the terminal screen: %s", os_error)
+                        os.system('clear')
+                        self._display_live_monitoring(monitor_logs)
 
                     # Plot Metrics if live plotting is enabled
                     if live_plot:
                         self.plot_timeseries()
-                    
-                    # Export to  Meerkat DB if enabled
+
+                    # Export to Meerkat DB if enabled
                     if export_to_meerkat:
                         # Export GPU Metrics
                         self.exporter.export_metric_readings(self.current_gpu_metrics)
+                        # Export Carbon Forecast
+                        self.exporter.export_carbon_forecast(self.config['carbon_region_shorthand'])
 
-                        # Export Carbon Forcast
-                        self.exporter.export_carbon_forcast(self.config['carbon_region_shorthand'])
-
-                    
-                     # Wait for the specified interval before the next update
+                    # Wait for the specified interval before the next update
                     time.sleep(self.config['monitor_interval'])
-                
                 except (KeyboardInterrupt, SystemExit):
                     LOGGER.info("Monitoring interrupted by user.")
-                    print("\nMonitoring interrupted by user.\nStopping gracefully, please wait...")
+                    shutdown_message = "\nMonitoring interrupted by user.\nStopping gracefully, please wait..."
                     break
                 except Exception as ex:
                     LOGGER.error("Unexpected error during monitoring: %s", ex)
+    
+        except (KeyboardInterrupt, SystemExit):
+            LOGGER.info("Monitoring interrupted by user.")
+            shutdown_message = "\nMonitoring interrupted by user.\nStopping gracefully, please wait..."
         except Exception as ex:
             LOGGER.error("Unexpected error: %s", ex)
         finally:
+
             # Shutdown the Process
-            self.__shutdown(plot,export_to_meerkat)
-    
+            self._shutdown(plot,export_to_meerkat,live_monitoring,monitor_logs,shutdown_message)
 
     @abstractmethod
-    def _start_benchmark(self, benchmark_name) -> None:
+    def _start_benchmark(self, benchmark_name: str) -> None:
         """Start the benchmark process."""
         pass
 
@@ -717,8 +766,8 @@ class BaseMonitor(ABC):
         pass
 
     @abstractmethod
-    def _display_live_monitoring(self, monitor_logs: bool) -> None:
-        """Display live monitoring information."""
+    def _live_monitor_logs(self, monitor_logs) -> bool:
+        """Check if the benchmark is still running."""
         pass
 
     @abstractmethod
@@ -756,6 +805,8 @@ class DockerGPUMonitor(BaseMonitor):
         # Initialise parameter for Benchmark Container
         self.container = None
 
+        self.benchmark_image = ""
+
     def _start_benchmark(self, benchmark_image) -> None:
         """
         Start the benchmark in a Docker container.
@@ -764,6 +815,7 @@ class DockerGPUMonitor(BaseMonitor):
             benchmark_image (str): Docker image name for the benchmark.
         """
         try:
+            self.benchmark_image = benchmark_image
             # Run the container in the background
             self.container = self.client.containers.run(
                     benchmark_image,
@@ -792,74 +844,73 @@ class DockerGPUMonitor(BaseMonitor):
         except docker.errors.DockerException as docker_error:
             LOGGER.error("Docker error: %s", docker_error)
 
-    def _display_live_monitoring(self, monitor_logs: bool) -> None:
-        """
-        Display live GPU metrics and optionally container logs.
-
-        Args:
-            monitor_logs (bool): If True, display container logs along with GPU metrics.
-        """
-
-        if monitor_logs:
-            print(self._live_monitor_container())
-        else:
-            print(self._live_monitor_metrics())
-            print(f"\n Benchmark Status: {self.container.status}")
-
-
-    def _live_monitor_container(self) -> str:
+    def _live_monitor_logs(self, monitor_logs) -> str:
         """
         Retrieve and format live GPU metrics and container logs.
 
         Returns:
             str: Formatted string containing GPU metrics and container logs.
         """
-        try:
-            # Collect container logs
-            container_log = self.container.logs(follow=False).decode('utf-8')
+        if monitor_logs:
+            try:
+                # Collect container logs
+                container_log = self.container.logs(follow=False).decode('utf-8')
 
-            # Initialize container message
-            container_message = f"\nContainer Logs:\n"
+                # Initialize container message
+                logs_message = f"\nContainer Logs:\n"
 
-            # Process the logs
-            container_log = container_log.replace('\\r', '\r')
-            lines = container_log.split('\n')  # Split the entire log into lines
+                # Process the logs
+                container_log = container_log.replace('\\r', '\r')
+                lines = container_log.split('\n')  # Split the entire log into lines
 
-            # Process each line to handle log loading bars
-            for line in lines:
-                if '\r' in line:
-                    # Handle the last segment after '\r'
-                    line = line.split('\r')[-1]
-                # Append the processed line to the complete message
-                container_message += f"\n {line.strip()}"
+                # Process each line to handle log loading bars
+                for line in lines:
+                    if '\r' in line:
+                        # Handle the last segment after '\r'
+                        line = line.split('\r')[-1]
+                    # Append the processed line to the complete message
+                    logs_message += f"\n {line.strip()}"
 
-            # Collect live metrics
-            metrics_message = self._live_monitor_metrics()
+                return  logs_message
+            except OSError as os_error:
+                LOGGER.error("Error clearing the terminal screen: %s", os_error)
+                raise
 
-            # Complete message
-            complete_message = f"{container_message}\n\n{metrics_message}"
+            except KeyError as key_error:
+                LOGGER.error("Missing key in GPU stats or metrics: %s", key_error)
+                raise
 
-            return complete_message
-        except OSError as os_error:
-            LOGGER.error("Error clearing the terminal screen: %s", os_error)
-            raise
-
-        except KeyError as key_error:
-            LOGGER.error("Missing key in GPU stats or metrics: %s", key_error)
-            raise
-
-        except ValueError as value_error:
-            LOGGER.error("Error formatting GPU metrics: %s", value_error)
-            raise
+            except ValueError as value_error:
+                LOGGER.error("Error formatting GPU metrics: %s", value_error)
+                raise
+        else:
+            logs_message = f"\n Benchmark Status: {self.container.status}\n"
+            return logs_message
 
     def _cleanup_benchmark(self) -> None:
-        """Remove the Docker container."""
+        """Remove the Docker container and save results if possible."""
         if self.container:
+            # Try to save results
+            try:
+                container_id = self.container.id
+                container_results_path = os.path.join(RESULTS_DIR, f'results_{self.benchmark_image}')
+                cmd = f'docker cp {container_id}:/root/results/ {container_results_path}'
+                subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                LOGGER.info("Results from Docker saved successfully.")
+            except subprocess.CalledProcessError as cp_error:
+                LOGGER.error(f"Failed to save results: {cp_error}")
+                LOGGER.error(f"Stderr: {cp_error.stderr.decode()}")
+            except Exception as e:
+                LOGGER.error(f"Unexpected error while saving results: {str(e)}")
+
+            # Try to remove container
             try:
                 self.container.remove(force=True)
                 LOGGER.info("Docker container removed.")
             except docker.errors.APIError as docker_error:
                 LOGGER.error("Failed to remove Docker container: %s", docker_error)
+            except Exception as e:
+                LOGGER.error(f"Unexpected error while removing container: {str(e)}")
 
 class TmuxGPUMonitor(BaseMonitor):
     """
@@ -929,58 +980,47 @@ class TmuxGPUMonitor(BaseMonitor):
             LOGGER.info("Tmux session has ended.")
             return False
 
-    def _display_live_monitoring(self, monitor_logs) -> None:
-        """
-        Display live GPU metrics and optionally tmux session logs.
-
-        Args:
-            monitor_logs (bool): If True, display tmux logs along with GPU metrics.
-        """
-        if monitor_logs:
-            try:
-                print(self._live_monitor_tmux())
-            except subprocess.CalledProcessError:
-                LOGGER.info("Tmux session has ended.")
-        else:
-            print(self._live_monitor_metrics())
-            print("\nBenchmark Status: Running")
-
-    def _live_monitor_tmux(self) -> str:
+    def _live_monitor_logs(self, monitor_logs) -> str:
         """
         Retrieve and format live GPU metrics and tmux session logs.
 
         Returns:
             str: Formatted string containing GPU metrics and tmux session logs.
         """
-        try:
-            # Collect live metrics
-            metrics_message = self._live_monitor_metrics()
-
-            # Capture and display logs from tmux
-            logs_command = ["tmux", "capture-pane", "-t", self.session_name, "-p"]
+        if monitor_logs:
             try:
-                logs = subprocess.check_output(logs_command).decode()
-                LOGGER.info("Captured logs from tmux session.")
-            except subprocess.CalledProcessError as e:
-                LOGGER.error("Failed to capture logs from tmux session: %s", e)
-                logs = ""
+                # Capture and display logs from tmux
+                logs_command = ["tmux", "capture-pane", "-t", self.session_name, "-p"]
+                try:
+                    logs_message = subprocess.check_output(logs_command).decode()
+                    LOGGER.info("Captured logs from tmux session.")
+                except subprocess.CalledProcessError as e:
+                    LOGGER.error("Failed to capture logs from tmux session: %s", e)
+                    logs_message = ""
 
-            # If logs are effectively empty
-            if len(logs.strip()) == 0:
-                logs = "Currently no logs to display."
-            
-            # Return complete message with metrics and Tmux logs header
-            return f"\nTmux Logs:\n\n{logs}\n\n{metrics_message}"
+                # If logs are effectively empty
+                if len(logs_message.strip()) == 0:
+                    logs_message = "Currently no logs to display."
+                
+                # Return complete message with metrics and Tmux logs header
+                return logs_message
 
-        except ValueError as value_error:
-            # Log value errors that occur during processing
-            LOGGER.error("Value error in live monitoring: %s", value_error)
-            raise  # Re-raise the exception if you want it to propagate
+            except ValueError as value_error:
+                # Log value errors that occur during processing
+                LOGGER.error("Value error in live monitoring: %s", value_error)
+                raise  # Re-raise the exception if you want it to propagate
 
-        except Exception as ex:
-            # Log any unexpected errors
-            LOGGER.error("Unexpected error in live monitoring: %s", ex)
-            raise  # Re-raise the exception if you want it to propagate
+            except Exception as ex:
+                # Log any unexpected errors
+                LOGGER.error("Unexpected error in live monitoring: %s", ex)
+                raise  # Re-raise the exception if you want it to propagate
+        else:
+            if self._is_benchmark_running():
+                logs_message = "\nBenchmark Status: Running"
+            else:
+                logs_message = "\nBenchmark Status: Exited"
+
+            return logs_message
 
     def _cleanup_benchmark(self) -> None:
         """Terminate the tmux session."""
@@ -1072,14 +1112,15 @@ class GPUMonitor:
             raise RuntimeError("No monitoring has been performed yet.")
 
     def plot_timeseries(self, plot_path: str = TIMESERIES_PLOT_PATH):
+        """Plot the time series data to a specified file path."""
         if self.monitor:
             self.monitor.plot_timeseries(plot_path)
         else:
             raise RuntimeError("No monitoring has been performed yet.")
-    
+
     def save_timeseries_to_csv(self, results_dir: str = RESULTS_DIR):
+        """Save the time series data to a CSV file in a specified directory."""
         if self.monitor:
-            self.monitor.save_timeseries_to_csv(RESULTS_DIR)
+            self.monitor.save_timeseries_to_csv(results_dir)
         else:
             raise RuntimeError("No monitoring has been performed yet.")
-    

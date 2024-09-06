@@ -11,12 +11,18 @@ Attributes:
 """
 
 import os
+import shutil
 from .logging_utils import setup_logging
 
 # Path to the directory where results will be stored
 RESULTS_DIR = './iris-gpubench-results'
-# Ensure the results directory exists
-os.makedirs(RESULTS_DIR, exist_ok=True)
+
+# Remove the existing results directory if it exists
+if os.path.exists(RESULTS_DIR):
+    shutil.rmtree(RESULTS_DIR)
+
+# Create a new, empty results directory
+os.makedirs(RESULTS_DIR)
 
 # Default timeout duration in seconds
 TIMEOUT_SECONDS = 30
