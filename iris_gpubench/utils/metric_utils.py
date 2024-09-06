@@ -11,12 +11,12 @@ Dependencies: os, yaml, tabulate, matplotlib
 """
 
 import os
+from typing import Optional
+
 import yaml
 from tabulate import tabulate
 
-from typing import Optional
-
-from .globals import RESULTS_DIR, LOGGER
+from .globals import LOGGER, RESULTS_DIR
 
 
 def format_metrics(results_dir: str = RESULTS_DIR,

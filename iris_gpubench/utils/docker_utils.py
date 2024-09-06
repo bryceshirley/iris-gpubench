@@ -20,6 +20,7 @@ Dependencies:
 """
 
 import docker
+
 from .globals import LOGGER
 
 

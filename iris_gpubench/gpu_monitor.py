@@ -42,6 +42,7 @@ from .utils.globals import LOGGER, MONITOR_INTERVAL, RESULTS_DIR
 
 METRICS_FILE_PATH = os.path.join(RESULTS_DIR, 'metrics.yml')
 TIMESERIES_PLOT_PATH = os.path.join(RESULTS_DIR, 'timeseries_plot.png')
+FINAL_MONITORING_OUTPUT_PATH = os.path.join(RESULTS_DIR, 'final_monitoring_output.png')
 
 # Attempt to import docker and subprocess
 try:
@@ -166,15 +167,17 @@ class BaseMonitor(ABC):
             LOGGER.error("Failed to setup GPU stats: %s", nvml_error)
             raise
 
-    def _init_benchmark(self, benchmark_name: str, export_to_meerkat: bool) -> None:
+    def _init_benchmark(self, benchmark: str, export_to_meerkat: bool) -> None:
         """
         Initialize benchmark-specific data and start timers.
         """
         # Start timers and carbon forecasts
-        self._stats["start_carbon_forecast"] = get_carbon_forecast(self.config['carbon_region_shorthand'])
+        self._stats["start_carbon_forecast"] = get_carbon_forecast(
+            self.config['carbon_region_shorthand']
+        )
         self._stats['start_time'] = datetime.now() # Start timing
         self._stats["start_datetime"] = self._stats['start_time'].strftime("%Y-%m-%d %H:%M:%S")
-        self._stats["benchmark"] = benchmark_name
+        self._stats["benchmark"] = benchmark
 
         # Activate the Exporter
         if export_to_meerkat:
@@ -316,19 +319,26 @@ class BaseMonitor(ABC):
         except ValueError as value_error:
             LOGGER.error("Error formatting GPU metrics: %s", value_error)
             raise
-    
-    def _display_live_monitoring(self, monitor_logs: bool) -> None:
+
+    def _display_live_monitoring(self, monitor_logs: bool,
+                                 save: bool = False) -> None:
         """Display live monitoring information."""
         # Collect live metrics
-
         metrics_message = self._live_monitor_metrics()
 
         logs_message = self._live_monitor_logs(monitor_logs)
 
         # Complete message
-        complete_message = f"\n{logs_message}\n\n{metrics_message}\n"
+        complete_message = f"\n{logs_message}\n{metrics_message}\n"
 
         print(complete_message)
+
+         # Save to a file if required
+        if save:
+            # Write the complete message to the file
+            with open(FINAL_MONITORING_OUTPUT_PATH, 'w') as file:
+                file.write(complete_message)
+
 
     def _cleanup_stats(self) -> None:
         """
@@ -397,7 +407,7 @@ class BaseMonitor(ABC):
         Collect the internal benchmark score and store it in _stats if available.
 
         This method attempts to read the benchmark score or time from a YAML file
-        located at {RESULTS_DIR}/result_{benchmark_name}/metrics.yml. The file
+        located at {RESULTS_DIR}/result_{benchmark}/metrics.yml. The file
         should contain a 'time' key with the benchmark score as its value.
 
         For example, the YAML file might contain:
@@ -422,8 +432,8 @@ class BaseMonitor(ABC):
             LOGGER.error("Failed to locate the benchmark score: %s. Error: %s", benchmark_score_path, io_error)
 
     def _shutdown(self, live_monitoring: bool, monitor_logs: bool,
-                   shutdown_message: str, plot: bool,
-                   export_to_meerkat: bool) -> None:
+                  shutdown_message: str, plot: bool,
+                  export_to_meerkat: bool) -> None:
         """
         Perform a safe and complete shutdown of the monitoring process.
 
@@ -439,13 +449,13 @@ class BaseMonitor(ABC):
         # Display File Monitor Status, if enabled
         if live_monitoring:
             os.system('clear')
-            self._display_live_monitoring(monitor_logs)
+            self._display_live_monitoring(monitor_logs,save=True)
 
         # Print Shutdown Message
         print(shutdown_message)
 
         # Finalize statistics
-        self._cleanup_stats() 
+        self._cleanup_stats()
         LOGGER.info("Monitoring stopped.")
 
         # Export stats
@@ -695,7 +705,7 @@ class BaseMonitor(ABC):
             # Log error message if file writing fails
             LOGGER.error("Failed to save stats to YAML file: %s. Error: %s", file_path, io_error)
 
-    def run_benchmark(self, benchmark_name: str, live_monitoring: bool = True,
+    def run_benchmark(self, benchmark: str, live_monitoring: bool = True,
                       plot: bool = True, live_plot: bool = False,
                       monitor_logs: bool = False,
                       export_to_meerkat: bool = False) -> None:
@@ -703,20 +713,20 @@ class BaseMonitor(ABC):
         Method to runs the benchmark process
 
         Args:
-            benchmark_name (str): Name of benchmark to be run
+            benchmark (str): Name of benchmark to be run
             live_monitoring (bool): If True, enables live monitoring display during execution. Defaults to True.
             plot (bool): If True, saves the metrics plot at the end of execution. Defaults to True.
             live_plot (bool): If True, updates the metrics plot in real-time while the benchmark is running. Defaults to False.
             monitor_logs (bool): If True, monitors both GPU metrics and logs from the tmux session or Docker container. Defaults to False.
             export_to_meerkat (bool): If True, exports data to meerkat data base. Defaults to False.
         """
-        shutdown_message = "\nMonitoring Stopped.\nResults will follow..."
+        shutdown_message = "Monitoring Stopped.\nResults will follow...\n"
         try:
             # Initialize stats such as timer and exporter
-            self._init_benchmark(benchmark_name, export_to_meerkat)
+            self._init_benchmark(benchmark, export_to_meerkat)
 
             # Start Benchmark in Background
-            self._start_benchmark(benchmark_name)
+            self._start_benchmark(benchmark)
 
             while self._is_benchmark_running():
                 try:
@@ -743,23 +753,24 @@ class BaseMonitor(ABC):
                     time.sleep(self.config['monitor_interval'])
                 except (KeyboardInterrupt, SystemExit):
                     LOGGER.info("Monitoring interrupted by user.")
-                    shutdown_message = "\nMonitoring interrupted by user.\nStopping gracefully, please wait..."
+                    shutdown_message = "Monitoring interrupted by user.\nStopping gracefully, please wait...\n"
                     break
                 except Exception as ex:
                     LOGGER.error("Unexpected error during monitoring: %s", ex)
     
         except (KeyboardInterrupt, SystemExit):
             LOGGER.info("Monitoring interrupted by user.")
-            shutdown_message = "\nMonitoring interrupted by user.\nStopping gracefully, please wait..."
+            shutdown_message = "Monitoring interrupted by user.\nStopping gracefully, please wait...\n"
         except Exception as ex:
             LOGGER.error("Unexpected error: %s", ex)
         finally:
 
             # Shutdown the Process
-            self._shutdown(live_monitoring,monitor_logs,shutdown_message,plot,export_to_meerkat)
+            self._shutdown(live_monitoring, monitor_logs,
+                           shutdown_message, plot, export_to_meerkat)
 
     @abstractmethod
-    def _start_benchmark(self, benchmark_name: str) -> None:
+    def _start_benchmark(self, benchmark: str) -> None:
         """Start the benchmark process."""
         pass
 
@@ -810,7 +821,7 @@ class DockerGPUMonitor(BaseMonitor):
 
         self.benchmark_image = ""
 
-    def _start_benchmark(self, benchmark_image) -> None:
+    def _start_benchmark(self, benchmark) -> None:
         """
         Start the benchmark in a Docker container.
 
@@ -818,10 +829,10 @@ class DockerGPUMonitor(BaseMonitor):
             benchmark_image (str): Docker image name for the benchmark.
         """
         try:
-            self.benchmark_image = benchmark_image
+            self.benchmark_image = benchmark
             # Run the container in the background
             self.container = self.client.containers.run(
-                    benchmark_image,
+                    self.benchmark_image,
                     detach=True,
                     device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])],
                     shm_size="1024G" # Set to large to ensure all that is needed is used
@@ -854,13 +865,14 @@ class DockerGPUMonitor(BaseMonitor):
         Returns:
             str: Formatted string containing GPU metrics and container logs.
         """
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if monitor_logs:
             try:
                 # Collect container logs
                 container_log = self.container.logs(follow=False).decode('utf-8')
 
                 # Initialize container message
-                logs_message = f"\nContainer Logs:\n"
+                logs = ""
 
                 # Process the logs
                 container_log = container_log.replace('\\r', '\r')
@@ -872,9 +884,12 @@ class DockerGPUMonitor(BaseMonitor):
                         # Handle the last segment after '\r'
                         line = line.split('\r')[-1]
                     # Append the processed line to the complete message
-                    logs_message += f"\n {line.strip()}"
+                    logs += f"\n {line.strip()}"
 
-                return  logs_message
+                logs_message = (
+                    f"\nContainer Log as of {current_time}:\n"
+                    f"{logs}\n"
+                )
             except OSError as os_error:
                 LOGGER.error("Error clearing the terminal screen: %s", os_error)
                 raise
@@ -887,8 +902,9 @@ class DockerGPUMonitor(BaseMonitor):
                 LOGGER.error("Error formatting GPU metrics: %s", value_error)
                 raise
         else:
-            logs_message = f"\n Benchmark Status: {self.container.status}\n"
-            return logs_message
+            logs_message = f"\nContainer Status as of {current_time}:\n {self.container.status}\n"
+
+        return logs_message
 
     def _cleanup_benchmark(self) -> None:
         """Remove the Docker container and save results if possible."""
@@ -901,10 +917,8 @@ class DockerGPUMonitor(BaseMonitor):
                 subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 LOGGER.info("Results from Docker saved successfully.")
             except subprocess.CalledProcessError as cp_error:
-                LOGGER.error(f"Failed to save results: {cp_error}")
-                LOGGER.error(f"Stderr: {cp_error.stderr.decode()}")
-            except Exception as e:
-                LOGGER.error(f"Unexpected error while saving results: {str(e)}")
+                LOGGER.error("Failed to save results: %s", cp_error)
+                LOGGER.error("Stderr: %s", cp_error.stderr.decode())
 
             # Try to remove container
             try:
@@ -938,20 +952,24 @@ class TmuxGPUMonitor(BaseMonitor):
             raise RuntimeError("The 'subprocess' module is required but not available. Please install it.")
         self.session_name = "benchmark_session"
 
-    def _start_benchmark(self, benchmark_command) -> None:
+    def _start_benchmark(self, benchmark) -> None:
         """
         Start the benchmark in a tmux session.
 
         Args:
-            benchmark_command (str): Command to run the benchmark.
+            benchmark (str): Command to run the benchmark.
         """
         tmux_command = [
                 "tmux", "new-session", "-d", "-s", self.session_name,
-                "bash -c 'cd \"$(pwd)\" && " + benchmark_command + "'"
+                "bash -c 'cd \"$(pwd)\" && " + benchmark + "'"
         ]
-        LOGGER.info("Starting tmux session with command: %s", benchmark_command)
+        LOGGER.info("Starting tmux session with command: %s", benchmark)
         try:
-            subprocess.run(tmux_command, check=True)
+            subprocess.run(
+                tmux_command,
+                check=True,
+                stderr=subprocess.DEVNULL  # Redirect stderr to /dev/null
+            )
             LOGGER.info("Tmux session started successfully.")
         except subprocess.CalledProcessError as e:
             LOGGER.error("Failed to start tmux session: %s", e)
@@ -967,21 +985,25 @@ class TmuxGPUMonitor(BaseMonitor):
         # Check if the tmux session is still running
         status_command = ["tmux", "has-session", "-t", self.session_name]
         try:
-            subprocess.run(status_command, check=True)
+            subprocess.run(
+                status_command,
+                check=True,
+                stderr=subprocess.DEVNULL  # Redirect stderr to /dev/null
+            )
             return True
         except subprocess.CalledProcessError:
             LOGGER.info("Tmux session has ended.")
             return False
-        # Check if tmux session is still running via logs
-        logs_command = ["tmux", "capture-pane", "-t", self.session_name, "-p"]
-        try:
-            subprocess.check_output(logs_command)
-            LOGGER.info("Captured logs from tmux session - still running.")
-            return True
-        except subprocess.CalledProcessError as e:
-            LOGGER.error("Failed to capture logs from tmux session: %s", e)
-            LOGGER.info("Tmux session has ended.")
-            return False
+        # # Check if tmux session is still running via logs
+        # logs_command = ["tmux", "capture-pane", "-t", self.session_name, "-p"]
+        # try:
+        #     subprocess.check_output(logs_command)
+        #     LOGGER.info("Captured logs from tmux session - still running.")
+        #     return True
+        # except subprocess.CalledProcessError as e:
+        #     LOGGER.error("Failed to capture logs from tmux session: %s", e)
+        #     LOGGER.info("Tmux session has ended.")
+        #     return False
 
     def _live_monitor_logs(self, monitor_logs) -> str:
         """
@@ -990,23 +1012,26 @@ class TmuxGPUMonitor(BaseMonitor):
         Returns:
             str: Formatted string containing GPU metrics and tmux session logs.
         """
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if monitor_logs:
             try:
                 # Capture and display logs from tmux
                 logs_command = ["tmux", "capture-pane", "-t", self.session_name, "-p"]
                 try:
-                    logs_message = subprocess.check_output(logs_command).decode()
+                    logs = subprocess.check_output(logs_command).decode()
                     LOGGER.info("Captured logs from tmux session.")
                 except subprocess.CalledProcessError as e:
                     LOGGER.error("Failed to capture logs from tmux session: %s", e)
-                    logs_message = ""
+                    logs = ""
 
                 # If logs are effectively empty
-                if len(logs_message.strip()) == 0:
-                    logs_message = "Currently no logs to display."
-                
-                # Return complete message with metrics and Tmux logs header
-                return logs_message
+                if len(logs.strip()) == 0:
+                    logs = "No logs."
+
+                logs_message = (
+                    f"\nContainer Log as of {current_time}:\n"
+                    f" {logs}\n"
+                )
 
             except ValueError as value_error:
                 # Log value errors that occur during processing
@@ -1019,16 +1044,19 @@ class TmuxGPUMonitor(BaseMonitor):
                 raise  # Re-raise the exception if you want it to propagate
         else:
             if self._is_benchmark_running():
-                logs_message = "\nBenchmark Status: Running"
+                logs_message = f"\nBenchmark Status as of {current_time}:\n Running"
             else:
-                logs_message = "\nBenchmark Status: Exited"
+                logs_message = f"\nBenchmark Status as of {current_time}:\n Exited"
 
-            return logs_message
+        return logs_message
 
     def _cleanup_benchmark(self) -> None:
         """Terminate the tmux session."""
         try:
-            subprocess.run(["tmux", "kill-session", "-t", self.session_name], check=True)
+            subprocess.run(["tmux", "kill-session", "-t", self.session_name],
+                           check=True,
+                           stderr=subprocess.DEVNULL  # Redirect stderr to /dev/null
+            )
             LOGGER.info("Tmux session '%s' terminated.", self.session_name)
         except subprocess.CalledProcessError as e:
             LOGGER.error("Failed to clean up tmux session '%s': %s", self.session_name, e)

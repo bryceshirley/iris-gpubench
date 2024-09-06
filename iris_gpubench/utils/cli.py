@@ -21,9 +21,10 @@ Dependencies:
 import argparse
 import sys
 
+from .docker_utils import image_exists, list_available_images
 #from ..carbon_metrics import get_carbon_region_names
 from .globals import LOGGER, MONITOR_INTERVAL
-from .docker_utils import image_exists, list_available_images
+
 
 def parse_arguments(get_carbon_region_names_func):
     """

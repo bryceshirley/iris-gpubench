@@ -30,24 +30,23 @@ Example:
     # Send data to MeerkatDB
     exporter.send_to_meerkat()
 """
+import base64
 import os
 from typing import Dict, List
+
 import requests
-from requests.auth import HTTPBasicAuth
-import base64
 import urllib3
+
+from .carbon_metrics import get_carbon_forecast
+# GLOBAL VARIABLES
+from .utils.globals import DEFAULT_REGION, LOGGER, TIMEOUT_SECONDS
 
 # Suppress InsecureRequestWarning
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-from .carbon_metrics import get_carbon_forecast
-
-# GLOBAL VARIABLES
-from .utils.globals import LOGGER, TIMEOUT_SECONDS, RESULTS_DIR, DEFAULT_REGION
-
+# Meerkat Info
 MEERKAT_USERNAME = os.getenv("MEERKAT_USERNAME")
 MEERKAT_PASSWORD = os.getenv("MEERKAT_PASSWORD")
-
 MEERKAT_URL = 'https://172.16.101.182:8247/write'
 
 class MeerkatExporter:
@@ -105,7 +104,8 @@ class MeerkatExporter:
         if not self.verify_ssl:
             LOGGER.warning("SSL certificate verification is disabled. This is insecure and should be addressed.")
 
-    def _create_auth_header(self) -> Dict[str, str]:
+    @staticmethod
+    def _create_auth_header() -> Dict[str, str]:
         """
         Creates the authorization header for MeerkatDB requests.
 
@@ -116,8 +116,7 @@ class MeerkatExporter:
         auth_b64 = base64.b64encode(auth_str.encode()).decode()
         return {'Authorization': f'Basic {auth_b64}'}
 
-    def export_metric_readings(self, current_gpu_metrics: Dict[str, List],
-                            reset_meerkat: bool = False) -> None:
+    def export_metric_readings(self, current_gpu_metrics: Dict[str, List]) -> None:
         """
         Exports the current GPU metrics to the MeerkatDB instance.
 
@@ -138,20 +137,16 @@ class MeerkatExporter:
             metric_keys = [key for key in current_gpu_metrics.keys() if key != 'gpu_idx']
 
             for metric_key in metric_keys:
-                if reset_meerkat:
-                    gpu_results = self._format_gpu_results_reset(current_gpu_metrics[metric_key], num_gpus)
-                else:
-                    gpu_results = self._format_gpu_results(current_gpu_metrics[metric_key], num_gpus)
-                
+                gpu_results = self._format_gpu_results(current_gpu_metrics[metric_key], num_gpus)
+      
                 data = f"{metric_key},{self.benchmark_info} {gpu_results}"
                 self._send_metric_data(data)
 
             LOGGER.info(f"Successfully exported metrics for {self.benchmark_info}")
-        except KeyError as e:
-            LOGGER.error(f"Missing key in GPU metrics: {e}")
-            raise ValueError(f"Invalid GPU metrics data: missing key {e}")
+        except KeyError as key_error:
+            LOGGER.error("Missing key in GPU metrics:: %s", key_error)
         except Exception as e:
-            LOGGER.error(f"Error in exporting metrics: {e}")
+            LOGGER.error("Error in exporting metrics: %s", e)
             raise
 
     def _format_gpu_results(self, metric_values: List, num_gpus: int) -> str:
@@ -190,11 +185,10 @@ class MeerkatExporter:
                                      verify=self.verify_ssl, timeout=TIMEOUT_SECONDS)
             response.raise_for_status()
         except requests.RequestException as e:
-            LOGGER.error(f"Failed to send data to MeerkatDB: {e}")
-        except requests.exceptions.RequestException as e:
-            LOGGER.error(f"An error occurred: {e}")
+            LOGGER.error("Failed to send data to MeerkatDB: %s", e)
 
-    def export_stats(self,stats) -> None:
+
+    def export_stats(self, stats) -> None:
         """
         Exports Completion Results to Meerkat Database
         """
@@ -203,10 +197,10 @@ class MeerkatExporter:
         data = f"{self.benchmark},{gpu_info},{stats_values} time={stats['elapsed_time']:.2f}"
         self._send_metric_data(data)
 
-        LOGGER.info(f"Exported Stats. data:{data}")
-        
+        LOGGER.info("Exported Stats. data:%s", data)
 
-    def export_carbon_forcast(self, carbon_region_shorthand: str = DEFAULT_REGION) -> None:
+
+    def export_carbon_forecast(self, carbon_region_shorthand: str = DEFAULT_REGION) -> None:
         """
         Exports Carbon forcast
         """
@@ -219,4 +213,4 @@ class MeerkatExporter:
 
         self._send_metric_data(data)
 
-        LOGGER.info(f"Exported Carbon Forecast. data:{data}")
+        LOGGER.info("Exported Carbon Forecast. data:%s", data)

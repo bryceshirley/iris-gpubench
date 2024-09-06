@@ -23,10 +23,12 @@ Logging:
 """
 
 from typing import List, Optional
-import requests
-from requests.exceptions import HTTPError, Timeout, ConnectionError as RequestsConnectionError
 
-from .utils.globals import TIMEOUT_SECONDS, LOGGER, DEFAULT_REGION
+import requests
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import HTTPError, Timeout
+
+from .utils.globals import DEFAULT_REGION, LOGGER, TIMEOUT_SECONDS
 
 # Constants
 CARBON_INTENSITY_URL = "https://api.carbonintensity.org.uk/regional"
