@@ -112,6 +112,9 @@ class BaseMonitor(ABC):
         # Initialize stats
         self._init_stats()
 
+        # Initialize exporter
+        self.exporter = None
+
     def _init_stats(self) -> None:
         """
         Initializes GPU statistics and records initial carbon forecast.
@@ -323,9 +326,9 @@ class BaseMonitor(ABC):
         logs_message = self._live_monitor_logs(monitor_logs)
 
         # Complete message
-        complete_message = f"{logs_message}\n\n{metrics_message}"
+        complete_message = f"\n{logs_message}\n\n{metrics_message}\n"
 
-        return complete_message
+        print(complete_message)
 
     def _cleanup_stats(self) -> None:
         """
@@ -753,7 +756,7 @@ class BaseMonitor(ABC):
         finally:
 
             # Shutdown the Process
-            self._shutdown(plot,export_to_meerkat,live_monitoring,monitor_logs,shutdown_message)
+            self._shutdown(live_monitoring,monitor_logs,shutdown_message,plot,export_to_meerkat)
 
     @abstractmethod
     def _start_benchmark(self, benchmark_name: str) -> None:
