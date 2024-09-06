@@ -19,6 +19,9 @@ Package Metadata:
 """
 
 from iris_gpubench.main import *
+from iris_gpubench.docker_gpu_monitor import *
+from iris_gpubench.tmux_gpu_monitor import *
+from iris_gpubench.base_monitor import *
 from iris_gpubench.gpu_monitor import *
 from iris_gpubench.carbon_metrics import *
 from iris_gpubench.meerkat_exporter import *

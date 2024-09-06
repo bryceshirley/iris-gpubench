@@ -181,7 +181,7 @@ class MeerkatExporter:
         try:
             # NOTE: Using verify=False is required for our current setup.
             # This disables SSL certificate verification and should be addressed in a production environment.
-            response = requests.post(self.db_url, headers=self.headers, data=data, 
+            response = requests.post(self.db_url, headers=self.headers, data=data,
                                      verify=self.verify_ssl, timeout=TIMEOUT_SECONDS)
             response.raise_for_status()
         except requests.RequestException as e:
@@ -207,7 +207,7 @@ class MeerkatExporter:
         carbon_forcast = get_carbon_forecast(carbon_region_shorthand)
 
         # Remove spaces
-        carbon_region_shorthand=carbon_region_shorthand.replace(" ","_")
+        carbon_region_shorthand = carbon_region_shorthand.replace(" ", "_")
 
         data = f"carbon,region={carbon_region_shorthand} forecast={carbon_forcast}"
 
