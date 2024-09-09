@@ -28,7 +28,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # Meerkat Info
 MEERKAT_USERNAME = os.getenv("MEERKAT_USERNAME")
 MEERKAT_PASSWORD = os.getenv("MEERKAT_PASSWORD")
-MEERKAT_URL = 'https://172.16.101.182:8247/write'
+MEERKAT_URL = os.getenv("MEERKAT_URL")
 
 class MeerkatExporter:
     """
