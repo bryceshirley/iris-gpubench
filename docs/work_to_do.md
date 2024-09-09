@@ -19,6 +19,31 @@
 there continuous integration and on pull request test there codes gpu's performance
 if the performance is reduced by say 5% the test would fail and the pull request
 rejected.
+- ensure all the gpus are using the same hardware ie memory and cpus to control the variables
+## Other things to measure: 
+- time of utilization (the total time utilization is not 0)
+### Stability
+- Crash Frequency: Note if the GPU crashes or artifacts appear during the benchmark. - Throttling: Check if the GPU's clock speeds are reduced due to high temperatures or power limitations.
+
+### Temperature
+- Hotspot Temperature: Some GPUS have sensors to measure the temperature of the hottest point. A100, H100, and RTX 4000: These GPUS often have hotspot sensors
+
+### Additional Metrics (Depending on the Benchmark Tool) ie for MANTID IMAGING
+Memory Bandwidth: Measure the rate at which data can be transferred between the GPU and system memory.
+
+### Clock Speeds
+Use NVIDIA-smi to collect the clock speeds.
+Factors effecting clock speed:
+ * Workload: Heavier workloads often require higher clock speeds.
+ * Temperature: If the GPU is overheating, it may reduce clock speed to prevent damage.
+ * Power supply: The available power can limit the maximum clock speed.
+ * GPU driver settings: Some drivers allow for manual clock speed adjustments. 
+
+### Most up-to-date drivers
+- big limitation to my work is I didnt use the most up-to-date drivers. The most update driver ensures the gpu will be fully optimised.
+
+### Experiment with Precision 
+- Tensor cores: GPUS with tensor cores can perform matrix operations in FP16 or lower precisions, offering significant performance gains. This is workload dependent as high precision is option needed.
 
 ---
 
