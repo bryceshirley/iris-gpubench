@@ -45,6 +45,16 @@ Factors effecting clock speed:
 ### Experiment with Precision 
 - Tensor cores: GPUS with tensor cores can perform matrix operations in FP16 or lower precisions, offering significant performance gains. This is workload dependent as high precision is option needed.
 
+### Estimating FLOPs
+
+To estimate the FLOPs of a GPU, you can use the following formula:
+
+\[
+\text{FLOPs} = \text{CUDA Cores} \times \text{Clock Speed (Hz)} \times \text{Operations per Clock Cycle}
+\]
+
+
+
 ---
 
 [Previous Page](considerations_on_accuracy.md)
