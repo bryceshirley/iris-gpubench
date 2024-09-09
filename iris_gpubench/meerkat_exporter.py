@@ -10,25 +10,6 @@ Usage:
 optional configuration parameters.
 3. Call the `send_to_meerkat` method to format the data and send it to
 MeerkatDB.
-
-Example:
-    from meerkat_exporter import MeerkatDBExporter
-
-    # Example time series data
-    time_series_data = {
-        'timestamp': ['2024-08-05 12:00:00', '2024-08-05 12:05:00'],
-        'gpu_idx': [[0, 1], [0, 1]],
-        'util': [[75.5, 80.0], [76.0, 81.0]],
-        'power': [[120.0, 130.0], [121.0, 131.0]],
-        'temp': [[60.0, 65.0], [61.0, 66.0]],
-        'mem': [[8192, 8192], [8192, 8192]]
-    }
-
-    # Initialize the exporter
-    exporter = MeerkatDBExporter(time_series_data)
-
-    # Send data to MeerkatDB
-    exporter.send_to_meerkat()
 """
 import base64
 import os
@@ -84,7 +65,7 @@ class MeerkatExporter:
         exporter.export_metric_readings(current_gpu_metrics)
     """
 
-    def __init__(self, gpu_name: str, benchmark: str, verify_ssl: bool = False):
+    def __init__(self, gpu_name: str, device_count: int, benchmark: str, verify_ssl: bool = False):
         """
         Initializes the MeerkatDBExporter with GPU and benchmark information.
 
@@ -93,9 +74,10 @@ class MeerkatExporter:
             benchmark (str): The name of the benchmark being run.
             verify_ssl (bool): Whether to verify SSL certificates. Defaults to False.
         """
-        self.gpu_name = gpu_name.replace(" ","_")
+        self.gpu_name = gpu_name.replace(" ", "_")
+        self.device_count = device_count
         self.benchmark = benchmark
-        self.benchmark_info = f"gpu_name={self.gpu_name},benchmark={self.benchmark}"
+        self.benchmark_info = f"gpu_name={self.gpu_name},device_count={self.device_count},benchmark={self.benchmark}"
         self.headers = self._create_auth_header()
         self.db_url = MEERKAT_URL
         self.verify_ssl = verify_ssl

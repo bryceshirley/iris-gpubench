@@ -154,7 +154,8 @@ class BaseMonitor(ABC):
         if export_to_meerkat:
             self.exporter = MeerkatExporter(
                 gpu_name=self._stats["name"],
-                benchmark=self._stats["benchmark"]                
+                device_count=self._stats["device_count"],
+                benchmark=self._stats["benchmark"]
             )
 
         LOGGER.info("Initialized benchmark runner.")
