@@ -178,7 +178,7 @@ class MeerkatExporter:
 
         # Collect Benchmark Score if Exists;
         if stats['score'] is not None:
-            stats_values += f",score={stats['score']}"
+            stats_values += f",score={stats['score']:.5f}"
 
         gpu_info = f"gpu_name={self.gpu_name}"
         data = f"{self.benchmark},{gpu_info},{stats_values} time={stats['elapsed_time']:.2f}"
