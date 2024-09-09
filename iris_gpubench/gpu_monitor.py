@@ -21,7 +21,7 @@ from .utils.globals import MONITOR_INTERVAL, RESULTS_DIR
 
 METRICS_FILE_PATH = os.path.join(RESULTS_DIR, 'metrics.yml')
 TIMESERIES_PLOT_PATH = os.path.join(RESULTS_DIR, 'timeseries_plot.png')
-FINAL_MONITORING_OUTPUT_PATH = os.path.join(RESULTS_DIR, 'final_monitoring_output.png')
+FINAL_MONITORING_OUTPUT_PATH = os.path.join(RESULTS_DIR, 'final_monitoring_output.txt')
 
 class GPUMonitor:
     """

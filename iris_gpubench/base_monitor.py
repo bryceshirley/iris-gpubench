@@ -38,7 +38,7 @@ from .utils.globals import LOGGER, MONITOR_INTERVAL, RESULTS_DIR
 
 METRICS_FILE_PATH = os.path.join(RESULTS_DIR, 'metrics.yml')
 TIMESERIES_PLOT_PATH = os.path.join(RESULTS_DIR, 'timeseries_plot.png')
-FINAL_MONITORING_OUTPUT_PATH = os.path.join(RESULTS_DIR, 'final_monitoring_output.png')
+FINAL_MONITORING_OUTPUT_PATH = os.path.join(RESULTS_DIR, 'final_monitoring_output.txt')
 
 class BaseMonitor(ABC):
     """
@@ -430,10 +430,6 @@ class BaseMonitor(ABC):
         self._cleanup_stats()
         LOGGER.info("Monitoring stopped.")
 
-        # Export stats
-        if export_to_meerkat:
-            self.exporter.export_stats(self._stats)
-
         # Save the metrics plot if requested
         if plot:
             self.plot_timeseries()
@@ -447,6 +443,10 @@ class BaseMonitor(ABC):
 
         # Collect Benchmark Score if Exists
         self._collect_benchmark_score()
+
+        # Export stats
+        if export_to_meerkat:
+            self.exporter.export_stats(self._stats)
 
         # Save monitoring results to yml
         self.save_stats_to_yaml()
