@@ -129,7 +129,7 @@ class MeerkatExporter:
             LOGGER.error("Missing key in GPU metrics:: %s", key_error)
         except Exception as e:
             LOGGER.error("Error in exporting metrics: %s", e)
-            raise
+            raise RuntimeError("Something went wrong") from e
 
     def _format_gpu_results(self, metric_values: List, num_gpus: int) -> str:
         """
