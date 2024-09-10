@@ -51,6 +51,8 @@ class GPUMonitor:
         }
         self.monitor = None
 
+        self.ran = False
+
     def run(self, benchmark_command: str = None, benchmark_image: str = None,
             live_monitoring: bool = True, plot: bool = True, live_plot: bool = False,
             monitor_logs: bool = False, export_to_meerkat: bool = False) -> None:
@@ -94,6 +96,8 @@ class GPUMonitor:
             export_to_meerkat=export_to_meerkat
         )
 
+        self.ran = True  # Mark as ran after successful execution
+
     def save_stats_to_yaml(self, file_path: str = METRICS_FILE_PATH) -> None:
         """
         Save collected GPU statistics to a YAML file.
@@ -104,21 +108,21 @@ class GPUMonitor:
         Raises:
             RuntimeError: If no monitoring has been performed yet.
         """
-        if self.monitor:
+        if self.ran:
             self.monitor.save_stats_to_yaml(file_path)
         else:
             raise RuntimeError("No monitoring has been performed yet.")
 
     def plot_timeseries(self, plot_path: str = TIMESERIES_PLOT_PATH):
         """Plot the time series data to a specified file path."""
-        if self.monitor:
+        if self.ran:
             self.monitor.plot_timeseries(plot_path)
         else:
             raise RuntimeError("No monitoring has been performed yet.")
 
     def save_timeseries_to_csv(self, results_dir: str = RESULTS_DIR):
         """Save the time series data to a CSV file in a specified directory."""
-        if self.monitor:
+        if self.ran:
             self.monitor.save_timeseries_to_csv(results_dir)
         else:
             raise RuntimeError("No monitoring has been performed yet.")

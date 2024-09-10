@@ -47,7 +47,7 @@ def format_metrics(results_dir: str = RESULTS_DIR,
             data = yaml.safe_load(file)
 
         # Add other data
-        main_data= [
+        main_data = [
             ["Benchmark: ", f"{data.get('benchmark')}"],
             ["Elapsed Monitor Time (s)", f"{data.get('elapsed_time'):.5f}"],
             ["Total GPU Energy Consumed (kWh)", f"{data.get('total_energy'):.5f}"],
@@ -63,19 +63,23 @@ def format_metrics(results_dir: str = RESULTS_DIR,
         gpu_data = [
             ["GPU Type", data.get("name")],
             ["No. of GPUs ", data.get("device_count")],
-            ["Average GPU Util. (for >0.00% GPU Util.) (%)", f"{data.get('av_util'):.5f}"],
-            ["Avg GPU Power (for >0.00% GPU Util.) (W)",
+            ["Average GPU Utilization (for >0.00% GPU Util.) (%)", f"{data.get('av_util'):.5f}"],
+            ["Average GPU Power (for >0.00% GPU Util.) (W)",
              f"{data.get('av_power'):.5f} (Power Limit: {int(data.get('max_power_limit', 0))})"],
-            ["Avg GPU Temperature (for >0.00% GPU Util.) (C)",
+            ["Average GPU Temperature (for >0.00% GPU Util.) (°C)",
              f"{data.get('av_temp'):.5f}"],
-            ["Avg GPU Memory (for >0.00% GPU Util.) (MiB)",
-             f"{data.get('av_mem'):.5f} (Total Memory: {data.get('total_mem')})"]
+             ["Temperature Threshold - Slowdown (°C)", f"{data.get('temp_threshold_slowdown'):.2f}"],
+            ["Average GPU Memory (for >0.00% GPU Util.) (MiB)",
+             f"{data.get('av_mem'):.5f} (Total Memory: {data.get('total_mem')})"],
+            ["Average Clock Speed (MHz)",
+             f"{data.get('av_clk_speed'):.2f} (Max: {data.get('max_clk_speed'):.2f})"],
+            ["Average Memory Clock Speed (MHz)",
+             f"{data.get('av_mem_clk_speed'):.2f} (Max: {data.get('max_mem_clk_speed'):.2f})"],
         ]
 
-        # Collect Benchmark Score if Exists;
+        # Collect Benchmark Score if Exists
         if data.get('score') is not None:
             main_data.insert(1, ["Benchmark Score (s)", f"{data.get('score'):.5f}"])
-
 
         # Create output list with formatted tables
         output = [
