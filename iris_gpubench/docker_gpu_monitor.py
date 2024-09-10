@@ -72,6 +72,7 @@ class DockerGPUMonitor(BaseMonitor):
         self.container = None
 
         self.benchmark_image = ""
+        self.copied_results_path = None
 
     def _start_benchmark(self, benchmark) -> None:
         """
@@ -87,7 +88,7 @@ class DockerGPUMonitor(BaseMonitor):
                 self.benchmark_image,
                 detach=True,
                 device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])],
-                shm_size="1024G" # Set to large to ensure all that is needed is used
+                shm_size="1024G",  # Set to large to ensure all that is needed is used
             )
 
             # Reload to update status from created to running
@@ -159,22 +160,25 @@ class DockerGPUMonitor(BaseMonitor):
         return logs_message
 
     def _cleanup_benchmark(self) -> None:
-        """Remove the Docker container and save results if possible."""
+        """
+        Cleans up the Docker environment after a benchmark run.
+
+        This method performs the following actions:
+        1. Attempts to copy benchmark results from the Docker container 
+        to the local file system by calling the `_copy_container_results` method.
+        2. Attempts to remove the Docker container used for the benchmark 
+        to free up system resources.
+
+        If the Docker container exists, the method first tries to copy the results. 
+        Then, it attempts to remove the container. The path to the copied benchmark 
+        score file is returned, regardless of whether the container removal succeeds.
+
+        Raises:
+            docker.errors.APIError: If an error occurs while trying to remove the Docker container.
+        """
         if self.container:
-            # Try to save results
-            try:
-                container_id = self.container.id
-                container_results_path = os.path.join(
-                    RESULTS_DIR,
-                    f'results_{self.benchmark_image}'
-                    )
-                cmd = f'docker cp {container_id}:/root/results/ {container_results_path}'
-                subprocess.run(cmd, shell=True, check=True,
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                LOGGER.info("Results from Docker saved successfully.")
-            except subprocess.CalledProcessError as cp_error:
-                LOGGER.error("Failed to save results: %s", cp_error)
-                LOGGER.error("Stderr: %s", cp_error.stderr.decode())
+            # Attempt to copy benchmark Score
+            self._copy_container_results() # Add the Correct file path
 
             # Try to remove container
             try:
@@ -182,3 +186,55 @@ class DockerGPUMonitor(BaseMonitor):
                 LOGGER.info("Docker container removed.")
             except docker.errors.APIError as docker_error:
                 LOGGER.error("Failed to remove Docker container: %s", docker_error)
+    
+    def _copy_container_results(self, container_results_path: str = "/root/results") -> bool:
+        """
+        Copies benchmark results from the container to the local gpu_monitor directory.
+
+        This method executes a Docker command to copy results from the container's
+        results directory to the local directory specified by the 'RESULTS_DIR' 
+        and 'benchmark_image' attributes. 
+
+        Args:
+            container_results_path (str): Path within the container where results are stored. Defaults to "/root/results".
+
+        Returns:
+            bool: True if the results are copied successfully, False otherwise.
+
+        Raises:
+            subprocess.CalledProcessError: If the Docker command fails.
+        """
+        try:
+            container_id = self.container.id
+            self.copied_results_path = os.path.join(
+                RESULTS_DIR,
+                f'results_{self.benchmark_image}'
+            )
+            cmd = f'docker cp {container_id}:{container_results_path} {self.copied_results_path}'
+            subprocess.run(cmd, shell=True, check=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            LOGGER.info("Results from Docker saved successfully.")
+        except subprocess.CalledProcessError as cp_error:
+            LOGGER.error("Failed to save results: %s", cp_error)
+            LOGGER.error("Stderr: %s", cp_error.stderr.decode())
+
+    @property
+    def benchmark_score_path(self) -> str:
+        """
+        Property that returns the path to the benchmark score file.
+
+        If the 'copied_results_path' attribute is set, this method constructs and returns
+        the full path to the 'metrics.yml' file within the results directory. If 
+        'copied_results_path' is not set, an error is logged, and None is returned.
+
+        Returns:
+            str: The full path to the benchmark score file if 'copied_results_path' is set, 
+            otherwise None.
+        """
+        if self.copied_results_path:
+            # Construct the path to the metrics file if 'copied_results_path' is set
+            return os.path.join(self.copied_results_path, 'metrics.yml')
+
+        # Log an error if 'copied_results_path' is not set
+        LOGGER.error("Cannot find the benchmark score file.")
+        return None

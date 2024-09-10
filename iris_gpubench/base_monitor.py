@@ -27,7 +27,6 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import matplotlib.backends.backend_agg as agg
-import matplotlib.cm as cm
 import pynvml
 from pynvml import (NVML_CLOCK_GRAPHICS, NVML_CLOCK_MEM,
                     NVML_TEMPERATURE_THRESHOLD_GPU_MAX, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN,
@@ -416,36 +415,46 @@ class BaseMonitor(ABC):
         if n_utilized > 0:
             for key in sums:
                 self._stats[f"av_{key}"] = sums[key] / n_utilized
-        
+
+
+    @property
+    @abstractmethod
+    def benchmark_score_path(self) -> str:
+        """
+        Abstract property that should return the path to the benchmark score file.
+        Subclasses must provide an implementation for this property.
+        """
 
     def _collect_benchmark_score(self):
         """
-        Collect the internal benchmark score and store it in _stats if available.
+        Collects the benchmark score from the results.
 
-        This method attempts to read the benchmark score or time from a YAML file
-        located at {RESULTS_DIR}/result_{benchmark}/metrics.yml. The file
+        This method depends on the subclass's implementation of the 'benchmark_score_path' property.
+        It attempts to read a YAML file at the location provided by 'benchmark_score_path', which
         should contain a 'time' key with the benchmark score as its value.
 
-        For example, the YAML file might contain:
-        time: 12.122
+        The score is then stored in self._stats['score'].
 
-        The benchmark score is saved to the file in the _cleanup_benchmark() method.
-
-        If successful, the score is stored in self._stats['score'].
+        Raises:
+            IOError: If the metrics.yml file is not found or cannot be read.
         """
+        if not os.path.isfile(self.benchmark_score_path):
+            LOGGER.error("Benchmark score file not found: %s", self.benchmark_score_path)
+            return
+
         try:
-            # Collect Benchmark Score if Exists
-            benchmark_score_path = f'{RESULTS_DIR}/results_{self._stats["benchmark"]}/metrics.yml'
-            with open(benchmark_score_path, 'r', encoding='utf-8') as file:
+            with open(self.benchmark_score_path, 'r', encoding='utf-8') as file:
                 benchmark_score_data = yaml.safe_load(file)
 
             score = benchmark_score_data.get('time')
-
             if score is not None:
                 self._stats['score'] = score
+                LOGGER.info("Benchmark score collected: %s", score)
+            else:
+                LOGGER.warning("No 'time' key found in benchmark score file: %s", self.benchmark_score_path)
+
         except IOError as io_error:
-            # Log error message if file writing fails
-            LOGGER.error("Failed to locate the benchmark score: %s. Error: %s", benchmark_score_path, io_error)
+            LOGGER.error("Failed to read the benchmark score file: %s. Error: %s", self.benchmark_score_path, io_error)
 
     def _shutdown(self, live_monitoring: bool, monitor_logs: bool,
                   shutdown_message: str, plot: bool,
