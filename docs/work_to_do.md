@@ -29,14 +29,6 @@
 - **Consistent Hardware Configurations**: Ensure all GPUs being tested use the same hardware configurations (memory, CPUs, etc.) to control for variables and produce more consistent results.
 - **Continuous Integration for Performance Testing**: Encourage Iris users to integrate these benchmarks into their CI workflows. On every pull request, a GPU performance test could be run; if performance drops by a specified percentage (e.g., 5%), the pull request would fail, ensuring code changes do not degrade performance.
 
-### Additional Metrics and Areas for Measurement
-- **Utilization Time**: Measure the total time the GPU is actively utilized (i.e., when utilization is not 0).
-#### Stability Metrics
-- **Crash Frequency**: Track and document any GPU crashes or visual artifacts appearing during benchmarks.
-- **Throttling Events**: Monitor if and when GPU clock speeds are reduced due to high temperatures or power limitations.
-#### Additional Metrics for Specific Tools (e.g., MANTID IMAGING)
-- **Memory Bandwidth**: Measure the rate at which data is transferred between the GPU and system memory to understand potential bottlenecks.
-
 ### Investigating Clock Speeds and Flops
 - Use `nvidia-smi` to collect and analyze clock speeds. Note that comparing GPUs based solely on clock speed can be misleading due to differences in CUDA cores, tensor cores, and the operations per clock cycle for different generations.
 - **Factors Affecting Clock Speed:**
@@ -63,6 +55,11 @@ To calculate this:
 ### Leveraging NVIDIA Nsight
 - **Explore NVIDIA Nsight Systems**: Investigate the use of NVIDIA Nsight Systems for detailed workload profiling. This tool offers system-wide performance analysis, visualizing application algorithms, identifying optimization opportunities, and tuning performance across various CPU and GPU configurations. Determine if Nsight can provide insights into which cores/SMs (streaming multiprocessors) are activated during benchmarks as well as any other interesting metrics.
 
+### Additional Metrics And Areas For Measurement That Could Be Interesting
+- **Utilization Time**: Measure the total time the GPU is actively utilized (i.e., when utilization is not 0).
+- **Stability: Crash Frequency**: Track and document any GPU crashes or visual artifacts appearing during benchmarks.
+- **Throttling Events**: Monitor if and when GPU clock speeds are reduced due to high temperatures or power limitations.
+- **Memory Bandwidth**: Measure the rate at which data is transferred between the GPU and system memory to understand potential bottlenecks.
 
 ---
 
