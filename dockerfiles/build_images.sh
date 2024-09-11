@@ -26,7 +26,7 @@ BASE_IMAGES=("mantid_base" "sciml_base")
 
 # List of app images to build
 SCIML_IMAGES=("mnist_tf_keras" "stemdl_classification" "synthetic_regression")
-MANTID_IMAGES=("mantid_run_1" "mantid_run_5" "mantid_run_8")
+MANTID_IMAGES=("mantid_run_1" "mantid_run_4" "mantid_run_5" "mantid_run_8")
 
 # Build base images first
 echo "Building base images..."
