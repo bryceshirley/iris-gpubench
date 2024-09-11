@@ -40,29 +40,6 @@ class MeerkatExporter:
     This class handles the formatting and sending of GPU metric data to a specified
     MeerkatDB instance via HTTP POST requests. It supports multiple GPUs and
     various metric types.
-
-    Attributes:
-        benchmark_info (str): A formatted string containing GPU name and benchmark information.
-        headers (Dict[str, str]): HTTP headers for authentication.
-        db_url (str): URL of the MeerkatDB import endpoint.
-        verify_ssl (bool): Whether to verify SSL certificates.
-
-    Methods:
-        export_metric_readings(current_gpu_metrics: Dict[str, List]) -> None:
-            Exports the current GPU metrics to the MeerkatDB instance.
-        export_stats() -> None:
-            Exports completion results to the MeerkatDB instance (not implemented yet).
-
-    Usage:
-        exporter = MeerkatDBExporter("NVIDIA A100", "BERT-Large")
-        current_gpu_metrics = {
-            'gpu_idx': [0, 1],
-            'util': [80, 90],
-            'power': [250.5, 260.2],
-            'temp': [70.0, 72.5],
-            'mem': [16384, 16384]
-        }
-        exporter.export_metric_readings(current_gpu_metrics)
     """
 
     def __init__(self, gpu_name: str, device_count: int, benchmark: str, verify_ssl: bool = False):
@@ -76,7 +53,8 @@ class MeerkatExporter:
         """
         self.gpu_name = gpu_name.replace(" ", "_")
         self.device_count = device_count
-        self.benchmark = benchmark
+        # Overide stored benchmark name by removing any extensions/ base paths ie if command is used 
+        self.benchmark = os.path.splitext(os.path.basename(benchmark))[0]
         self.benchmark_info = f"gpu_name={self.gpu_name},device_count={self.device_count},benchmark={self.benchmark}"
         self.headers = self._create_auth_header()
         self.db_url = MEERKAT_URL
@@ -122,6 +100,7 @@ class MeerkatExporter:
                 gpu_results = self._format_gpu_results(current_gpu_metrics[metric_key], num_gpus)
       
                 data = f"{metric_key},{self.benchmark_info} {gpu_results}"
+                LOGGER.info(f"Exporting: {data}")
                 self._send_metric_data(data)
 
             LOGGER.info(f"Successfully exported metrics for {self.benchmark_info}")
@@ -174,7 +153,7 @@ class MeerkatExporter:
         """
         Exports Completion Results to Meerkat Database
         """
-        stats_values = f"av_carbon_forecast={stats['av_carbon_forecast']:.5f},total_carbon={stats['total_carbon']:.5f},total_energy={stats['total_energy']:.5f},av_temp={stats['av_temp']:.5f},av_util={stats['av_util']:.5f},av_mem={stats['av_mem']:.5f},av_power={stats['av_power']:.5f},device_count={stats['device_count']}"
+        stats_values = f"av_carbon_forecast={stats['av_carbon_forecast']:.5f},total_carbon={stats['total_carbon']:.5f},total_energy={stats['total_energy']:.5f},av_temp={stats['av_temp']:.5f},av_util={stats['av_util']:.5f},av_mem={stats['av_mem']:.5f},av_power={stats['av_power']:.5f},av_clk_speed={stats['av_clk_speed']:.5f},av_mem_clk_speed={stats['av_mem_clk_speed']:.5f},device_count={stats['device_count']}"
 
         # Collect Benchmark Score if Exists;
         if stats['score'] is not None:

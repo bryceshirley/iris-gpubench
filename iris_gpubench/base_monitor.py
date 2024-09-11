@@ -21,12 +21,16 @@ Note:
 
 import os
 import time
+import csv
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Dict, List, Optional
 
 import matplotlib.backends.backend_agg as agg
 import pynvml
+from pynvml import (NVML_CLOCK_GRAPHICS, NVML_CLOCK_MEM,
+                    NVML_TEMPERATURE_THRESHOLD_GPU_MAX, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN,
+                    NVML_TEMPERATURE_THRESHOLD_SHUTDOWN, NVML_TEMPERATURE_GPU)
 import yaml
 from matplotlib import figure, ticker
 from tabulate import tabulate
@@ -65,13 +69,14 @@ class BaseMonitor(ABC):
 
         # Initialize time series data for GPU metrics
         self._time_series_data: Dict[str, List] = {
-            'timestamp': [], 'gpu_idx': [], 'util': [],
-            'power': [], 'temp': [], 'mem': [],
+            'timestamp': [], 'gpu_idx': [], 'util': [], 'power': [], 'temp': [],
+            'mem': [], 'clk_speed': [], 'mem_clk_speed': [],
         }
 
         # Initialize private GPU metrics as a dict of Lists
         self.current_gpu_metrics: Dict[str, List] = {
-            'gpu_idx': [], 'util': [], 'power': [], 'temp': [], 'mem': []
+            'gpu_idx': [], 'util': [], 'power': [], 'temp': [], 'mem': [],
+            'clk_speed': [], 'mem_clk_speed': [],
         }
 
         # Initialize Previous Power
@@ -91,8 +96,18 @@ class BaseMonitor(ABC):
         """
         Initializes GPU statistics and records initial carbon forecast.
 
-        Sets up initial statistics including GPU name, power limits, total memory,
-        and initial carbon forecast.
+        Sets up initial statistics with the following metrics:
+        - **GPU Name**: Name of the GPU.
+        - **Power Limit**: Maximum power limit of the GPU in watts.
+        - **Total Memory**: Total memory available on the GPU in MiB.
+        - **Maximum Clock Speed**: Maximum graphics clock speed of the GPU in MHz.
+        - **Maximum Memory Clock Speed**: Maximum memory clock speed of the GPU in MHz.
+        - **Temperature Thresholds**:
+            - **GPU Max Temperature**: Maximum temperature threshold for the GPU.
+            - **Slowdown Temperature**: Temperature threshold at which the GPU will start to throttle performance.
+            - **Shutdown Temperature**: Temperature threshold at which the GPU will shut down to prevent overheating.
+        - **Carbon Forecasts**: Initial values for carbon forecast and carbon totals.
+        - **Timing Information**: Start and end datetimes for the monitoring period.
         """
         try:
             # Get handle for the first GPU
@@ -110,26 +125,29 @@ class BaseMonitor(ABC):
             # Number of GPUs
             device_count = pynvml.nvmlDeviceGetCount()
 
+            # Retrieve max clock speeds (MHz)
+            max_graphics_clock = pynvml.nvmlDeviceGetMaxClockInfo(first_handle, NVML_CLOCK_GRAPHICS)
+            max_memory_clock = pynvml.nvmlDeviceGetMaxClockInfo(first_handle, NVML_CLOCK_MEM)
+
+
+            # Retrieve temperature thresholds
+            temp_threshold_gpu_max = pynvml.nvmlDeviceGetTemperatureThreshold(first_handle, NVML_TEMPERATURE_THRESHOLD_GPU_MAX)
+            temp_threshold_slowdown = pynvml.nvmlDeviceGetTemperatureThreshold(first_handle, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN)
+            temp_threshold_shutdown = pynvml.nvmlDeviceGetTemperatureThreshold(first_handle, NVML_TEMPERATURE_THRESHOLD_SHUTDOWN)
+
             # Initialize statistics
             self._stats = {
-                "elapsed_time": 0.0,
-                "av_temp": 0.0,
-                "av_util": 0.0,
-                "av_mem": 0.0,
-                "av_power": 0.0,
-                "av_carbon_forecast": 0.0,
-                "end_datetime": '',
-                "end_carbon_forecast": 0.0,
-                "max_power_limit": power_limit,
-                "name": gpu_name,
-                "start_carbon_forecast": 0.0,
-                "start_datetime": '',
-                "total_carbon": 0.0,
-                "total_energy": 0.0,
-                "total_mem": total_memory,
-                "device_count": device_count,
-                "benchmark": '',
-                "score": None
+                "elapsed_time": 0.0, "av_temp": 0.0, "av_util": 0.0, "av_mem": 0.0,
+                "av_power": 0.0, "av_clk_speed": 0.0, "av_mem_clk_speed": 0.0,
+                "av_carbon_forecast": 0.0, "end_datetime": '', "end_carbon_forecast": 0.0,
+                "max_power_limit": power_limit, "name": gpu_name, "start_carbon_forecast": 0.0,
+                "start_datetime": '', "total_carbon": 0.0, "total_energy": 0.0,
+                "total_mem": total_memory, "device_count": device_count, "benchmark": '',
+                "score": None, "max_clk_speed": max_graphics_clock,
+                "max_mem_clk_speed": max_memory_clock,
+                "temp_threshold_gpu_max": temp_threshold_gpu_max,
+                "temp_threshold_slowdown": temp_threshold_slowdown,
+                "temp_threshold_shutdown": temp_threshold_shutdown
             }
 
             LOGGER.info("Statistics initialized: %s", self._stats)
@@ -179,7 +197,9 @@ class BaseMonitor(ABC):
                 'util': [],
                 'power': [],
                 'temp': [],
-                'mem': []
+                'mem': [],
+                'clk_speed': [],
+                'mem_clk_speed': []
             }
 
             # Collect metrics for each GPU
@@ -189,9 +209,11 @@ class BaseMonitor(ABC):
                 # Retrieve metrics for the current GPU
                 utilization = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu
                 power_usage = pynvml.nvmlDeviceGetPowerUsage(handle) / 1000.0  # Convert mW to W
-                temperature = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+                temperature = pynvml.nvmlDeviceGetTemperature(handle, NVML_TEMPERATURE_GPU)
                 memory_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
                 memory = memory_info.used / (1024 ** 2)  # Convert bytes to MiB
+                clk_speed = pynvml.nvmlDeviceGetClockInfo(handle, NVML_CLOCK_GRAPHICS)
+                mem_clk_speed = pynvml.nvmlDeviceGetClockInfo(handle, NVML_CLOCK_MEM)
 
                 # Append metrics to current GPU metrics
                 self.current_gpu_metrics['gpu_idx'].append(i)
@@ -199,6 +221,8 @@ class BaseMonitor(ABC):
                 self.current_gpu_metrics['power'].append(power_usage)
                 self.current_gpu_metrics['temp'].append(temperature)
                 self.current_gpu_metrics['mem'].append(memory)
+                self.current_gpu_metrics['clk_speed'].append(clk_speed)
+                self.current_gpu_metrics['mem_clk_speed'].append(mem_clk_speed)
 
             # Append new data to time series data, including the timestamp
             self._time_series_data['timestamp'].append(current_time)
@@ -254,30 +278,44 @@ class BaseMonitor(ABC):
 
     def _live_monitor_metrics(self) -> str:
         """
-        Clears the terminal and prints the current GPU metrics in a formatted table.
-
-        Clears the terminal screen, fetches the current date and time,
-        and prints the GPU metrics as a grid table with headers.
+        Prints the current GPU metrics in a formatted table.
         """
         try:
             # Get the current date and time as a formatted string
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # Define table headers with GPU stats information
+            # Define the table headers for each type of metric
+            gpu_headers = [f'GPU {i}' for i in range(self._stats['device_count'])]
+
             headers = [
-                f'GPU Index ({self._stats["name"]})',
-                'Utilization (%)',
-                f"Power (W) / Max {self._stats['max_power_limit']} W",
-                'Temperature (C)',
-                f"Memory (MiB) / Total {self._stats['total_mem']} MiB"
+                'Metric',
+                *gpu_headers
             ]
 
-            # Format GPU metrics
-            gpu_metrics_str = tabulate(self.current_gpu_metrics, headers=headers, tablefmt='grid')
+            # Prepare data for each metric type
+            utilization = ['Utilization (%)'] + self.current_gpu_metrics['util']
+            power = ['Power (W)'] + self.current_gpu_metrics['power']
+            temperature = ['Temperature (C)'] + self.current_gpu_metrics['temp']
+            memory = ['Memory (MiB)'] + self.current_gpu_metrics['mem']
+            clk_speed = ['Clock Speed (MHz)'] + self.current_gpu_metrics['clk_speed']
+            mem_clk_speed = ['Memory Clock Speed (MHz)'] + self.current_gpu_metrics['mem_clk_speed']
+
+            # Compile all data into a list of rows
+            table_data = [
+                utilization,
+                power,
+                temperature,
+                memory,
+                clk_speed,
+                mem_clk_speed
+            ]
+
+            # Format GPU metrics as a table
+            gpu_metrics_str = tabulate(table_data, headers=headers, tablefmt='grid')
 
             # Build the full message
             message = (
-                f"\nCurrent GPU Metrics as of {current_time}:\n"
+                f"\nCurrent GPU Metrics ({self._stats['name']}) as of {current_time}:\n"
                 f"{gpu_metrics_str}\n"
             )
 
@@ -326,40 +364,21 @@ class BaseMonitor(ABC):
 
             # Record the end time of the stats collection
             self._stats["end_datetime"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            
+
             # Get the carbon forecast at the end time
             self._stats["end_carbon_forecast"] = get_carbon_forecast(self.config['carbon_region_shorthand'])
 
             # Calculate the average carbon forecast over the duration
-            self._stats["av_carbon_forecast"] = (self._stats["start_carbon_forecast"] + self._stats["end_carbon_forecast"]) / 2
+            self._stats["av_carbon_forecast"] = (self._stats["start_carbon_forecast"] 
+                                                 + self._stats["end_carbon_forecast"]
+                                                 ) / 2
 
             # Calculate the total carbon emissions based on total energy consumed
-            self._stats["total_carbon"] = self._stats["total_energy"] * self._stats["av_carbon_forecast"]
+            self._stats["total_carbon"] = (self._stats["total_energy"] *
+                                           self._stats["av_carbon_forecast"])
 
-            # Extract time series data for utility, power, temperature, and memory
-            util = self._time_series_data["util"]
-            power = self._time_series_data["power"]
-            temp = self._time_series_data["temp"]
-            mem = self._time_series_data["mem"]
-
-            n_utilized = 0  # Counter for utilized GPU readings
-
-            # Iterate through GPU readings to calculate averages
-            for gpu_idx, gpu_util in enumerate(util):
-                for reading_idx, util_reading in enumerate(gpu_util):
-                    if util_reading > 0:  # Consider only utilized GPU readings
-                        self._stats["av_util"] += util_reading
-                        self._stats["av_power"] += power[gpu_idx][reading_idx]
-                        self._stats["av_mem"] += mem[gpu_idx][reading_idx]
-                        self._stats["av_temp"] += temp[gpu_idx][reading_idx]
-                        n_utilized += 1
-
-            # Compute the averages for utilization, power, memory, and temperature
-            if n_utilized > 0:
-                self._stats["av_util"] /= n_utilized
-                self._stats["av_power"] /= n_utilized
-                self._stats["av_mem"] /= n_utilized
-                self._stats["av_temp"] /= n_utilized
+            # Compute the averages from Metric Timeseries
+            self._compute_metric_averages()
 
             # Log the updated statistics
             LOGGER.info("Completion stats updated: %s", self._stats)
@@ -374,34 +393,68 @@ class BaseMonitor(ABC):
             # Handle any unexpected errors
             LOGGER.error("Unexpected error in completion stats calculation: %s", ex)
 
+    def _compute_metric_averages(self) -> None:
+        """
+        Computes average values for GPU metrics based on time series data.
+        Updates the _stats dictionary with the computed averages.
+        """
+        # Initialize counters
+        n_utilized = 0
+        sums = {key: 0 for key in self._time_series_data if key not in ("timestamp", "gpu_idx")}
+
+
+        # Iterate through GPU readings to calculate sums
+        for gpu_idx, gpu_util in enumerate(self._time_series_data['util']):
+            for reading_idx, util_reading in enumerate(gpu_util):
+                if util_reading > 0:  # Consider only utilized GPU readings
+                    for key in sums:
+                        sums[key] += self._time_series_data[key][gpu_idx][reading_idx]
+                    n_utilized += 1
+
+        # Compute averages if there are utilized readings
+        if n_utilized > 0:
+            for key in sums:
+                self._stats[f"av_{key}"] = sums[key] / n_utilized
+
+
+    @property
+    @abstractmethod
+    def benchmark_score_path(self) -> str:
+        """
+        Abstract property that should return the path to the benchmark score file.
+        Subclasses must provide an implementation for this property.
+        """
+
     def _collect_benchmark_score(self):
         """
-        Collect the internal benchmark score and store it in _stats if available.
+        Collects the benchmark score from the results.
 
-        This method attempts to read the benchmark score or time from a YAML file
-        located at {RESULTS_DIR}/result_{benchmark}/metrics.yml. The file
+        This method depends on the subclass's implementation of the 'benchmark_score_path' property.
+        It attempts to read a YAML file at the location provided by 'benchmark_score_path', which
         should contain a 'time' key with the benchmark score as its value.
 
-        For example, the YAML file might contain:
-        time: 12.122
+        The score is then stored in self._stats['score'].
 
-        The benchmark score is saved to the file in the _cleanup_benchmark() method.
-
-        If successful, the score is stored in self._stats['score'].
+        Raises:
+            IOError: If the metrics.yml file is not found or cannot be read.
         """
+        if not os.path.isfile(self.benchmark_score_path):
+            LOGGER.error("Benchmark score file not found: %s", self.benchmark_score_path)
+            return
+
         try:
-            # Collect Benchmark Score if Exists
-            benchmark_score_path = f'{RESULTS_DIR}/results_{self._stats["benchmark"]}/metrics.yml'
-            with open(benchmark_score_path, 'r', encoding='utf-8') as file:
+            with open(self.benchmark_score_path, 'r', encoding='utf-8') as file:
                 benchmark_score_data = yaml.safe_load(file)
 
             score = benchmark_score_data.get('time')
-
             if score is not None:
                 self._stats['score'] = score
+                LOGGER.info("Benchmark score collected: %s", score)
+            else:
+                LOGGER.warning("No 'time' key found in benchmark score file: %s", self.benchmark_score_path)
+
         except IOError as io_error:
-            # Log error message if file writing fails
-            LOGGER.error("Failed to locate the benchmark score: %s. Error: %s", benchmark_score_path, io_error)
+            LOGGER.error("Failed to read the benchmark score file: %s. Error: %s", self.benchmark_score_path, io_error)
 
     def _shutdown(self, live_monitoring: bool, monitor_logs: bool,
                   shutdown_message: str, plot: bool,
@@ -452,75 +505,37 @@ class BaseMonitor(ABC):
         self.save_stats_to_yaml()
 
         # Save Timeseries results to csv
-        self.save_timeseries_to_csv()
+        # self.save_timeseries_to_csv()
 
     def save_timeseries_to_csv(self, results_dir: str = RESULTS_DIR) -> None:
         """
         Converts time series data to CSV format and saves it to a file.
 
         Args:
-            time_series_data (dict): A dictionary containing time series data with keys
-                                    'timestamp', 'gpu_idx', 'util', 'power', 'temp', 'mem'.
             results_dir (str): The directory where the CSV file should be saved.
                             Defaults to RESULTS_DIR.
 
-        Raises:
-            ValueError: If the input data is invalid or missing required keys.
-            IOError: If an error occurs while writing to the file.
         """
         try:
-            # Validate input data
-            required_keys = ['timestamp', 'gpu_idx', 'util', 'power', 'temp', 'mem']
-            if not all(key in self._time_series_data for key in required_keys):
-                raise ValueError("Input data is missing required keys")
+            # Extract data length and validate
+            data_length = len(self._time_series_data['timestamp'])
 
-            # Extract data from the input dictionary
-            timestamps = self._time_series_data['timestamp']
-            gpu_indices = self._time_series_data['gpu_idx']
-            util = self._time_series_data['util']
-            power = self._time_series_data['power']
-            temp = self._time_series_data['temp']
-            mem = self._time_series_data['mem']
+            # Define header dynamically
+            header = self._time_series_data.keys()
 
-            # Validate data lengths
-            data_length = len(timestamps)
-            if not all(len(data) == data_length for data in [gpu_indices, util, power, temp, mem]):
-                raise ValueError("All data arrays must have the same length")
-
-            # Initialize a list to store CSV lines
-            csv_lines = []
-
-            # Add header to CSV
-            csv_header = "timestamp,gpu_index,utilization,power,temperature,memory"
-            csv_lines.append(csv_header)
-
-            # Flatten the data and format it as CSV
-            for reading_index in range(data_length):
-                for gpu_index, gpu_util in enumerate(util[reading_index]):
-                    # Format each line as a CSV entry
-                    csv_line = (
-                        f"{timestamps[reading_index]},"
-                        f"{gpu_indices[reading_index][gpu_index]},"
-                        f"{gpu_util},"
-                        f"{power[reading_index][gpu_index]},"
-                        f"{temp[reading_index][gpu_index]},"
-                        f"{mem[reading_index][gpu_index]}"
-                    )
-                    # Append the formatted line to the list
-                    csv_lines.append(csv_line)
-
-            # Join the lines with newline characters to create the final CSV string
-            csv_data = "\n".join(csv_lines)
-
-            # Ensure the target directory exists and create if not
+            # Ensure the target directory exists
             os.makedirs(results_dir, exist_ok=True)
-
-            # Construct the full file path
             file_path = os.path.join(results_dir, 'timeseries.csv')
 
-            # Open the file in write mode with UTF-8 encoding
-            with open(file_path, 'w', encoding='utf-8') as file:
-                file.write(csv_data)
+            # Open file and write data
+            with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(header)
+
+                for i in range(data_length):
+                    for gpu_index in range(len(self._time_series_data['util'][i])):
+                        row = [self._time_series_data[key][i][gpu_index] for key in header]
+                        writer.writerow(row)
 
             LOGGER.info("CSV data successfully converted and saved to %s", file_path)
 
@@ -534,9 +549,10 @@ class BaseMonitor(ABC):
             LOGGER.error("Unexpected error: %s", error_message)
             raise
 
+
     @staticmethod
     def _plot_metric(axis, data: tuple, line_info: Optional[tuple] = None,
-                     ylim: Optional[tuple] = None) -> None:
+                     ylim: Optional[tuple] = None, horizontal_lines: Optional[list] = None) -> None:
         """
         Helper function to plot a GPU metric on a given axis.
 
@@ -545,6 +561,7 @@ class BaseMonitor(ABC):
             data (tuple): Tuple containing (timestamps, y_data, title, ylabel, xlabel).
             line_info (Optional[tuple]): Tuple containing a horizontal line's y value and label.
             ylim (Optional[tuple]): y-axis limits.
+            horizontal_lines (Optional[list]): List of tuples for multiple horizontal lines' y values and labels.
         """
         # Unpack the data tuple into individual components
         timestamps, y_data, title, ylabel, xlabel = data
@@ -553,7 +570,14 @@ class BaseMonitor(ABC):
         for i, gpu_data in enumerate(y_data):
             axis.plot(timestamps, gpu_data, label=f"GPU {i}", marker="*")
 
-        # Optionally plot a horizontal line for a specific threshold
+        # Optionally plot horizontal lines for specific thresholds
+        if horizontal_lines:
+            colors = ['r', 'g', 'c', 'm', 'y', 'k']
+            for idx, (yline, yline_label) in enumerate(horizontal_lines):
+                color = colors[idx % len(colors)]  # Cycle through the color list
+                axis.axhline(y=yline, color=color, linestyle="--", label=yline_label)
+
+        # # Optionally plot a horizontal line for a specific threshold
         if line_info:
             yline, yline_label = line_info
             axis.axhline(y=yline, color="r", linestyle="--", label=yline_label)
@@ -602,15 +626,23 @@ class BaseMonitor(ABC):
                 [m[i] for m in self._time_series_data["mem"]]
                 for i in range(self._stats['device_count'])
             ]
+            clk_speed_data = [
+            [c[i] for c in self._time_series_data["clk_speed"]]
+            for i in range(self._stats['device_count'])
+            ]
+            mem_clk_speed_data = [
+                [m[i] for m in self._time_series_data["mem_clk_speed"]]
+                for i in range(self._stats['device_count'])
+            ]
 
             # Create a new figure with a 2x2 grid of subplots
             fig = figure.Figure(figsize=(20, 15))
-            axes = fig.subplots(nrows=2, ncols=2)
+            axes = fig.subplots(nrows=3, ncols=2)
 
             # Create a backend for rendering the plot
             canvas = agg.FigureCanvasAgg(fig)
 
-            # Plot each metric using the helper function
+             # Plot each metric using the helper function
             self._plot_metric(
                 axes[0, 0],
                 (
@@ -630,11 +662,26 @@ class BaseMonitor(ABC):
             self._plot_metric(
                 axes[1, 0],
                 (timestamps, temp_data, "GPU Temperature", "Temperature (C)", "Timestamp"),
+                horizontal_lines=[
+                    (self._stats["temp_threshold_gpu_max"], "GPU Max Temp"),
+                    (self._stats["temp_threshold_slowdown"], "Slowdown Temp"),
+                    (self._stats["temp_threshold_shutdown"], "Shutdown Temp")
+                ]
             )
             self._plot_metric(
                 axes[1, 1],
                 (timestamps, mem_data, "GPU Memory Usage", "Memory (MiB)", "Timestamp"),
                 (self._stats["total_mem"], "Total Memory"),
+            )
+            self._plot_metric(
+                axes[2, 0],
+                (timestamps, clk_speed_data, "GPU Clock Speed", "Clock Speed (MHz)", "Timestamp"),
+                (self._stats["max_clk_speed"], "Max Clock Speed"),
+            )
+            self._plot_metric(
+                axes[2, 1],
+                (timestamps, mem_clk_speed_data, "GPU Memory Clock Speed", "Memory Clock Speed (MHz)", "Timestamp"),
+                (self._stats["max_mem_clk_speed"], "Max Memory Clock Speed"),
             )
 
             # Adjust layout to prevent overlap
@@ -756,3 +803,10 @@ class BaseMonitor(ABC):
     @abstractmethod
     def _cleanup_benchmark(self) -> None:
         """Clean up after the benchmark has finished."""
+
+
+    # @abstractmethod
+    # def _collect_benchmark_score(self) -> float:
+    #     """
+    #     Collect the internal benchmark score and store it in _stats if available.
+    #     """

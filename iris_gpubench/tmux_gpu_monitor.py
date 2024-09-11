@@ -24,7 +24,7 @@ Note:
    Find them in runtime.log.
 """
 
-
+import os
 import subprocess
 from datetime import datetime
 
@@ -68,6 +68,9 @@ class TmuxGPUMonitor(BaseMonitor):
             LOGGER.error("'Tmux' functionality is not available. Please install tmux.")
             raise RuntimeError("The 'tmux' is required but not available. Please install it.")
         self.session_name = "benchmark_session"
+        self._benchmark_score_path = None
+
+        self.benchmark_name = None
 
     def _start_benchmark(self, benchmark) -> None:
         """
@@ -177,3 +180,43 @@ class TmuxGPUMonitor(BaseMonitor):
         except subprocess.CalledProcessError as error:
             LOGGER.error("Failed to clean up tmux session '%s': %s",
                          self.session_name, error)
+            
+    @property
+    def benchmark_score_path(self) -> str:
+        """
+        Returns the path to the benchmark score file.
+
+        If a user-specified benchmark score path is set via the setter, this path is returned.
+        Otherwise, the default path '../results/metrics.yml' is returned.
+
+        This property allows for flexible management of the benchmark score file location,
+        providing either a user-defined path or a standard default.
+
+        Returns:
+            str: The user-defined path to the benchmark score file if set, otherwise 
+            the default path '../results/metrics.yml'.
+        """
+        # User specified benchmark score path
+        if self._benchmark_score_path:
+            return self._benchmark_score_path
+
+        return '../results/metrics.yml'
+
+    @benchmark_score_path.setter
+    def benchmark_score_path(self, path: str) -> None:
+        """
+        Sets the path to the benchmark score file.
+
+        Allows the user to manually specify the location of the benchmark score file.
+        Ensures that the provided path is a valid string before setting it.
+
+        Args:
+            path (str): The full path to the benchmark score file.
+
+        Raises:
+            ValueError: If the provided path is not a valid string.
+        """
+        if not isinstance(path, str):
+            raise ValueError("The benchmark score path must be a string.")
+
+        self._benchmark_score_path = path
