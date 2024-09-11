@@ -63,10 +63,4 @@ To calculate this:
 
 ---
 
-Feel free to let me know if you want further adjustments or additions!
-
-
-
----
-
 [Previous Page](considerations_on_accuracy.md)
