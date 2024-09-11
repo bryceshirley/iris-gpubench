@@ -36,7 +36,7 @@
   - **Temperature**: Overheating can lead to reduced clock speeds.
   - **Power Supply**: The available power may limit the maximum achievable clock speed.
 
-### Experimenting with Precision
+### Experimenting with Precision (For Sciml Benchmarks)
 - **Tensor Cores**: For GPUs with tensor cores, leverage the ability to perform matrix operations in lower precisions (e.g., FP16) to achieve significant performance gains where appropriate. This will be highly dependent on workload requirements for precision.
 
 ### Estimating Floating Point Operations Per Second (FLOPs)
