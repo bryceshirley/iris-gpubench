@@ -6,8 +6,6 @@
 - using shell check from bash script (similar to pylint) on bash script
 - Add dependabot to github actions
 
-Here's a revised and restructured version of your "Future Work" section with added ideas for clarity and completeness:
-
 ---
 
 ## Future Work
@@ -39,13 +37,12 @@ Here's a revised and restructured version of your "Future Work" section with add
 #### Additional Metrics for Specific Tools (e.g., MANTID IMAGING)
 - **Memory Bandwidth**: Measure the rate at which data is transferred between the GPU and system memory to understand potential bottlenecks.
 
-### Investigating Clock Speeds
+### Investigating Clock Speeds and Flops
 - Use `nvidia-smi` to collect and analyze clock speeds. Note that comparing GPUs based solely on clock speed can be misleading due to differences in CUDA cores, tensor cores, and the operations per clock cycle for different generations.
 - **Factors Affecting Clock Speed:**
   - **Workload**: Heavier workloads may require higher clock speeds.
-  - **Temperature**: Overheating can lead to reduced clock speeds to prevent damage.
+  - **Temperature**: Overheating can lead to reduced clock speeds.
   - **Power Supply**: The available power may limit the maximum achievable clock speed.
-  - **Driver Settings**: GPU drivers may allow manual adjustments to clock speeds.
 
 ### Experimenting with Precision
 - **Tensor Cores**: For GPUs with tensor cores, leverage the ability to perform matrix operations in lower precisions (e.g., FP16) to achieve significant performance gains where appropriate. This will be highly dependent on workload requirements for precision.
@@ -64,10 +61,8 @@ To calculate this:
 - Consider how tools like `sciml-bench` report core usage (e.g., tensor cores) and incorporate these details into metrics collection.
 
 ### Leveraging NVIDIA Nsight
-- **Explore NVIDIA Nsight Systems**: Investigate the use of NVIDIA Nsight Systems for detailed workload profiling. This tool offers system-wide performance analysis, visualizing application algorithms, identifying optimization opportunities, and tuning performance across various CPU and GPU configurations. Determine if Nsight can provide insights into which cores/SMs (streaming multiprocessors) are activated during benchmarks.
+- **Explore NVIDIA Nsight Systems**: Investigate the use of NVIDIA Nsight Systems for detailed workload profiling. This tool offers system-wide performance analysis, visualizing application algorithms, identifying optimization opportunities, and tuning performance across various CPU and GPU configurations. Determine if Nsight can provide insights into which cores/SMs (streaming multiprocessors) are activated during benchmarks as well as any other interesting metrics.
 
-### Other Considerations
-- **Investigate Core Utilization Metrics**: Understand if core utilization can be measured directly, such as through specific counters or NVIDIA profiling tools, to give more granular insights into GPU performance under different loads.
 
 ---
 
