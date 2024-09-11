@@ -1,4 +1,4 @@
-## Priority Order
+## Repo Jobs
 - Use best practice for naming dockerfiles.
 - Include logging levels (basically nothing - everything) - Log tagging, info, error
 - Add shell check workflow: https://github.com/stfc/SCD-OpenStack-Utils/blob/master/.github/workflows/gpu_benchmark.yaml
