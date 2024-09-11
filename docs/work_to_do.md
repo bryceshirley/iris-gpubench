@@ -1,57 +1,77 @@
 ## Priority Order
-- Add in docs how users can save data from containers
-- Update Readme with an explanation of the repos organisation and folder structure.
 - Use best practice for naming dockerfiles.
 - Include logging levels (basically nothing - everything) - Log tagging, info, error
 - Add shell check workflow: https://github.com/stfc/SCD-OpenStack-Utils/blob/master/.github/workflows/gpu_benchmark.yaml
-- Fix bug when collecting from Tmux logs.
-- Save container logs and Tmux logs into a results file.
 - Write CI tests and add them to github actions
-- Profiling has been done for iris_gpubench of GPU resource but CPU resources are also utilized, though profiling tests to determine exact CPU usage by the monitor system have not yet been conducted (if they are high this is a limitation of the monitor system and optimization will be needed. Given the monitor pauses between intervals there is opportunity to use pythons asynco).
 - using shell check from bash script (similar to pylint) on bash script
-- Add Highly Optimized NVIDIA HPL Benchmarks: [NVIDIA HPC Benchmarks](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/hpc-benchmarks) see [NVIDIA HPL Benchmark docs](https://docs.nvidia.com/nvidia-hpc-benchmarks/HPL_benchmark.html) (GraceHopper Tests)
-- Normalization of results.
-- Integrate RFI GPU benchmarks
-- Investigate how the sciml-bench outputs the types of cores in use (ie Tensor cores) and include this in the collected metrics.
-- Edit The way "Carbon Forcast (gCO2/kWh)" is computed so that the program checks the Forcast every 30 mins (or less) and computes an average at the end. (Another way to do this would be to multiply the energy consumed each 30 mins (or time interval) by the Forecast for that time and then add them together for a more accurate result. This way we could also give live power updates)
 - Add dependabot to github actions
-- An idea for the future would be for Iris Users to integrate this benchmark into
-there continuous integration and on pull request test there codes gpu's performance
-if the performance is reduced by say 5% the test would fail and the pull request
-rejected.
-- ensure all the gpus are using the same hardware ie memory and cpus to control the variables
-## Other things to measure: 
-- time of utilization (the total time utilization is not 0)
-### Stability
-- Crash Frequency: Note if the GPU crashes or artifacts appear during the benchmark. - Throttling: Check if the GPU's clock speeds are reduced due to high temperatures or power limitations.
 
-### Temperature
-- Hotspot Temperature: Some GPUS have sensors to measure the temperature of the hottest point. A100, H100, and RTX 4000: These GPUS often have hotspot sensors
+Here's a revised and restructured version of your "Future Work" section with added ideas for clarity and completeness:
 
-### Additional Metrics (Depending on the Benchmark Tool) ie for MANTID IMAGING
-Memory Bandwidth: Measure the rate at which data can be transferred between the GPU and system memory.
+---
 
-### Clock Speeds
-Use NVIDIA-smi to collect the clock speeds.
-Factors effecting clock speed:
- * Workload: Heavier workloads often require higher clock speeds.
- * Temperature: If the GPU is overheating, it may reduce clock speed to prevent damage.
- * Power supply: The available power can limit the maximum clock speed.
- * GPU driver settings: Some drivers allow for manual clock speed adjustments. 
+## Future Work
 
-### Most up-to-date drivers
-- big limitation to my work is I didnt use the most up-to-date drivers. The most update driver ensures the gpu will be fully optimised.
+### Additional Benchmarks to Integrate
+- **RFI GPU Benchmarks**: Explore and integrate relevant RFI GPU benchmarks to enhance the breadth of performance evaluations.
+- **Highly Optimized NVIDIA HPL Benchmarks**: Add the [NVIDIA HPC Benchmarks](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/hpc-benchmarks), particularly the HPL benchmarks designed for Grace Hopper tests. Refer to the [NVIDIA HPL Benchmark documentation](https://docs.nvidia.com/nvidia-hpc-benchmarks/HPL_benchmark.html) for details on implementation and optimization.
 
-### Experiment with Precision 
-- Tensor cores: GPUS with tensor cores can perform matrix operations in FP16 or lower precisions, offering significant performance gains. This is workload dependent as high precision is option needed.
+### Improvements and Enhancements on the GitHub Repository
+- **Continuous Integration (CI) Tests**: Develop and integrate comprehensive CI tests into GitHub Actions to ensure code reliability and maintainability.
+- **CPU Profiling**: While GPU resource profiling has been done for the `iris_gpubench`, profiling the CPU resources utilized by the monitor system has not been conducted yet. Future work should include tests to measure and understand CPU usage.
+- **Carbon Index Calculation**: Calculate the carbon index as an average throughout the entire run rather than only at the start and end, for a more accurate representation of environmental impact.
 
-### Estimating FLOPs
+### Enhancing Benchmark Results
+- **Normalization of Results**: Implement normalization methods to better compare results across different GPU models and workloads.
+- **FLOP Estimations and Efficiency Metrics**: Calculate FLOPs to determine performance per watt, providing a meaningful estimate of computational efficiency.
+- **Detailed GPU Memory Utilization Metrics**: Include comprehensive measurements of GPU memory utilization, not just the total memory used.
+- **Integration into Meerkat**: Complete the integration of benchmarks into Meerkat to facilitate periodic test execution. This would allow benchmark bar charts to include error bars by computing the mean and standard deviation across multiple tests.
 
-To estimate the FLOPs of a GPU, you can use the following formula:
+### Other Ideas for Future Implementation
+- **Consistent Hardware Configurations**: Ensure all GPUs being tested use the same hardware configurations (memory, CPUs, etc.) to control for variables and produce more consistent results.
+- **Continuous Integration for Performance Testing**: Encourage Iris users to integrate these benchmarks into their CI workflows. On every pull request, a GPU performance test could be run; if performance drops by a specified percentage (e.g., 5%), the pull request would fail, ensuring code changes do not degrade performance.
+
+### Additional Metrics and Areas for Measurement
+- **Utilization Time**: Measure the total time the GPU is actively utilized (i.e., when utilization is not 0).
+#### Stability Metrics
+- **Crash Frequency**: Track and document any GPU crashes or visual artifacts appearing during benchmarks.
+- **Throttling Events**: Monitor if and when GPU clock speeds are reduced due to high temperatures or power limitations.
+#### Additional Metrics for Specific Tools (e.g., MANTID IMAGING)
+- **Memory Bandwidth**: Measure the rate at which data is transferred between the GPU and system memory to understand potential bottlenecks.
+
+### Investigating Clock Speeds
+- Use `nvidia-smi` to collect and analyze clock speeds. Note that comparing GPUs based solely on clock speed can be misleading due to differences in CUDA cores, tensor cores, and the operations per clock cycle for different generations.
+- **Factors Affecting Clock Speed:**
+  - **Workload**: Heavier workloads may require higher clock speeds.
+  - **Temperature**: Overheating can lead to reduced clock speeds to prevent damage.
+  - **Power Supply**: The available power may limit the maximum achievable clock speed.
+  - **Driver Settings**: GPU drivers may allow manual adjustments to clock speeds.
+
+### Experimenting with Precision
+- **Tensor Cores**: For GPUs with tensor cores, leverage the ability to perform matrix operations in lower precisions (e.g., FP16) to achieve significant performance gains where appropriate. This will be highly dependent on workload requirements for precision.
+
+### Estimating Floating Point Operations Per Second (FLOPs)
+To estimate the FLOPs of a GPU, use the formula:
 
 \[
 \text{FLOPs} = \text{CUDA Cores} \times \text{Clock Speed (Hz)} \times \text{Operations per Clock Cycle}
 \]
+
+To calculate this:
+- Determine the number and type of cores (e.g., CUDA cores, tensor cores) and which cores are being used.
+- Find the operations per clock cycle, specific to the GPU generation.
+- Investigate how utilization is calculated in `nvidia-smi` and whether raw utilization data (e.g., core or clock cycle-based) can be accessed.
+- Consider how tools like `sciml-bench` report core usage (e.g., tensor cores) and incorporate these details into metrics collection.
+
+### Leveraging NVIDIA Nsight
+- **Explore NVIDIA Nsight Systems**: Investigate the use of NVIDIA Nsight Systems for detailed workload profiling. This tool offers system-wide performance analysis, visualizing application algorithms, identifying optimization opportunities, and tuning performance across various CPU and GPU configurations. Determine if Nsight can provide insights into which cores/SMs (streaming multiprocessors) are activated during benchmarks.
+
+### Other Considerations
+- **Investigate Core Utilization Metrics**: Understand if core utilization can be measured directly, such as through specific counters or NVIDIA profiling tools, to give more granular insights into GPU performance under different loads.
+
+---
+
+Feel free to let me know if you want further adjustments or additions!
 
 
 
