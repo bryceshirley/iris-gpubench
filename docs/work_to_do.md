@@ -42,9 +42,9 @@
 ### Estimating Floating Point Operations Per Second (FLOPs)
 To estimate the FLOPs of a GPU, use the formula:
 
-\[
+$$
 \text{FLOPs} = \text{CUDA Cores} \times \text{Clock Speed (Hz)} \times \text{Operations per Clock Cycle}
-\]
+$$
 
 To calculate this:
 - Determine the number and type of cores (e.g., CUDA cores, tensor cores) and which cores are being used.
