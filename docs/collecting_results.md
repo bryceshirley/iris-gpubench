@@ -88,7 +88,7 @@ GPU Information
 
 - **Description:** Exports the collected timeseries gpu metrics for a given benchmark and gpu type to Meerkat DB which is then scraped by a [Grafana Dashboard.](http://172.16.112.145:3000/d/fdw7dv7phr0g0e/iris-bench?orgId=1). The minimum grafana scrape interval is 10s, hence, better precision can be see in `metrics_plot.png` if the `--interval` tag is set to <10s.
 
-A copy of the json queries require for this dashboard has been stored in: `grafana_dashboard_copyjson`.
+- A copy of the json queries require for this dashboard has been stored in: `grafana_dashboard_copyjson`.
 
 - **Example:**  
 ![Grafana Dashboard](docs_image_grafana.png)
