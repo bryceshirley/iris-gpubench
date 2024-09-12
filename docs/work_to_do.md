@@ -1,5 +1,3 @@
-### Future Work and Expansion
-
 #### Additional Benchmarks to Integrate
 
 - **McStas Neutron Monte Carlo Ray-Tracing**
