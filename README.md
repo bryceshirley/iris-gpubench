@@ -5,7 +5,7 @@
 
 
 # IRIS GPU Bench
-## A GPU Monitoring and Carbon Calculation Tool for Benchmarks
+## A GPU Performance and Carbon Calculation Tool for Benchmarks
 ---
 
 ### Documentation
@@ -32,6 +32,10 @@ The **IRIS GPU Bench** tool tracks GPU performance and carbon emissions during b
 - **Real-time Logging**: Supports live prints of Docker container or Tmux logs.
 
 This tool is ideal for evaluating GPU application performance, measuring environmental impact, optimizing GPU performance, and informing purchasing decisions by testing applications on different hardware configurations.
+
+### Iris Bench Report - 12/09/24
+
+For a report on the performance of the benchmarks available on this repo for on a range of GPU see `Iris Bench Report - 12_09_24.pdf` file.
 
 ---
 
