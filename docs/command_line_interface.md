@@ -25,7 +25,7 @@ iris-gpubench --help
 
 ## Important Notes
 
-- For `--export_to_meerkat` the username, password and meerkat URL for Meerkat export them to as environment variables, ie: `export MEERKAT_USERNAME='insert_username'`, `export MEERKAT_USERNAME='insert_password'` and `export MEERKAT_URL='https://172.16.101.182:8247/write'`.
+- For `--export_to_meerkat` the username, password and meerkat URL for Meerkat export them to as environment variables, ie: `export MEERKAT_USERNAME='insert_username'`, `export MEERKAT_USERNAME='insert_password'` and `export MEERKAT_URL='https://172.16.101.182:8247/write'`. (As of 12/09/24 that is the correct URL)
 - Either `--benchmark_image` or `--benchmark_command` must be provided, but not both. If both options are specified, an error will be raised.
 - Live GPU metrics monitoring and saving a final plot are enabled by default; use `--no_live_monitor` and `--no_plot` to disable them, respectively.
 - To view the available carbon regions, use `--carbon_region ""` to get a list of all regions.
