@@ -22,7 +22,7 @@ Describes how to enable and use the live monitoring feature to track GPU metrics
  8. **[Considerations On Accuracy](considerations_on_accuracy.md)**  
 Discusses limitations and accuracy considerations regarding the measurement of GPU metrics and carbon emissions.
 
- 9. **[Work To Do](work_to_do.md)**  
+ 9. **[Future Work and Expansion](work_to_do.md)**  
 Outlines the future improvements and tasks that are planned or currently being worked on for the tool.
 
 ---
