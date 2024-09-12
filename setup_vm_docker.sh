@@ -81,6 +81,7 @@ sudo apt-get install -y python3-venv
 echo -e "/n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/nINSTALL NVIDIA DRIVERS/n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/n"
 
 # Install NVIDIA drivers (if needed)
+# Ensure the driver is up-to-date for the GPU to achieve maximum performance.
 sudo apt install -y nvidia-driver-535
 
 ##### REBOOT VM #####
