@@ -20,10 +20,10 @@ iris-gpubench --benchmark_image "synthetic_regression" --export_to_meerkat
 ### Example 3: Full Command with All Options:
 
 ```sh
-iris-gpubench --benchmark_image "stemdl_classification_2gpu" --interval 10 --carbon_region "South England" --live_plot --export_to_meerkat --monitor_logs
+iris-gpubench --benchmark_image "stemdl_classification" --interval 10 --carbon_region "South England" --live_plot --export_to_meerkat --monitor_logs
 ```
 
-- **Explanation**: This is a comprehensive example that runs the `stemdl_classification_2gpu` benchmark in a Docker container and collects GPU metrics at a 10-second interval. The `--carbon_region` flag specifies the carbon intensity region as "South England" to track the carbon emissions impact. Live plotting of GPU metrics is enabled (`--live_plot`), and data will be exported to Meerkat DB via VictoriaMetrics (`--export_to_meerkat`). The `--monitor_logs` flag enables logging of both GPU metrics and the Docker container logs, allowing for deeper analysis of benchmark performance.
+- **Explanation**: This is a comprehensive example that runs the `stemdl_classificatio` benchmark in a Docker container and collects GPU metrics at a 10-second interval. The `--carbon_region` flag specifies the carbon intensity region as "South England" to track the carbon emissions impact. Live plotting of GPU metrics is enabled (`--live_plot`), and data will be exported to Meerkat DB via VictoriaMetrics (`--export_to_meerkat`). The `--monitor_logs` flag enables logging of both GPU metrics and the Docker container logs, allowing for deeper analysis of benchmark performance.
 
 ### Example 4: Run and Monitor Benchmark in the Background without the Need for a Container:
 
