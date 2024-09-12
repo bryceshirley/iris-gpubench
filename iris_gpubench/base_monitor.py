@@ -803,10 +803,3 @@ class BaseMonitor(ABC):
     @abstractmethod
     def _cleanup_benchmark(self) -> None:
         """Clean up after the benchmark has finished."""
-
-
-    # @abstractmethod
-    # def _collect_benchmark_score(self) -> float:
-    #     """
-    #     Collect the internal benchmark score and store it in _stats if available.
-    #     """
