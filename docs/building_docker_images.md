@@ -6,12 +6,14 @@ The repository includes various Docker images for benchmarking. Below is a list 
 
 ### Mantid Imaging Benchmarks
 - **`mantid_run_1`**: Dockerfile for a Mantid benchmark with 1GB of data.
+- **`mantid_run_4`**: Dockerfile for a Mantid benchmark with 4GB of data.
+- **`mantid_run_5`**: Dockerfile for a Mantid benchmark with 5GB of data.
 - **`mantid_run_8`**: Dockerfile for a Mantid benchmark with 8GB of data.
 
 For more details, visit the [Mantid Imaging Benchmarks Repository](https://github.com/samtygier-stfc/mantid_imaging_cloud_bench).
 
 ### SciML Benchmarks
-- **`mnist_tf_keras`**: Dockerfile for MNIST classification using TensorFlow/Keras.
+- **`mnist_tf_keras`**: Dockerfile for MNIST classification using TensorFlow/Keras. (NOT WORKING)
 - **`stemdl_classification`**: Dockerfile for STEMDL classification, this benchmark will utilize multiple gpus, if available. Uses parameters `-b epochs 3`.
 - **`synthetic_regression`**: Dockerfile for synthetic regression benchmarks with parameters `-b hidden_size 9000 -b epochs 3`.
   
@@ -34,6 +36,8 @@ dockerfiles/
 │   ├── Dockerfile.dummy
 │   ├── mantid_bench
 │   │   ├── Dockerfile.mantid_run_1
+│   │   ├── Dockerfile.mantid_run_4
+│   │   ├── Dockerfile.mantid_run_5
 │   │   └── Dockerfile.mantid_run_8
 │   └── sciml_bench
 │       ├── Dockerfile.mnist_tf_keras
@@ -58,6 +62,8 @@ To pull all images from Harbor to your local machine, execute the `pull_images.s
 ./pull_images.sh
 ```
 
+If the above fails, running the command below is recommended.
+
 ## Building Docker Images Locally
 
 To build Docker images locally instead of pulling them from Harbor, execute the `build_images.sh` script: 
@@ -75,18 +81,16 @@ To build Docker images locally instead of pulling them from Harbor, execute the 
 
 For detailed instructions on running your own images, refer to the Command Line Interface section (Next Page).
 
-## Adding New Benchmarks (For Developers) CORRECT THIS SECTION
+## Adding New Benchmarks (For Developers)
 
 ### Steps to Add New Benchmarks:
 1. **Add Dockerfiles**: Place Dockerfiles for new benchmarks in the `dockerfiles/app_images` directory. Ensure the Dockerfile extension names reflect the image names you want (e.g., `Dockerfile.synthetic_regression` will create an image named `synthetic_regression`).
 
-2. **Custom Base Images**: Store Dockerfiles for custom base images in the `dockerfiles/base_images` directory. These base images will be built first by the GitHub Actions workflows.
+2. **Custom Base Images**: Store Dockerfiles for custom base images in the `dockerfiles/base_images` directory. These base images will be built first by the GitHub Actions workflows or by `build_images.sh`.
 
-3. **Push Changes**: Commit and push your changes to the GitHub repository. The GitHub Actions workflows will automatically build and push the Docker images to Harbor.
+3. **Update `build_images.sh` so the can easily be built locally**
 
-4. **Pull Images**: Use `pull_images.sh` to download the new images to your local environment or use `build_images.sh` to build them locally.
-
-5. **Check Build Status:** Verify that the images have been built successfully by listing the local Docker images using `docker images`
+4. **To add to Harbor**: Update github workflow `docker-build.yml` to include them (on push/pull request to main they will be built) and as add them to `pull_images.sh`.
 
 ---
 
