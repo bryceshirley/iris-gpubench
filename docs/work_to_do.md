@@ -46,7 +46,7 @@ Utilize NVIDIA Nsight Systems for detailed performance profiling, identifying op
 #### Additional Metrics and Areas for Measurement in IRIS Bench
 
 - **Utilization Time**: Measure the total time the GPU is actively utilized, which can provide insights into idle periods and workload efficiency.
-- **Stability: Crash Frequency**: Track and report any GPU crashes or visual artifacts during benchmarks to assess stability.
+- **Stability: Crash Frequency**: Track and report any GPU crashes or abnormalities during benchmarks to assess stability.
 - **Throttling Events**: Monitor instances of clock speed reductions due to high temperatures or power constraints.
 - **Memory Bandwidth**: Measure the data transfer rate between the GPU and system memory to identify potential bottlenecks and optimize performance.
 
@@ -64,7 +64,6 @@ Utilize NVIDIA Nsight Systems for detailed performance profiling, identifying op
 - **Use Best Practices for Naming Dockerfiles**: Ensure all Dockerfiles follow standard naming conventions for clarity and maintainability.
 - **Include Logging Levels**: Implement various logging levels (e.g., debug, info, error) and log tagging to improve traceability and debugging.
 - **Add Shell Check Workflow**: Integrate a shell check workflow, similar to the one used in the [SCD-OpenStack-Utils repository](https://github.com/stfc/SCD-OpenStack-Utils/blob/master/.github/workflows/gpu_benchmark.yaml), to catch errors in shell scripts.
-- **Write CI Tests for GitHub Actions**: Develop and include additional CI tests within GitHub Actions to ensure consistent and error-free functionality.
 - **Run Shell Check from Bash Scripts**: Use shell check (similar to pylint) to analyze bash scripts for potential issues and maintain code quality.
 - **Add Dependabot to GitHub Actions**: Implement Dependabot for automated dependency updates, improving security and ensuring compatibility with new releases.
 
