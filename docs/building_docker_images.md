@@ -90,7 +90,7 @@ For detailed instructions on running your own images, refer to the Command Line 
 
 3. **Update `build_images.sh` so the can easily be built locally**
 
-4. **To add to Harbor**: Update github workflow `docker-build.yml` to include them and `pull_images.sh`.
+4. **To add to Harbor**: Update github workflow `docker-build.yml` to include them (on push/pull request to main they will be built) and as add them to `pull_images.sh`.
 
 ---
 
