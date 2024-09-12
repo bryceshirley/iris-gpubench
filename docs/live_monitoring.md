@@ -72,13 +72,9 @@ This command was run on a VM with 2 V100 GPUs for the results in [Collecting Res
 
 ## (Grafana) Timeseries Plot Live
 
-If the `--export_to_meerkat` tag is used the results can be viewed live from the Grafana Dashboard.
+If the `--export_to_meerkat` tag is used the results can be viewed live from the Grafana Dashboard. Data from multiple VMs can be collected all at once allowing for a live comparison of performance as well.
 
-**Example command and Results:**
-```sh
-iris-gpubench --benchmark_image "stemdl_classification" --export_to_meerkat
-```
-This command was run on a VM with 2 V100 GPUs and a VM with an A4000 for the results in [Collecting Results Section](collecting_results.md#gpu-metric-grafana-plots).
+See example results [Collecting Results Section](collecting_results.md#gpu-metric-grafana-plots).
 
 ---
 
