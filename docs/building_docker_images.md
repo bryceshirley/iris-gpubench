@@ -93,6 +93,7 @@ For detailed instructions on running your own images, refer to the Command Line 
 4. **To add to Harbor**: Update github workflow `docker-build.yml` to include them (on push/pull request to main they will be built) and as add them to `pull_images.sh`.
 
 5. **Ensure Benchmark Specific Results are Stored Correctly**: In the dockerfile save benchmark specific results to the `/root/results/` directory within the container. Additionally, record the benchmark's time score (in seconds) in a `metrics.yml` file using the key `time: 123`. This ensures that IRIS Bench can copy these results from the container before it is removed.
+(for more context see `_collect_benchmark_score` method in the base_monitor.py source code)
 
 ---
 
