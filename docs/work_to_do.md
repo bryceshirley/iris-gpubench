@@ -61,6 +61,7 @@ Utilize NVIDIA Nsight Systems for detailed performance profiling, identifying op
 
 - **Continuous Integration (CI) Tests**: Develop and integrate comprehensive CI tests using GitHub Actions to maintain code reliability, ensure consistent performance, and catch issues early in the development cycle.
 - **Carbon Index Calculation**: Enhance the environmental impact analysis by calculating the carbon index throughout the entire benchmarking run, rather than just at the start and end, to provide a more accurate representation.
+- **Wider Carbon Cost View:** * It would be good to also investigate carbon associated with the manufacturing, delivery and lifetime of the GPU to. Ie how much of the lifetime was consumed by the run and how does that equate to carbon emissions.
 - **Use Best Practices for Naming Dockerfiles**: Ensure all Dockerfiles follow standard naming conventions for clarity and maintainability.
 - **Include Logging Levels**: Implement various logging levels (e.g., debug, info, error) and log tagging to improve traceability and debugging.
 - **Add Shell Check Workflow**: Integrate a shell check workflow, similar to the one used in the [SCD-OpenStack-Utils repository](https://github.com/stfc/SCD-OpenStack-Utils/blob/master/.github/workflows/gpu_benchmark.yaml), to catch errors in shell scripts.
