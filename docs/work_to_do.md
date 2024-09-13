@@ -49,32 +49,32 @@ To achieve a more accurate total carbon To more accurately estimate the total ca
 
 Cooling power should also be considered; while `nvidia-smi` does not report fan power directly, fan speed data can be used to estimate it.
 
-The revised calculation would include:
+The revised calculation includes:
 
 - **Manufacturing Emissions per Hour**:  
-  \[
-  \text{Manufacturing Emissions per Hour} = \frac{\text{Total Manufacturing Emissions (kg CO₂e)}}{\text{Expected Lifespan (hours)}}
-  \]
+```
+Manufacturing Emissions per Hour = Total Manufacturing Emissions (kg CO₂e) / Expected Lifespan (hours)
+```
 
-- **Delivery Emissions per Hour**:  
-  \[
-  \text{Delivery Emissions per Hour} = \frac{\text{Total Delivery Emissions (kg CO₂e)}}{\text{Expected Lifespan (hours)}}
-  \]
+- **Delivery Emissions per Hour**:
+```
+Delivery Emissions per Hour = Total Delivery Emissions (kg CO₂e) / Expected Lifespan (hours)
+```
 
 - **Use Emissions for the Run** (already calculated by IRIS Bench):  
-  \[
-  \text{Use Emissions for the Run} = \left( \frac{\text{Power Consumption (Watts)}}{1000} \right) \times \text{Run Time (hours)} \times \text{Carbon Intensity (kg CO₂e per kWh)}
-  \]
+```
+Use Emissions for the Run = (Power Consumption (Watts) / 1000) * Run Time (hours) * Carbon Intensity from API (kg CO₂e per kWh)
+```
 
 - **Cooling Emissions for the Run** (based on fan speed):  
-  \[
-  \text{Cooling Emissions for the Run} = \left( \frac{\text{Estimated Fan Power (Watts)}}{1000} \right) \times \text{Run Time (hours)} \times \text{Carbon Intensity (kg CO₂e per kWh)}
-  \]
+```
+Cooling Emissions for the Run = (Estimated Fan Power (Watts) / 1000) * Run Time (hours) * Carbon Intensity from API (kg CO₂e per kWh)
+```
 
-**Total Emissions for the Run**:  
-  \[
-  \text{Total Emissions for the Run} = \left( \text{Manufacturing Emissions per Hour} + \text{Delivery Emissions per Hour} \right) \times \text{Run Time (hours)} + \text{Use Emissions for the Run} + \text{Cooling Emissions for the Run}
-  \]
+- **Total Emissions for the Run**:  
+```
+Total Emissions for the Run = (Manufacturing Emissions per Hour + Delivery Emissions per Hour) * Run Time (hours) + Use Emissions for the Run + Cooling Emissions for the Run
+```
 
 This approach will provide a more comprehensive estimate of the carbon footprint for GPU workloads.
 
