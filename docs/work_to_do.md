@@ -43,6 +43,41 @@ FLOPs = CUDA Cores × Clock Speed (Hz) × Operations per Clock Cycle
 
 Utilize NVIDIA Nsight Systems for detailed performance profiling, identifying optimization opportunities, and potentially gaining insight into the activated cores for FLOP calculations. This tool offers in-depth insights into GPU performance across various workloads and configurations.
 
+#### Enhancing Carbon Footprint Accuracy
+
+To achieve a more accurate total carbon To more accurately estimate the total carbon footprint, emissions from the GPU's manufacturing, delivery, and full lifecycle should be included. This requires calculating the proportion of the GPU's lifespan used by a specific workload and converting it to equivalent carbon emissions, which are then added to emissions from the API and electricity use.
+
+Cooling power should also be considered; while `nvidia-smi` does not report fan power directly, fan speed data can be used to estimate it.
+
+The revised calculation would include:
+
+- **Manufacturing Emissions per Hour**:  
+  \[
+  \text{Manufacturing Emissions per Hour} = \frac{\text{Total Manufacturing Emissions (kg CO₂e)}}{\text{Expected Lifespan (hours)}}
+  \]
+
+- **Delivery Emissions per Hour**:  
+  \[
+  \text{Delivery Emissions per Hour} = \frac{\text{Total Delivery Emissions (kg CO₂e)}}{\text{Expected Lifespan (hours)}}
+  \]
+
+- **Use Emissions for the Run** (already calculated by IRIS Bench):  
+  \[
+  \text{Use Emissions for the Run} = \left( \frac{\text{Power Consumption (Watts)}}{1000} \right) \times \text{Run Time (hours)} \times \text{Carbon Intensity (kg CO₂e per kWh)}
+  \]
+
+- **Cooling Emissions for the Run** (based on fan speed):  
+  \[
+  \text{Cooling Emissions for the Run} = \left( \frac{\text{Estimated Fan Power (Watts)}}{1000} \right) \times \text{Run Time (hours)} \times \text{Carbon Intensity (kg CO₂e per kWh)}
+  \]
+
+**Total Emissions for the Run**:  
+  \[
+  \text{Total Emissions for the Run} = \left( \text{Manufacturing Emissions per Hour} + \text{Delivery Emissions per Hour} \right) \times \text{Run Time (hours)} + \text{Use Emissions for the Run} + \text{Cooling Emissions for the Run}
+  \]
+
+This approach will provide a more comprehensive estimate of the carbon footprint for GPU workloads.
+
 #### Additional Metrics and Areas for Measurement in IRIS Bench
 
 - **Utilization Time**: Measure the total time the GPU is actively utilized, which can provide insights into idle periods and workload efficiency.
