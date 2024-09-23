@@ -35,7 +35,7 @@ This tool is ideal for evaluating GPU application performance, measuring environ
 
 ### Iris Bench Report - 12/09/24
 
-For a report on the performance of the benchmarks available on this repo for on a range of GPU see [`Iris Bench Report - 12_09_24`](Iris Bench Report-230924.pdf) file.
+For a report on the performance of the benchmarks available on this repo for on a range of GPU see [`Iris Bench Report-230924.pdf`](https://github.com/bryceshirley/iris-bench/blob/main/Iris%20Bench%20Report-230924.pdf) file.
 
 ---
 
