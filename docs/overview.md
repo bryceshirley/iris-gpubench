@@ -33,4 +33,4 @@ The GPU Monitoring and Carbon Calculation Tool `iris-gpubench` monitors GPU perf
 
 ---
 
-[Previous Page](index.md) | [Next Page](installation.md)
+[Previous Page](index.md) | [Index](index.md) | [Next Page](installation.md)
