@@ -36,6 +36,6 @@ iris-gpubench --benchmark_image "stemdl_classification" --interval 10 --carbon_r
 
 ---
 
-[Previous Page](command_line_interface.md) | [Next Page](collecting_results.md)
+[Previous Page](command_line_interface.md) | [Index](index.md) | [Next Page](collecting_results.md)
 
 --- 
