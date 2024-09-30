@@ -95,4 +95,4 @@ GPU Information
 
 ---
 
-[Previous Page](example_commands.md) | [Next Page](live_monitoring.md)
+[Previous Page](example_commands.md) | [Index](index.md) | [Next Page](live_monitoring.md)
