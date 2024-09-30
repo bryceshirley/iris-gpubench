@@ -97,4 +97,4 @@ For detailed instructions on running your own images, refer to the Command Line 
 
 ---
 
-[Previous Page](installation.md) | [Next Page](command_line_interface.md)
+[Previous Page](installation.md) | [Index](index.md) | [Next Page](command_line_interface.md)
