@@ -105,4 +105,4 @@ This approach will provide a more comprehensive estimate of the carbon footprint
 
 ---
 
-[Previous Page](considerations_on_accuracy.md)
+[Previous Page](considerations_on_accuracy.md) | [Index](index.md)
