@@ -95,13 +95,13 @@ Scheduling tasks during periods of low carbon intensity or in regions with lower
 
 The table below, sourced from [Carbon Intensity API](https://carbonintensity.org.uk/), illustrates the variation in carbon intensity across different regions. At the time this screenshot was captured, the carbon intensity for the Daresbury Lab region was 21 gCO2/kWh, while RAL's region recorded 76 gCO2/kWh. Running a program at the Hartree Centre instead of RAL during this period could potentially reduce carbon emissions by approximately 70%, assuming the same hardware and setup are available.
 
-[regional_carbon_table](regional_carbon_table.png)
+![regional carbon table](regional_carbon_table.png)
 
 ### 5.4 Emissions Forecasting
 
 As shown in the plot below from [Carbon Intensity API](https://carbonintensity.org.uk/), actual emissions closely align with forecasted values. Running an energy-intensive task between September 27 at 00:00 and 12:00, rather than from September 28 at 00:00 to 12:00, could result in an approximately 50% reduction in carbon usage.
 
-[forecast](forecast.png)
+![forecast](forecast.png)
 
 ### 5.5 Integration with IRIS Bench
 
@@ -109,11 +109,11 @@ Connecting this back to benchmarks—IRIS Bench provides users with insights int
 
 The example below, taken from the [Carbon Intensity API](https://carbonintensity.org.uk/) on 27-09-2024, provides a carbon forecast through 29-09-2024 and demonstrates the ability to select specific regions for tailored predictions.
 
-[regional_forecast](regional_forecast.png)
+![regional forecast](regional_forecast.png)
 
 #### Formula for Predicting Carbon Emissions
 
-[carbon_predication_equation](carbon_predication_equation.png)
+![carbon predication equation](carbon_predication_equation.png)
 
 **Carbon_Prediction:** Estimated total carbon emissions (gCO2) of the task.
 
@@ -135,7 +135,7 @@ The example below, taken from the [Carbon Intensity API](https://carbonintensity
 
 WWF has integrated the API into a reusable widget designed to help reduce emissions by turning on devices during periods of green energy and off when it's not. STFC Cloud could create a similar solution for its users to enhance carbon emission management.
 
-[wwf_widget](wwf_widget.png)
+![wwf widget](wwf_widget.png)
 *Screen print from [WWF](https://www.wwf.org.uk/what-you-can-do/green-energy-forecast)*
 
 ## 6 Additional Metrics and Areas for Measurement in IRIS Bench
