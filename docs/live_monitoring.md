@@ -78,4 +78,4 @@ See example results [Collecting Results Section](collecting_results.md#gpu-metri
 
 ---
 
-[Previous Page](collecting_results.md) | [Next Page](considerations_on_accuracy.md)
+[Previous Page](collecting_results.md) | [Index](index.md) | [Next Page](considerations_on_accuracy.md)
