@@ -168,7 +168,7 @@ WWF has integrated the API into a reusable widget designed to help reduce emissi
 - **Add Shell Check Workflow**: Integrate a shell check workflow, similar to the one used in the [SCD-OpenStack-Utils repository](https://github.com/stfc/SCD-OpenStack-Utils/blob/master/.github/workflows/gpu_benchmark.yaml), to catch errors in shell scripts.
 - **Run Shell Check from Bash Scripts**: Use shell check (similar to pylint) to analyze bash scripts for potential issues and maintain code quality.
 - **Add Dependabot to GitHub Actions**: Implement Dependabot for automated dependency updates, improving security and ensuring compatibility with new releases.
-```
+
 ---
 
 [Previous Page](considerations_on_accuracy.md) | [Index](index.md)
