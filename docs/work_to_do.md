@@ -113,7 +113,7 @@ The example below, taken from the [Carbon Intensity API](https://carbonintensity
 
 #### Formula for Predicting Carbon Emissions
 
-![carbon predication equation](carbon_predication_equation.png)
+![carbon prediction equation](carbon_prediction_equation.png)
 
 **Carbon_Prediction:** Estimated total carbon emissions (gCO2) of the task.
 
